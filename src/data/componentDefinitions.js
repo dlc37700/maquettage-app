@@ -67,7 +67,7 @@ export const COMPONENT_DEFINITIONS = [
     label: 'Avatar',
     icon: '👤',
     category: 'Médias',
-    defaultProps: { bgColor: '#C4B5FD', opacity: 1, imageData: null },
+    defaultProps: { bgColor: '#C4B5FD', opacity: 1, imageData: null, emoji: '' },
     defaultSize: { width: 64, height: 64 },
     tooltip: 'Un cercle représentant une photo de profil',
   },
@@ -155,25 +155,82 @@ export const COMPONENT_DEFINITIONS = [
 ];
 
 export const BUTTON_PRESETS = [
-  { label: 'Accueil',      iconName: 'Home',       bgColor: '#6C63FF', emoji: '🏠' },
-  { label: 'Profil',       iconName: 'User',       bgColor: '#8B5CF6', emoji: '👤' },
-  { label: 'Affaires',     iconName: 'BookOpen',   bgColor: '#3B82F6', emoji: '📚' },
-  { label: 'Messages',     iconName: 'Mail',       bgColor: '#10B981', emoji: '✉️' },
-  { label: 'Recherche',    iconName: 'Search',     bgColor: '#F59E0B', emoji: '🔍' },
-  { label: 'Retour',       iconName: 'ArrowLeft',  bgColor: '#6B7280', emoji: '⬅️' },
-  { label: 'Paramètres',   iconName: 'Settings',   bgColor: '#374151', emoji: '⚙️' },
-  { label: 'Ajouter',      iconName: 'Plus',       bgColor: '#EF4444', emoji: '➕' },
-  { label: 'Favoris',      iconName: 'Heart',      bgColor: '#EC4899', emoji: '❤️' },
-  { label: 'Télécharger',  iconName: 'Download',   bgColor: '#0EA5E9', emoji: '⬇️' },
+  // Navigation
+  { label: 'Accueil',     category: 'Navigation',     iconName: 'Home',          bgColor: '#6C63FF', emoji: '🏠' },
+  { label: 'Retour',      category: 'Navigation',     iconName: 'ArrowLeft',     bgColor: '#6B7280', emoji: '⬅️' },
+  { label: 'Suivant',     category: 'Navigation',     iconName: 'ArrowRight',    bgColor: '#6B7280', emoji: '➡️' },
+  { label: 'Menu',        category: 'Navigation',     iconName: 'Menu',          bgColor: '#374151', emoji: '☰' },
+  { label: 'Paramètres',  category: 'Navigation',     iconName: 'Settings',      bgColor: '#374151', emoji: '⚙️' },
+  { label: 'Recherche',   category: 'Navigation',     iconName: 'Search',        bgColor: '#F59E0B', emoji: '🔍' },
+  { label: 'Fermer',      category: 'Navigation',     iconName: 'X',             bgColor: '#EF4444', emoji: '✖' },
+  // Social
+  { label: 'Profil',      category: 'Social',         iconName: 'User',          bgColor: '#8B5CF6', emoji: '👤' },
+  { label: 'Favoris',     category: 'Social',         iconName: 'Heart',         bgColor: '#EC4899', emoji: '❤️' },
+  { label: 'Étoile',      category: 'Social',         iconName: 'Star',          bgColor: '#F59E0B', emoji: '⭐' },
+  { label: 'Notifs',      category: 'Social',         iconName: 'Bell',          bgColor: '#F97316', emoji: '🔔' },
+  { label: 'Partager',    category: 'Social',         iconName: 'Share2',        bgColor: '#10B981', emoji: '📤' },
+  { label: 'Amis',        category: 'Social',         iconName: 'Users',         bgColor: '#3B82F6', emoji: '👥' },
+  { label: "J'aime",      category: 'Social',         iconName: 'ThumbsUp',      bgColor: '#3B82F6', emoji: '👍' },
+  { label: 'Abonner',     category: 'Social',         iconName: 'UserPlus',      bgColor: '#6C63FF', emoji: '🫂' },
+  // Communication
+  { label: 'Messages',    category: 'Communication',  iconName: 'Mail',          bgColor: '#10B981', emoji: '✉️' },
+  { label: 'Tchat',       category: 'Communication',  iconName: 'MessageCircle', bgColor: '#3B82F6', emoji: '💬' },
+  { label: 'Téléphone',   category: 'Communication',  iconName: 'Phone',         bgColor: '#22C55E', emoji: '📞' },
+  { label: 'Vidéo',       category: 'Communication',  iconName: 'Video',         bgColor: '#8B5CF6', emoji: '🎥' },
+  { label: 'Appel',       category: 'Communication',  iconName: 'PhoneCall',     bgColor: '#10B981', emoji: '📱' },
+  { label: 'Envoyer',     category: 'Communication',  iconName: 'Send',          bgColor: '#6C63FF', emoji: '🚀' },
+  // Actions
+  { label: 'Ajouter',     category: 'Actions',        iconName: 'Plus',          bgColor: '#EF4444', emoji: '➕' },
+  { label: 'Supprimer',   category: 'Actions',        iconName: 'Trash2',        bgColor: '#EF4444', emoji: '🗑️' },
+  { label: 'Modifier',    category: 'Actions',        iconName: 'Edit2',         bgColor: '#F59E0B', emoji: '✏️' },
+  { label: 'Télécharger', category: 'Actions',        iconName: 'Download',      bgColor: '#0EA5E9', emoji: '⬇️' },
+  { label: 'Sauvegarder', category: 'Actions',        iconName: 'Save',          bgColor: '#10B981', emoji: '💾' },
+  { label: 'Copier',      category: 'Actions',        iconName: 'Copy',          bgColor: '#6B7280', emoji: '📋' },
+  { label: 'Actualiser',  category: 'Actions',        iconName: 'RefreshCw',     bgColor: '#6C63FF', emoji: '🔄' },
+  { label: 'Verrouiller', category: 'Actions',        iconName: 'Lock',          bgColor: '#374151', emoji: '🔒' },
+  { label: 'Valider',     category: 'Actions',        iconName: 'Check',         bgColor: '#22C55E', emoji: '✅' },
+  // Commerce
+  { label: 'Panier',      category: 'Commerce',       iconName: 'ShoppingCart',  bgColor: '#F97316', emoji: '🛒' },
+  { label: 'Acheter',     category: 'Commerce',       iconName: 'CreditCard',    bgColor: '#10B981', emoji: '💳' },
+  { label: 'Cadeau',      category: 'Commerce',       iconName: 'Gift',          bgColor: '#EC4899', emoji: '🎁' },
+  { label: 'Promo',       category: 'Commerce',       iconName: 'Tag',           bgColor: '#EF4444', emoji: '🏷️' },
+  { label: 'Payer',       category: 'Commerce',       iconName: 'DollarSign',    bgColor: '#22C55E', emoji: '💰' },
+  { label: 'Signet',      category: 'Commerce',       iconName: 'Bookmark',      bgColor: '#8B5CF6', emoji: '🔖' },
+  // Médias
+  { label: 'Musique',     category: 'Médias',         iconName: 'Music',         bgColor: '#8B5CF6', emoji: '🎵' },
+  { label: 'Photo',       category: 'Médias',         iconName: 'Camera',        bgColor: '#374151', emoji: '📷' },
+  { label: 'Film',        category: 'Médias',         iconName: 'Film',          bgColor: '#374151', emoji: '🎬' },
+  { label: 'Globe',       category: 'Médias',         iconName: 'Globe',         bgColor: '#0EA5E9', emoji: '🌐' },
+  { label: 'Carte',       category: 'Médias',         iconName: 'Map',           bgColor: '#22C55E', emoji: '🗺️' },
+  { label: 'Boussole',    category: 'Médias',         iconName: 'Compass',       bgColor: '#F97316', emoji: '🧭' },
+  { label: 'Nuage',       category: 'Médias',         iconName: 'Cloud',         bgColor: '#6B7280', emoji: '☁️' },
+  // Quotidien
+  { label: 'Calendrier',  category: 'Quotidien',      iconName: 'Calendar',      bgColor: '#3B82F6', emoji: '📅' },
+  { label: 'Horloge',     category: 'Quotidien',      iconName: 'Clock',         bgColor: '#6B7280', emoji: '⏰' },
+  { label: 'Café',        category: 'Quotidien',      iconName: 'Coffee',        bgColor: '#92400E', emoji: '☕' },
+  { label: 'Livres',      category: 'Quotidien',      iconName: 'BookOpen',      bgColor: '#3B82F6', emoji: '📚' },
+  { label: 'Éclair',      category: 'Quotidien',      iconName: 'Zap',           bgColor: '#F59E0B', emoji: '⚡' },
+  { label: 'Sourire',     category: 'Quotidien',      iconName: 'Smile',         bgColor: '#10B981', emoji: '😊' },
+  { label: 'Soleil',      category: 'Quotidien',      iconName: 'Sun',           bgColor: '#F59E0B', emoji: '☀️' },
+  { label: 'Lune',        category: 'Quotidien',      iconName: 'Moon',          bgColor: '#4F46E5', emoji: '🌙' },
+];
+
+export const AVATAR_PRESETS = [
+  { label: 'Garçon',     bgColor: '#3B82F6', emoji: '👦' },
+  { label: 'Fille',      bgColor: '#EC4899', emoji: '👧' },
+  { label: 'Professeur', bgColor: '#8B5CF6', emoji: '👩‍🏫' },
+  { label: 'Robot',      bgColor: '#6B7280', emoji: '🤖' },
+  { label: 'Animal',     bgColor: '#F97316', emoji: '🐱' },
 ];
 
 export const ICON_OPTIONS = [
-  'Home', 'Heart', 'Star', 'Search', 'User', 'Settings', 'Bell',
-  'Mail', 'Camera', 'Map', 'Menu', 'Plus', 'Check', 'X', 'ArrowLeft',
-  'ArrowRight', 'Share2', 'Download', 'Trash2', 'Edit2', 'ShoppingCart',
-  'Music', 'Video', 'Phone', 'Globe', 'Lock', 'Unlock', 'Bookmark',
-  'Tag', 'Gift', 'Zap', 'Compass', 'Clock', 'Calendar', 'Cloud',
-  'BookOpen', 'Coffee', 'Smile', 'Sun', 'Moon', 'ChevronRight',
+  'Home', 'Heart', 'Star', 'Search', 'User', 'Users', 'UserPlus', 'Settings', 'Bell',
+  'Mail', 'MessageCircle', 'Phone', 'PhoneCall', 'Send', 'Camera', 'Map', 'Menu',
+  'Plus', 'Check', 'X', 'ArrowLeft', 'ArrowRight', 'Share2', 'Download', 'Trash2',
+  'Edit2', 'Save', 'Copy', 'RefreshCw', 'ShoppingCart', 'CreditCard', 'DollarSign',
+  'Music', 'Video', 'Film', 'Globe', 'Lock', 'Unlock', 'Bookmark', 'Tag', 'Gift',
+  'Zap', 'Compass', 'Clock', 'Calendar', 'Cloud', 'BookOpen', 'Coffee', 'Smile',
+  'Sun', 'Moon', 'ChevronRight', 'ThumbsUp', 'Map', 'Layers', 'Layout', 'List',
 ];
 
 export const THEMES = [

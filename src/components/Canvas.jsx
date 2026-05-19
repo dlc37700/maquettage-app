@@ -99,6 +99,13 @@ function ComponentRenderer({ comp }) {
           </div>
         );
       }
+      if (props.emoji) {
+        return (
+          <div style={{ width: '100%', height: '100%', backgroundColor: props.bgColor, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <span style={{ fontSize: Math.min(pos.width, pos.height) * 0.55, lineHeight: 1 }}>{props.emoji}</span>
+          </div>
+        );
+      }
       return <div style={{ width: '100%', height: '100%', backgroundColor: props.bgColor, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}><LucideIcons.User size={Math.min(pos.width, pos.height) * 0.55} color="white" /></div>;
 
     case 'icon':
