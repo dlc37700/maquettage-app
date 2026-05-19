@@ -3,7 +3,7 @@ import { useProject, useActiveScreen } from '../hooks/useProject';
 import { exportProjectAsJson, importProjectFromJson } from '../utils/exportJson';
 import { exportScreenAsPng } from '../utils/exportPng';
 
-export default function Toolbar({ canvasRef, onHelp }) {
+export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp }) {
   const { state, dispatch } = useProject();
   const screen = useActiveScreen();
   const importRef = useRef(null);
@@ -12,7 +12,11 @@ export default function Toolbar({ canvasRef, onHelp }) {
   const handleExportPng = async () => {
     if (!canvasRef?.current) return;
     setExporting(true);
+    const wrapper = phoneScaleWrapperRef?.current;
+    const prevTransform = wrapper ? wrapper.style.transform : null;
+    if (wrapper) wrapper.style.transform = 'scale(1)';
     await exportScreenAsPng(canvasRef.current, screen?.name);
+    if (wrapper) wrapper.style.transform = prevTransform;
     setExporting(false);
   };
 

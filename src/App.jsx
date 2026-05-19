@@ -10,6 +10,7 @@ import WelcomeModal from './components/WelcomeModal';
 function AppInner() {
   const { state, dispatch } = useProject();
   const canvasRef = useRef(null);
+  const phoneScaleWrapperRef = useRef(null);
   const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem('maquetapp-visited'));
   const [phoneScale, setPhoneScale] = useState(0.8);
 
@@ -61,7 +62,7 @@ function AppInner() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', fontFamily: 'Nunito, sans-serif' }}>
-      <Toolbar canvasRef={canvasRef} onHelp={() => setShowWelcome(true)} />
+      <Toolbar canvasRef={canvasRef} phoneScaleWrapperRef={phoneScaleWrapperRef} onHelp={() => setShowWelcome(true)} />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
         <div style={{ display: 'flex', height: '100%', flexShrink: 0 }}>
           <ScreenManager />
@@ -90,7 +91,7 @@ function AppInner() {
 
             {/* Scaled phone wrapper */}
             <div style={{ width: 430 * phoneScale, height: 932 * phoneScale, position: 'relative', flexShrink: 0 }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, transform: `scale(${phoneScale})`, transformOrigin: 'top left' }}>
+              <div ref={phoneScaleWrapperRef} style={{ position: 'absolute', top: 0, left: 0, transform: `scale(${phoneScale})`, transformOrigin: 'top left' }}>
                 <PhoneFrame canvasRef={canvasRef} />
               </div>
             </div>
