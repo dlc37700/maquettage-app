@@ -171,6 +171,8 @@ export const BUTTON_PRESETS = [
   { label: 'Partager',    category: 'Social',         iconName: 'Share2',        bgColor: '#10B981', emoji: '📤' },
   { label: 'Amis',        category: 'Social',         iconName: 'Users',         bgColor: '#3B82F6', emoji: '👥' },
   { label: "J'aime",      category: 'Social',         iconName: 'ThumbsUp',      bgColor: '#3B82F6', emoji: '👍' },
+  { label: "Pas aimé",    category: 'Social',         iconName: 'ThumbsDown',    bgColor: '#6B7280', emoji: '👎' },
+  { label: 'Flamme',      category: 'Social',         iconName: 'Flame',         bgColor: '#F97316', emoji: '🔥' },
   { label: 'Abonner',     category: 'Social',         iconName: 'UserPlus',      bgColor: '#6C63FF', emoji: '🫂' },
   // Communication
   { label: 'Messages',    category: 'Communication',  iconName: 'Mail',          bgColor: '#10B981', emoji: '✉️' },
@@ -227,7 +229,7 @@ export const ICON_OPTIONS = [
   'Home', 'Heart', 'Star', 'Search', 'User', 'Users', 'UserPlus', 'Settings', 'Bell',
   'Mail', 'MessageCircle', 'Phone', 'PhoneCall', 'Send', 'Camera', 'Map', 'Menu',
   'Plus', 'Check', 'X', 'ArrowLeft', 'ArrowRight', 'Share2', 'Download', 'Trash2',
-  'Edit2', 'Save', 'Copy', 'RefreshCw', 'ShoppingCart', 'CreditCard', 'DollarSign',
+  'Edit2', 'Save', 'Copy', 'RefreshCw', 'ShoppingCart', 'CreditCard', 'DollarSign', 'ThumbsDown', 'Flame',
   'Music', 'Video', 'Film', 'Globe', 'Lock', 'Unlock', 'Bookmark', 'Tag', 'Gift',
   'Zap', 'Compass', 'Clock', 'Calendar', 'Cloud', 'BookOpen', 'Coffee', 'Smile',
   'Sun', 'Moon', 'ChevronRight', 'ThumbsUp', 'Map', 'Layers', 'Layout', 'List',
