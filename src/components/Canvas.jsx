@@ -12,8 +12,8 @@ function LucideIcon({ name, size = 24, color = '#6C63FF' }) {
 }
 
 function ComponentRenderer({ comp }) {
-  const { type, props, position } = comp;
-  const iconSize = Math.min(position.width, position.height) * 0.55;
+  const { type, props, position: pos } = comp;
+  const iconSize = Math.min(pos.width, pos.height) * 0.55;
 
   switch (type) {
     case 'button': {
@@ -85,7 +85,7 @@ function ComponentRenderer({ comp }) {
       return (
         <div style={{ width: '100%', height: '100%', backgroundColor: props.bgColor, borderRadius: props.borderRadius || 8, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #D1D5DB' }}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: Math.min(position.width, position.height) * 0.28 }}>🖼️</div>
+            <div style={{ fontSize: Math.min(pos.width, pos.height) * 0.28 }}>🖼️</div>
             <div style={{ fontSize: 11, marginTop: 4, fontFamily: 'Nunito, sans-serif', color: '#9CA3AF' }}>Cliquer pour importer</div>
           </div>
         </div>
@@ -99,7 +99,7 @@ function ComponentRenderer({ comp }) {
           </div>
         );
       }
-      return <div style={{ width: '100%', height: '100%', backgroundColor: props.bgColor, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}><LucideIcons.User size={Math.min(position.width, position.height) * 0.55} color="white" /></div>;
+      return <div style={{ width: '100%', height: '100%', backgroundColor: props.bgColor, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}><LucideIcons.User size={Math.min(pos.width, pos.height) * 0.55} color="white" /></div>;
 
     case 'icon':
       return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><LucideIcon name={props.iconName} color={props.color} size={Math.max(16, iconSize)} /></div>;
@@ -157,7 +157,7 @@ function ComponentRenderer({ comp }) {
       );
 
     case 'badge':
-      return <div style={{ width: '100%', height: '100%', backgroundColor: props.bgColor, borderRadius: '50%', color: props.textColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.min(position.width, position.height) * 0.38, fontWeight: 700, fontFamily: 'Nunito, sans-serif' }}>{props.count}</div>;
+      return <div style={{ width: '100%', height: '100%', backgroundColor: props.bgColor, borderRadius: '50%', color: props.textColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.min(pos.width, pos.height) * 0.38, fontWeight: 700, fontFamily: 'Nunito, sans-serif' }}>{props.count}</div>;
 
     case 'separator':
       return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}><div style={{ width: '100%', height: 1.5, backgroundColor: props.color }} /></div>;
