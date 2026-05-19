@@ -49,11 +49,11 @@ export default function ComponentPalette() {
                     draggable
                     onDragStart={(e) => {
                       e.dataTransfer.setData('componentType', 'button');
-                      e.dataTransfer.setData('overrideProps', JSON.stringify({ iconName: preset.iconName, bgColor: preset.bgColor, iconPosition: 'only', borderRadius: 16 }));
+                      e.dataTransfer.setData('overrideProps', JSON.stringify({ iconName: preset.iconName, bgColor: preset.bgColor, iconPosition: 'only', borderRadius: 16, emoji: preset.emoji }));
                       e.dataTransfer.setData('overrideSize', JSON.stringify(PRESET_SIZE));
                       e.dataTransfer.effectAllowed = 'copy';
                     }}
-                    onClick={() => addComponent('button', { iconName: preset.iconName, bgColor: preset.bgColor, iconPosition: 'only', borderRadius: 16 }, PRESET_SIZE)}
+                    onClick={() => addComponent('button', { iconName: preset.iconName, bgColor: preset.bgColor, iconPosition: 'only', borderRadius: 16, emoji: preset.emoji }, PRESET_SIZE)}
                     title={`Bouton "${preset.label}"`}
                     style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 4px', backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 8, cursor: 'grab', border: `1px solid ${preset.bgColor}40` }}
                   >

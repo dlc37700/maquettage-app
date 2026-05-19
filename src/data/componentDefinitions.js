@@ -4,7 +4,7 @@ export const COMPONENT_DEFINITIONS = [
     label: 'Bouton',
     icon: '🔘',
     category: 'Bases',
-    defaultProps: { label: 'Bouton', bgColor: '#6C63FF', textColor: '#FFFFFF', fontSize: 16, borderRadius: 12, opacity: 1, iconName: '', iconPosition: 'left' },
+    defaultProps: { label: 'Bouton', bgColor: '#6C63FF', textColor: '#FFFFFF', fontSize: 16, borderRadius: 12, opacity: 1, iconName: '', iconPosition: 'left', emoji: '' },
     defaultSize: { width: 270, height: 48 },
     tooltip: 'Un bouton cliquable avec texte personnalisable',
   },

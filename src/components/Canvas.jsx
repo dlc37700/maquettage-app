@@ -20,6 +20,7 @@ function ComponentRenderer({ comp }) {
       const HasIcon = props.iconName && LucideIcons[props.iconName];
       const IconEl = HasIcon ? LucideIcons[props.iconName] : null;
       const iconOnly = props.iconPosition === 'only';
+      const useEmoji = iconOnly && props.emoji;
       return (
         <div style={{
           width: '100%', height: '100%',
@@ -30,9 +31,14 @@ function ComponentRenderer({ comp }) {
           boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
           gap: 6, padding: '0 12px', overflow: 'hidden',
         }}>
-          {IconEl && props.iconPosition !== 'right' && <IconEl size={props.fontSize + 4} color={props.textColor} strokeWidth={2.5} />}
-          {!iconOnly && props.label && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{props.label}</span>}
-          {IconEl && props.iconPosition === 'right' && <IconEl size={props.fontSize + 4} color={props.textColor} strokeWidth={2.5} />}
+          {useEmoji
+            ? <span style={{ fontSize: Math.min(pos.width, pos.height) * 0.52, lineHeight: 1 }}>{props.emoji}</span>
+            : <>
+                {IconEl && props.iconPosition !== 'right' && <IconEl size={props.fontSize + 4} color={props.textColor} strokeWidth={2.5} />}
+                {!iconOnly && props.label && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{props.label}</span>}
+                {IconEl && props.iconPosition === 'right' && <IconEl size={props.fontSize + 4} color={props.textColor} strokeWidth={2.5} />}
+              </>
+          }
         </div>
       );
     }
