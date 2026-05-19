@@ -13,10 +13,23 @@ export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp }) {
     if (!canvasRef?.current) return;
     setExporting(true);
     const wrapper = phoneScaleWrapperRef?.current;
-    const prevTransform = wrapper ? wrapper.style.transform : null;
-    if (wrapper) wrapper.style.transform = 'scale(1)';
+    const prev = wrapper ? { transform: wrapper.style.transform, position: wrapper.style.position, top: wrapper.style.top, left: wrapper.style.left, zIndex: wrapper.style.zIndex } : null;
+    if (wrapper) {
+      wrapper.style.transform = 'scale(1)';
+      wrapper.style.position = 'fixed';
+      wrapper.style.top = '0';
+      wrapper.style.left = '0';
+      wrapper.style.zIndex = '99999';
+    }
+    await new Promise(r => setTimeout(r, 80));
     await exportScreenAsPng(canvasRef.current, screen?.name);
-    if (wrapper) wrapper.style.transform = prevTransform;
+    if (wrapper && prev) {
+      wrapper.style.transform = prev.transform;
+      wrapper.style.position = prev.position;
+      wrapper.style.top = prev.top;
+      wrapper.style.left = prev.left;
+      wrapper.style.zIndex = prev.zIndex;
+    }
     setExporting(false);
   };
 

@@ -8,6 +8,8 @@ export async function exportScreenAsPng(canvasElement, screenName = 'ecran') {
       useCORS: true,
       backgroundColor: null,
       logging: false,
+      scrollX: 0,
+      scrollY: 0,
     });
     const url = canvas.toDataURL('image/png');
     const a = document.createElement('a');
