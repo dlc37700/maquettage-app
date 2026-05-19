@@ -119,7 +119,7 @@ function reducer(state, action) {
       const newComp = {
         id: `comp-${uuidv4()}`,
         type: def.type,
-        props: { ...def.defaultProps },
+        props: { ...def.defaultProps, ...(action.overrideProps || {}) },
         position: {
           x: Math.max(0, Math.min(action.x ?? 60, 390 - def.defaultSize.width)),
           y: Math.max(0, Math.min(action.y ?? 100, 844 - def.defaultSize.height)),

@@ -1,140 +1,99 @@
 import React, { useState } from 'react';
-import { COMPONENT_DEFINITIONS } from '../data/componentDefinitions';
+import { COMPONENT_DEFINITIONS, BUTTON_PRESETS } from '../data/componentDefinitions';
 import { useProject } from '../hooks/useProject';
 
 function groupBy(arr, key) {
-  return arr.reduce((acc, item) => {
-    const k = item[key];
-    if (!acc[k]) acc[k] = [];
-    acc[k].push(item);
-    return acc;
-  }, {});
+  return arr.reduce((acc, item) => { const k = item[key]; if (!acc[k]) acc[k] = []; acc[k].push(item); return acc; }, {});
 }
 
 export default function ComponentPalette() {
   const { dispatch } = useProject();
   const [search, setSearch] = useState('');
-  const [tooltip, setTooltip] = useState(null);
+  const [showPresets, setShowPresets] = useState(true);
 
-  const filtered = COMPONENT_DEFINITIONS.filter(d =>
-    d.label.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = COMPONENT_DEFINITIONS.filter(d => d.label.toLowerCase().includes(search.toLowerCase()));
   const groups = groupBy(filtered, 'category');
 
-  const handleDragStart = (e, type) => {
-    e.dataTransfer.setData('componentType', type);
-    e.dataTransfer.effectAllowed = 'copy';
-  };
-
-  const handleClick = (type) => {
-    dispatch({ type: 'ADD_COMPONENT', componentType: type, x: 60, y: 100 });
+  const addComponent = (type, overrideProps) => {
+    dispatch({ type: 'ADD_COMPONENT', componentType: type, x: 60, y: 100, overrideProps });
   };
 
   return (
-    <div style={{
-      width: 200,
-      minWidth: 180,
-      height: '100%',
-      background: 'linear-gradient(180deg, #1e1b4b 0%, #312e81 100%)',
-      display: 'flex',
-      flexDirection: 'column',
-      overflow: 'hidden',
-      flexShrink: 0,
-    }}>
+    <div style={{ width: 200, minWidth: 180, height: '100%', background: 'linear-gradient(180deg, #1e1b4b 0%, #312e81 100%)', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}>
       {/* Header */}
-      <div style={{ padding: '16px 12px 10px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-        <div style={{ color: '#A78BFA', fontSize: 10, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 8 }}>
-          Composants
-        </div>
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="🔍 Rechercher…"
-          style={{
-            width: '100%',
-            padding: '6px 10px',
-            borderRadius: 8,
-            border: 'none',
-            backgroundColor: 'rgba(255,255,255,0.1)',
-            color: 'white',
-            fontSize: 12,
-            fontFamily: 'Nunito, sans-serif',
-            outline: 'none',
-          }}
-        />
+      <div style={{ padding: '12px 12px 8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ color: '#A78BFA', fontSize: 10, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Composants</div>
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍 Rechercher…" style={{ width: '100%', padding: '6px 10px', borderRadius: 8, border: 'none', backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', fontSize: 12, fontFamily: 'Nunito, sans-serif', outline: 'none' }} />
       </div>
 
-      {/* Component list */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 8px' }}>
+
+        {/* Button presets section */}
+        {!search && (
+          <div style={{ marginBottom: 12 }}>
+            <button
+              onClick={() => setShowPresets(v => !v)}
+              style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', color: '#A78BFA', fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', padding: '4px 4px', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+            >
+              <span>🎯 Boutons présets</span>
+              <span style={{ fontSize: 9 }}>{showPresets ? '▲' : '▼'}</span>
+            </button>
+            {showPresets && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                {BUTTON_PRESETS.map((preset) => (
+                  <div
+                    key={preset.label}
+                    className="palette-item"
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('componentType', 'button');
+                      e.dataTransfer.setData('overrideProps', JSON.stringify({ label: preset.label, iconName: preset.iconName, bgColor: preset.bgColor, iconPosition: 'left' }));
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
+                    onClick={() => addComponent('button', { label: preset.label, iconName: preset.iconName, bgColor: preset.bgColor, iconPosition: 'left' })}
+                    title={`Bouton "${preset.label}"`}
+                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 4px', backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 8, cursor: 'grab', border: `1px solid ${preset.bgColor}40` }}
+                  >
+                    <div style={{ width: 28, height: 28, backgroundColor: preset.bgColor, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14 }}>
+                      {preset.emoji}
+                    </div>
+                    <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: 10, fontFamily: 'Nunito, sans-serif', fontWeight: 700, textAlign: 'center', lineHeight: 1.2 }}>
+                      {preset.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Regular components */}
         {Object.entries(groups).map(([category, items]) => (
           <div key={category} style={{ marginBottom: 12 }}>
-            <div style={{
-              color: '#7C3AED',
-              fontSize: 10,
-              fontWeight: 700,
-              letterSpacing: 1,
-              textTransform: 'uppercase',
-              padding: '4px 4px',
-              marginBottom: 4,
-            }}>
-              {category}
-            </div>
+            <div style={{ color: '#7C3AED', fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', padding: '4px 4px', marginBottom: 4 }}>{category}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               {items.map((def) => (
                 <div
                   key={def.type}
                   className="palette-item"
                   draggable
-                  onDragStart={(e) => handleDragStart(e, def.type)}
-                  onClick={() => handleClick(def.type)}
-                  onMouseEnter={() => setTooltip(def)}
-                  onMouseLeave={() => setTooltip(null)}
+                  onDragStart={(e) => { e.dataTransfer.setData('componentType', def.type); e.dataTransfer.effectAllowed = 'copy'; }}
+                  onClick={() => addComponent(def.type)}
                   title={def.tooltip}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '7px 10px',
-                    backgroundColor: 'rgba(255,255,255,0.07)',
-                    borderRadius: 8,
-                    cursor: 'grab',
-                    border: '1px solid rgba(255,255,255,0.05)',
-                  }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 8, cursor: 'grab', border: '1px solid rgba(255,255,255,0.05)' }}
                 >
                   <span style={{ fontSize: 16, flexShrink: 0 }}>{def.icon}</span>
-                  <span style={{
-                    color: 'rgba(255,255,255,0.88)',
-                    fontSize: 12,
-                    fontFamily: 'Nunito, sans-serif',
-                    fontWeight: 600,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}>
-                    {def.label}
-                  </span>
+                  <span style={{ color: 'rgba(255,255,255,0.88)', fontSize: 12, fontFamily: 'Nunito, sans-serif', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{def.label}</span>
                 </div>
               ))}
             </div>
           </div>
         ))}
-        {filtered.length === 0 && (
-          <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, textAlign: 'center', marginTop: 20, fontFamily: 'Nunito, sans-serif' }}>
-            Aucun composant trouvé
-          </div>
-        )}
+
+        {filtered.length === 0 && <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, textAlign: 'center', marginTop: 20, fontFamily: 'Nunito, sans-serif' }}>Aucun composant trouvé</div>}
       </div>
 
-      {/* Tip */}
-      <div style={{
-        padding: '8px 12px',
-        borderTop: '1px solid rgba(255,255,255,0.08)',
-        color: 'rgba(255,255,255,0.4)',
-        fontSize: 10,
-        textAlign: 'center',
-        fontFamily: 'Nunito, sans-serif',
-        lineHeight: 1.4,
-      }}>
+      <div style={{ padding: '6px 12px', borderTop: '1px solid rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.4)', fontSize: 10, textAlign: 'center', fontFamily: 'Nunito, sans-serif', lineHeight: 1.4 }}>
         Glisse ou clique pour ajouter
       </div>
     </div>
