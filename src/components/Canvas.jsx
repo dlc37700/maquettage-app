@@ -195,12 +195,15 @@ export default function Canvas({ canvasRef }) {
     const { scaleX, scaleY } = getScale();
     const overrideRaw = e.dataTransfer.getData('overrideProps');
     const overrideProps = overrideRaw ? JSON.parse(overrideRaw) : undefined;
+    const sizeRaw = e.dataTransfer.getData('overrideSize');
+    const overrideSize = sizeRaw ? JSON.parse(sizeRaw) : undefined;
     dispatch({
       type: 'ADD_COMPONENT',
       componentType,
       x: Math.round((e.clientX - rect.left) * scaleX),
       y: Math.round((e.clientY - rect.top) * scaleY),
       overrideProps,
+      overrideSize,
     });
   }, [dispatch, ref, getScale]);
 

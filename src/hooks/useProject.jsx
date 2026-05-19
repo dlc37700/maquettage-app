@@ -116,15 +116,16 @@ function reducer(state, action) {
       if (!def) return state;
       const screen = state.screens.find(s => s.id === state.activeScreenId);
       const maxZ = screen ? Math.max(0, ...screen.components.map(c => c.zIndex || 1)) : 0;
+      const size = action.overrideSize || def.defaultSize;
       const newComp = {
         id: `comp-${uuidv4()}`,
         type: def.type,
         props: { ...def.defaultProps, ...(action.overrideProps || {}) },
         position: {
-          x: Math.max(0, Math.min(action.x ?? 60, 390 - def.defaultSize.width)),
-          y: Math.max(0, Math.min(action.y ?? 100, 844 - def.defaultSize.height)),
-          width: def.defaultSize.width,
-          height: def.defaultSize.height,
+          x: Math.max(0, Math.min(action.x ?? 60, 390 - size.width)),
+          y: Math.max(0, Math.min(action.y ?? 100, 844 - size.height)),
+          width: size.width,
+          height: size.height,
         },
         zIndex: maxZ + 1,
       };

@@ -14,8 +14,10 @@ export default function ComponentPalette() {
   const filtered = COMPONENT_DEFINITIONS.filter(d => d.label.toLowerCase().includes(search.toLowerCase()));
   const groups = groupBy(filtered, 'category');
 
-  const addComponent = (type, overrideProps) => {
-    dispatch({ type: 'ADD_COMPONENT', componentType: type, x: 60, y: 100, overrideProps });
+  const PRESET_SIZE = { width: 64, height: 64 };
+
+  const addComponent = (type, overrideProps, overrideSize) => {
+    dispatch({ type: 'ADD_COMPONENT', componentType: type, x: 60, y: 100, overrideProps, overrideSize });
   };
 
   return (
@@ -47,10 +49,11 @@ export default function ComponentPalette() {
                     draggable
                     onDragStart={(e) => {
                       e.dataTransfer.setData('componentType', 'button');
-                      e.dataTransfer.setData('overrideProps', JSON.stringify({ label: preset.label, iconName: preset.iconName, bgColor: preset.bgColor, iconPosition: 'left' }));
+                      e.dataTransfer.setData('overrideProps', JSON.stringify({ iconName: preset.iconName, bgColor: preset.bgColor, iconPosition: 'only', borderRadius: 16 }));
+                      e.dataTransfer.setData('overrideSize', JSON.stringify(PRESET_SIZE));
                       e.dataTransfer.effectAllowed = 'copy';
                     }}
-                    onClick={() => addComponent('button', { label: preset.label, iconName: preset.iconName, bgColor: preset.bgColor, iconPosition: 'left' })}
+                    onClick={() => addComponent('button', { iconName: preset.iconName, bgColor: preset.bgColor, iconPosition: 'only', borderRadius: 16 }, PRESET_SIZE)}
                     title={`Bouton "${preset.label}"`}
                     style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 4px', backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 8, cursor: 'grab', border: `1px solid ${preset.bgColor}40` }}
                   >
