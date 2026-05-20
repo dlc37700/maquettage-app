@@ -8,6 +8,7 @@ import PropertiesPanel from './components/PropertiesPanel';
 import WelcomeModal from './components/WelcomeModal';
 import CollabModal from './components/CollabModal';
 import ChatPanel from './components/ChatPanel';
+import AdminPanel from './components/AdminPanel';
 import { writeOwnScreens, loadSessionOnce, subscribeToSession } from './services/session';
 import { isFirebaseConfigured } from './services/firebase';
 
@@ -21,6 +22,7 @@ function AppInner() {
   const [phoneScale, setPhoneScale] = useState(0.8);
   const [sessionCode, setSessionCode] = useState(null);
   const [showCollabModal, setShowCollabModal] = useState(false);
+  const [showAdmin, setShowAdmin] = useState(false);
 
   const closeWelcome = () => {
     localStorage.setItem('maquetapp-visited', '1');
@@ -171,6 +173,21 @@ function AppInner() {
         />
       )}
       <ChatPanel sessionCode={sessionCode} />
+      {isFirebaseConfigured && (
+        <button
+          onClick={() => setShowAdmin(true)}
+          title="Espace enseignant"
+          style={{
+            position: 'fixed', bottom: 8, left: 8, zIndex: 100,
+            background: 'none', border: 'none', cursor: 'pointer',
+            fontSize: 18, opacity: 0.35, padding: 4, borderRadius: 6,
+            transition: 'opacity 0.15s',
+          }}
+          onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
+          onMouseLeave={e => e.currentTarget.style.opacity = '0.35'}
+        >👨‍🏫</button>
+      )}
+      {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
     </div>
   );
 }

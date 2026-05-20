@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { isFirebaseConfigured } from '../services/firebase';
 import { generateSessionCode, writeOwnScreens, loadSessionOnce, setClientNickname, getClientNickname } from '../services/session';
+import { initSessionMeta } from '../services/admin';
 
 export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClose }) {
   const [joinInput, setJoinInput] = useState('');
@@ -21,6 +22,7 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
     const code = generateSessionCode();
     const ownScreens = state.screens.filter(s => !s._remote);
     writeOwnScreens(code, ownScreens, state.projectName);
+    initSessionMeta(code, nickname.trim());
     onJoin(code, null);
     setLoading(false);
   };
@@ -34,6 +36,11 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
     const project = await loadSessionOnce(code);
     if (!project) {
       setError('Session introuvable. Vérifie le code et réessaie.');
+      setLoading(false);
+      return;
+    }
+    if (project?.blocked) {
+      setError('Cette session a été bloquée par l\'enseignant.');
       setLoading(false);
       return;
     }

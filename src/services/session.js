@@ -85,6 +85,11 @@ export function subscribeToMessages(code, callback) {
 export async function loadSessionOnce(code) {
   if (!db || !code) return null;
   try {
+    // Check if session is blocked
+    const metaSnap = await get(ref(db, `sessions/${code}/meta`));
+    const meta = metaSnap.val();
+    if (meta?.blocked) return { blocked: true };
+
     const snapshot = await get(ref(db, `sessions/${code}/clients`));
     const allClients = snapshot.val();
     if (!allClients || typeof allClients !== 'object') return null;
