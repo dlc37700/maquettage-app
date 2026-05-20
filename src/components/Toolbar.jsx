@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { useProject, useActiveScreen } from '../hooks/useProject';
 import { exportProjectAsJson, importProjectFromJson } from '../utils/exportJson';
 import { exportScreenAsPng } from '../utils/exportPng';
+import { exportProjectAsHtml } from '../utils/exportHtml';
 
 export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp }) {
   const { state, dispatch } = useProject();
@@ -123,6 +124,15 @@ export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp }) {
         emoji="🖼️"
         label="PNG"
         color="#A78BFA"
+      />
+
+      {/* Export HTML */}
+      <ToolBtn
+        onClick={() => exportProjectAsHtml(state)}
+        title="Exporter en HTML (code réel)"
+        emoji="</>"
+        label="HTML"
+        color="#F472B6"
       />
 
       {/* Export JSON */}
