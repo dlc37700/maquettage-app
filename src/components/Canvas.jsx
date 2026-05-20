@@ -266,6 +266,41 @@ export default function Canvas({ canvasRef }) {
     };
   }, [state, dispatch, getScale]);
 
+  const handleComponentTouchStart = useCallback((e, compId) => {
+    if (e.touches.length !== 1) return;
+    e.stopPropagation();
+    const touch = e.touches[0];
+    dispatch({ type: 'SET_SELECTED_COMPONENT', id: compId });
+    const screen = state.screens.find(s => s.id === state.activeScreenId);
+    const comp = screen?.components.find(c => c.id === compId);
+    if (!comp) return;
+    const { scaleX, scaleY } = getScale();
+    dragState.current = {
+      type: 'move', compId,
+      startMouseX: touch.clientX, startMouseY: touch.clientY,
+      origX: comp.position.x, origY: comp.position.y,
+      width: comp.position.width, height: comp.position.height,
+      scaleX, scaleY,
+    };
+  }, [state, dispatch, getScale]);
+
+  const handleResizeTouchStart = useCallback((e, compId, handle) => {
+    if (e.touches.length !== 1) return;
+    e.stopPropagation();
+    const screen = state.screens.find(s => s.id === state.activeScreenId);
+    const comp = screen?.components.find(c => c.id === compId);
+    if (!comp) return;
+    const { scaleX, scaleY } = getScale();
+    const touch = e.touches[0];
+    dragState.current = {
+      type: 'resize', compId, handle,
+      startMouseX: touch.clientX, startMouseY: touch.clientY,
+      origX: comp.position.x, origY: comp.position.y,
+      origW: comp.position.width, origH: comp.position.height,
+      scaleX, scaleY,
+    };
+  }, [state, getScale]);
+
   const handleResizeMouseDown = useCallback((e, compId, handle) => {
     if (e.button !== 0) return;
     e.stopPropagation(); e.preventDefault();
@@ -318,9 +353,54 @@ export default function Canvas({ canvasRef }) {
       }
       dragState.current = null;
     };
+    const onTouchMove = (e) => {
+      const ds = dragState.current;
+      if (!ds || e.touches.length !== 1) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const dx = (touch.clientX - ds.startMouseX) * ds.scaleX;
+      const dy = (touch.clientY - ds.startMouseY) * ds.scaleY;
+      if (ds.type === 'move') {
+        dispatch({ type: 'MOVE_COMPONENT', id: ds.compId, x: Math.max(0, Math.min(ds.origX + dx, CANVAS_W - ds.width)), y: Math.max(0, Math.min(ds.origY + dy, CANVAS_H - ds.height)) });
+      } else if (ds.type === 'resize') {
+        let { origX: x, origY: y, origW: w, origH: h } = ds;
+        switch (ds.handle) {
+          case 'se': w = Math.max(MIN_SIZE, ds.origW + dx); h = Math.max(MIN_SIZE, ds.origH + dy); break;
+          case 'sw': w = Math.max(MIN_SIZE, ds.origW - dx); x = ds.origX + ds.origW - w; h = Math.max(MIN_SIZE, ds.origH + dy); break;
+          case 'ne': w = Math.max(MIN_SIZE, ds.origW + dx); h = Math.max(MIN_SIZE, ds.origH - dy); y = ds.origY + ds.origH - h; break;
+          case 'nw': w = Math.max(MIN_SIZE, ds.origW - dx); x = ds.origX + ds.origW - w; h = Math.max(MIN_SIZE, ds.origH - dy); y = ds.origY + ds.origH - h; break;
+        }
+        x = Math.max(0, x); y = Math.max(0, y);
+        w = Math.min(w, CANVAS_W - x); h = Math.min(h, CANVAS_H - y);
+        dispatch({ type: 'RESIZE_COMPONENT', id: ds.compId, x, y, width: w, height: h });
+      }
+    };
+    const onTouchEnd = (e) => {
+      const ds = dragState.current;
+      if (!ds) return;
+      if (e.changedTouches.length === 0) { dragState.current = null; return; }
+      const touch = e.changedTouches[0];
+      const dx = (touch.clientX - ds.startMouseX) * ds.scaleX;
+      const dy = (touch.clientY - ds.startMouseY) * ds.scaleY;
+      if (ds.type === 'move') {
+        if (Math.abs(dx) > 1 || Math.abs(dy) > 1) dispatch({ type: 'COMMIT_MOVE', id: ds.compId, x: Math.max(0, Math.min(ds.origX + dx, CANVAS_W - ds.width)), y: Math.max(0, Math.min(ds.origY + dy, CANVAS_H - ds.height)) });
+      } else if (ds.type === 'resize') {
+        const screen = state.screens.find(s => s.id === state.activeScreenId);
+        const comp = screen?.components.find(c => c.id === ds.compId);
+        if (comp) dispatch({ type: 'COMMIT_RESIZE', id: ds.compId, x: comp.position.x, y: comp.position.y, width: comp.position.width, height: comp.position.height });
+      }
+      dragState.current = null;
+    };
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
-    return () => { document.removeEventListener('mousemove', onMouseMove); document.removeEventListener('mouseup', onMouseUp); };
+    document.addEventListener('touchmove', onTouchMove, { passive: false });
+    document.addEventListener('touchend', onTouchEnd);
+    return () => {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend', onTouchEnd);
+    };
   }, [dispatch, state]);
 
   if (!screen) return null;
@@ -343,6 +423,7 @@ export default function Canvas({ canvasRef }) {
           <div key={comp.id}
             className={isRemote ? undefined : 'canvas-component'}
             onMouseDown={isRemote ? undefined : (e) => handleComponentMouseDown(e, comp.id)}
+            onTouchStart={isRemote ? undefined : (e) => handleComponentTouchStart(e, comp.id)}
             style={{ left: x, top: y, width, height, opacity: comp.props.opacity ?? 1, zIndex: comp.zIndex || 1, outline: isSelected ? '2px solid #6C63FF' : undefined, outlineOffset: isSelected ? '1px' : undefined }}>
             <div className="component-outline" style={{ width: '100%', height: '100%' }}>
               <ComponentRenderer comp={comp} />
@@ -353,7 +434,7 @@ export default function Canvas({ canvasRef }) {
               </div>
             )}
             {isSelected && ['nw', 'ne', 'sw', 'se'].map((h) => (
-              <div key={h} className={`resize-handle ${h}`} onMouseDown={(e) => handleResizeMouseDown(e, comp.id, h)} />
+              <div key={h} className={`resize-handle ${h}`} onMouseDown={(e) => handleResizeMouseDown(e, comp.id, h)} onTouchStart={(e) => handleResizeTouchStart(e, comp.id, h)} />
             ))}
           </div>
         );

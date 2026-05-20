@@ -18,6 +18,7 @@ body {
   position: absolute;
   cursor: move;
   user-select: none;
+  touch-action: none;
 }
 
 .canvas-component:hover .component-outline {
@@ -39,6 +40,17 @@ body {
 .resize-handle.ne { top: -5px; right: -5px; cursor: ne-resize; }
 .resize-handle.sw { bottom: -5px; left: -5px; cursor: sw-resize; }
 .resize-handle.se { bottom: -5px; right: -5px; cursor: se-resize; }
+
+@media (pointer: coarse) {
+  .resize-handle {
+    width: 24px;
+    height: 24px;
+  }
+  .resize-handle.nw { top: -12px; left: -12px; }
+  .resize-handle.ne { top: -12px; right: -12px; }
+  .resize-handle.sw { bottom: -12px; left: -12px; }
+  .resize-handle.se { bottom: -12px; right: -12px; }
+}
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
