@@ -42,7 +42,7 @@ function compToHtml(comp) {
     case 'input':
       return `<div style="${base}display:flex;flex-direction:column;gap:4px">
   <label style="font-size:12px;color:#6B7280;font-family:Nunito,sans-serif;font-weight:600">${escHtml(props.label)}</label>
-  <input type="text" placeholder="${escHtml(props.placeholder)}" style="flex:1;background-color:${props.bgColor};color:${props.textColor};border-radius:${props.borderRadius || 8}px;border:1.5px solid #E5E7EB;padding:0 12px;font-size:14px;font-family:Nunito,sans-serif;outline:none;width:100%;box-sizing:border-box">
+  <input type="text" placeholder="${escHtml(props.placeholder)}" style="flex:1;${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};border-radius:${props.borderRadius || 8}px;border:1.5px solid #E5E7EB;padding:0 12px;font-size:14px;font-family:Nunito,sans-serif;outline:none;width:100%;box-sizing:border-box">
 </div>`;
 
     case 'checkbox':
@@ -61,7 +61,7 @@ function compToHtml(comp) {
       if (props.imageData) {
         return `<img src="${props.imageData}" alt="" style="${base}border-radius:${props.borderRadius || 8}px;object-fit:cover">`;
       }
-      return `<div style="${base}background-color:${props.bgColor};border-radius:${props.borderRadius || 8}px;display:flex;align-items:center;justify-content:center;border:2px dashed #D1D5DB">
+      return `<div style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-radius:${props.borderRadius || 8}px;display:flex;align-items:center;justify-content:center;border:2px dashed #D1D5DB">
   <span style="font-size:32px">🖼️</span>
 </div>`;
 
@@ -71,11 +71,11 @@ function compToHtml(comp) {
       }
       if (props.emoji) {
         const emojiSize = Math.round(Math.min(pos.width, pos.height) * 0.55);
-        return `<div style="${base}background-color:${props.bgColor};border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden">
+        return `<div style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden">
   <span style="font-size:${emojiSize}px;line-height:1">${escHtml(props.emoji)}</span>
 </div>`;
       }
-      return `<div style="${base}background-color:${props.bgColor};border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden">
+      return `<div style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden">
   <i data-lucide="user" style="width:${Math.round(Math.min(pos.width, pos.height) * 0.55)}px;height:${Math.round(Math.min(pos.width, pos.height) * 0.55)}px;color:white"></i>
 </div>`;
 
@@ -85,21 +85,21 @@ function compToHtml(comp) {
 </div>`;
 
     case 'header':
-      return `<header style="${base}background-color:${props.bgColor};display:flex;align-items:center;padding:0 16px;gap:12px">
+      return `<header style="${base}${getBgCss(props.bgColor, props.bgGradient)};display:flex;align-items:center;padding:0 16px;gap:12px">
   ${props.showBack ? `<button onclick="history.back()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;padding:0"><i data-lucide="arrow-left" style="width:20px;height:20px;color:${props.textColor}"></i></button>` : ''}
   <span style="color:${props.textColor};font-size:18px;font-weight:700;font-family:Nunito,sans-serif;flex:1">${escHtml(props.title)}</span>
 </header>`;
 
     case 'navbar':
-      return `<nav style="${base}background-color:${props.bgColor};border-top:1px solid #E5E7EB;display:flex;align-items:center;justify-content:space-around;padding:0 8px">
+      return `<nav style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-top:1px solid #E5E7EB;display:flex;align-items:center;justify-content:space-around;padding:0 8px">
   ${['home','search','heart','user'].map((ic, i) => `<a href="#" style="display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none"><i data-lucide="${ic}" style="width:22px;height:22px;color:${i === 0 ? props.activeColor : '#9CA3AF'}"></i>${i === 0 ? `<span style="width:4px;height:4px;border-radius:50%;background:${props.activeColor};display:block"></span>` : ''}</a>`).join('')}
 </nav>`;
 
     case 'card':
-      return `<div style="${base}background-color:${props.bgColor};border-radius:${props.borderRadius || 16}px;box-shadow:0 2px 16px rgba(0,0,0,0.10)"></div>`;
+      return `<div style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-radius:${props.borderRadius || 16}px;box-shadow:0 2px 16px rgba(0,0,0,0.10)"></div>`;
 
     case 'colorblock':
-      return `<div style="${base}background-color:${props.bgColor};border-radius:${props.borderRadius || 0}px"></div>`;
+      return `<div style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-radius:${props.borderRadius || 0}px"></div>`;
 
     case 'switch': {
       const id = `sw-${Math.random().toString(36).slice(2, 7)}`;
@@ -115,14 +115,14 @@ function compToHtml(comp) {
 </div>`;
 
     case 'listitem':
-      return `<div style="${base}background-color:${props.bgColor};border-bottom:1px solid #F3F4F6;display:flex;align-items:center;padding:0 16px;gap:12px">
+      return `<div style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-bottom:1px solid #F3F4F6;display:flex;align-items:center;padding:0 16px;gap:12px">
   <div style="width:34px;height:34px;background-color:#EDE9FE;border-radius:9px;flex-shrink:0"></div>
   <span style="flex:1;color:${props.textColor};font-size:14px;font-family:Nunito,sans-serif;font-weight:600">${escHtml(props.label)}</span>
   <i data-lucide="chevron-right" style="width:16px;height:16px;color:#9CA3AF"></i>
 </div>`;
 
     case 'badge':
-      return `<span style="${base}background-color:${props.bgColor};color:${props.textColor};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${Math.round(Math.min(pos.width, pos.height) * 0.38)}px;font-weight:700;font-family:Nunito,sans-serif">${props.count ?? 0}</span>`;
+      return `<span style="${base}${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${Math.round(Math.min(pos.width, pos.height) * 0.38)}px;font-weight:700;font-family:Nunito,sans-serif">${props.count ?? 0}</span>`;
 
     case 'separator':
       return `<hr style="${base}border:none;border-top:1px solid ${props.color || '#E5E7EB'};margin:0">`;
@@ -137,7 +137,7 @@ function screenToHtml(screen, index, total) {
   const components = sorted.map(compToHtml).filter(Boolean).join('\n    ');
 
   return `<!-- ===== Écran ${index + 1}: ${escHtml(screen.name)} ===== -->
-<div id="screen-${index}" class="screen" style="display:${index === 0 ? 'block' : 'none'};position:relative;width:390px;height:844px;background-color:${screen.backgroundColor};overflow:hidden;flex-shrink:0">
+<div id="screen-${index}" class="screen" style="display:${index === 0 ? 'block' : 'none'};position:relative;width:390px;height:844px;${getBgCss(screen.backgroundColor, screen.backgroundGradient)};overflow:hidden;flex-shrink:0">
     ${components}
 </div>`;
 }
