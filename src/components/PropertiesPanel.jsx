@@ -307,6 +307,21 @@ export default function PropertiesPanel() {
   const screen = useActiveScreen();
   const selectedComp = screen?.components.find(c => c.id === state.selectedComponentId);
   const def = selectedComp ? COMPONENT_DEFINITIONS.find(d => d.type === selectedComp.type) : null;
+
+  if (screen?._remote) {
+    return (
+      <div style={{ width: 230, minWidth: 200, height: '100%', backgroundColor: '#FFFFFF', borderLeft: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 20, textAlign: 'center' }}>
+        <div style={{ fontSize: 36, marginBottom: 12 }}>👁️</div>
+        <div style={{ fontSize: 13, fontWeight: 800, color: '#1F2937', fontFamily: 'Nunito, sans-serif', marginBottom: 6 }}>Lecture seule</div>
+        <div style={{ fontSize: 12, color: '#6B7280', fontFamily: 'Nunito, sans-serif', lineHeight: 1.5 }}>
+          Cet écran appartient à<br />
+          <strong style={{ color: '#10B981' }}>{screen._nickname || 'un camarade'}</strong>.<br />
+          Tu peux le visualiser mais pas le modifier.
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ width: 230, minWidth: 200, height: '100%', backgroundColor: '#FFFFFF', borderLeft: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}>
       <div style={{ padding: '12px 14px 8px', borderBottom: '1px solid #F3F4F6', backgroundColor: '#FAFAFA' }}>

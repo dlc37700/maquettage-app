@@ -312,20 +312,26 @@ export default function Canvas({ canvasRef }) {
 
   if (!screen) return null;
   const sortedComponents = [...(screen.components || [])].sort((a, b) => (a.zIndex || 1) - (b.zIndex || 1));
+  const isRemote = !!screen._remote;
 
   return (
-    <div ref={ref} onClick={handleCanvasClick} onDragOver={handleDragOver} onDrop={handleDrop}
+    <div ref={ref}
+      onClick={isRemote ? undefined : handleCanvasClick}
+      onDragOver={isRemote ? undefined : handleDragOver}
+      onDrop={isRemote ? undefined : handleDrop}
       style={{ ...getBg(screen.backgroundColor, screen.backgroundGradient), position: 'relative', width: CANVAS_W, height: CANVAS_H, overflow: 'hidden', flexShrink: 0 }}>
       {sortedComponents.map((comp) => {
-        const isSelected = comp.id === state.selectedComponentId;
+        const isSelected = !isRemote && comp.id === state.selectedComponentId;
         const { x, y, width, height } = comp.position;
         return (
-          <div key={comp.id} className="canvas-component" onMouseDown={(e) => handleComponentMouseDown(e, comp.id)}
+          <div key={comp.id}
+            className={isRemote ? undefined : 'canvas-component'}
+            onMouseDown={isRemote ? undefined : (e) => handleComponentMouseDown(e, comp.id)}
             style={{ left: x, top: y, width, height, opacity: comp.props.opacity ?? 1, zIndex: comp.zIndex || 1, outline: isSelected ? '2px solid #6C63FF' : undefined, outlineOffset: isSelected ? '1px' : undefined }}>
             <div className="component-outline" style={{ width: '100%', height: '100%' }}>
               <ComponentRenderer comp={comp} />
             </div>
-            {comp.props?.navigateTo && (
+            {!isRemote && comp.props?.navigateTo && (
               <div style={{ position: 'absolute', top: 3, right: 3, width: 16, height: 16, backgroundColor: '#3B82F6', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10 }}>
                 <span style={{ fontSize: 9, color: 'white', lineHeight: 1 }}>🔗</span>
               </div>
@@ -336,6 +342,10 @@ export default function Canvas({ canvasRef }) {
           </div>
         );
       })}
+      {/* Read-only overlay for remote screens */}
+      {isRemote && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 9999, cursor: 'default' }} title={`Écran de ${screen._nickname || 'un camarade'} — lecture seule`} />
+      )}
     </div>
   );
 }

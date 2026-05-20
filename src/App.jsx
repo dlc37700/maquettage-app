@@ -94,6 +94,8 @@ function AppInner() {
       if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
         e.preventDefault(); dispatch({ type: 'REDO' }); return;
       }
+      const activeScreenObj = state.screens.find(s => s.id === state.activeScreenId);
+      if (activeScreenObj?._remote) return;
       if ((e.ctrlKey || e.metaKey) && e.key === 'd') {
         e.preventDefault();
         if (state.selectedComponentId) dispatch({ type: 'DUPLICATE_COMPONENT', id: state.selectedComponentId });

@@ -128,11 +128,12 @@ function ScreenThumbnail({ screen, isActive, isRemote, onClick, onRename, onDele
     >
       {isRemote && (
         <div style={{
-          position: 'absolute', top: 4, right: 4, zIndex: 2,
+          position: 'absolute', top: 4, left: 4, right: 4, zIndex: 2,
           backgroundColor: '#10B981', borderRadius: 4,
           fontSize: 9, fontWeight: 800, color: 'white',
-          padding: '1px 5px', fontFamily: 'Nunito, sans-serif',
-        }}>👤</div>
+          padding: '2px 5px', fontFamily: 'Nunito, sans-serif',
+          textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        }}>{screen._nickname || '👤'}</div>
       )}
       {/* Mini preview — CSS scale */}
       <div style={{ width: THUMB_W, height: THUMB_H, borderRadius: 6, overflow: 'hidden', position: 'relative', margin: '0 auto 6px', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', flexShrink: 0 }}>

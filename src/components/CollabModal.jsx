@@ -1,21 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { isFirebaseConfigured } from '../services/firebase';
-import { generateSessionCode, writeOwnScreens, loadSessionOnce } from '../services/session';
+import { generateSessionCode, writeOwnScreens, loadSessionOnce, setClientNickname, getClientNickname } from '../services/session';
 
 export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClose }) {
   const [joinInput, setJoinInput] = useState('');
+  const [nickname, setNickname] = useState(() => getClientNickname());
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
   const joinRef = useRef(null);
 
-  // Focus join input on open
   useEffect(() => {
     if (!sessionCode) setTimeout(() => joinRef.current?.focus(), 100);
   }, [sessionCode]);
 
   const handleCreate = async () => {
+    if (!nickname.trim()) { setError('Entre ton prénom avant de créer une session.'); return; }
     setLoading(true);
+    setClientNickname(nickname.trim());
     const code = generateSessionCode();
     const ownScreens = state.screens.filter(s => !s._remote);
     writeOwnScreens(code, ownScreens, state.projectName);
@@ -24,6 +26,7 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
   };
 
   const handleJoin = async () => {
+    if (!nickname.trim()) { setError('Entre ton prénom avant de rejoindre une session.'); return; }
     const code = joinInput.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (code.length !== 6) { setError('Le code doit avoir exactement 6 caractères.'); return; }
     setLoading(true);
@@ -34,6 +37,7 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
       setLoading(false);
       return;
     }
+    setClientNickname(nickname.trim());
     onJoin(code, project);
     setLoading(false);
   };
@@ -83,15 +87,18 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
         {!isFirebaseConfigured ? (
           <NotConfigured />
         ) : sessionCode ? (
-          <ActiveSession code={sessionCode} onCopy={handleCopy} copied={copied} onLeave={handleLeave} />
+          <ActiveSession code={sessionCode} onCopy={handleCopy} copied={copied} onLeave={handleLeave} nickname={getClientNickname()} />
         ) : (
           <StartSession
+            nickname={nickname}
+            setNickname={setNickname}
             joinInput={joinInput}
             setJoinInput={setJoinInput}
             onJoin={handleJoin}
             onCreate={handleCreate}
             loading={loading}
             error={error}
+            setError={setError}
             joinRef={joinRef}
           />
         )}
@@ -124,14 +131,18 @@ function NotConfigured() {
   );
 }
 
-function ActiveSession({ code, onCopy, copied, onLeave }) {
+function ActiveSession({ code, onCopy, copied, onLeave, nickname }) {
   return (
     <div>
-      <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginBottom: 20, lineHeight: 1.6 }}>
-        Session active ! Partage ce code avec tes camarades pour travailler ensemble sur le même projet.
+      <div style={{ backgroundColor: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontSize: 16 }}>👋</span>
+        <span style={{ color: '#34D399', fontSize: 13, fontWeight: 700 }}>Connecté en tant que <em style={{ fontStyle: 'normal', color: 'white' }}>{nickname || 'Anonyme'}</em></span>
+      </div>
+
+      <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginBottom: 16, lineHeight: 1.6 }}>
+        Session active ! Partage ce code avec tes camarades pour travailler ensemble.
       </p>
 
-      {/* Code display */}
       <div style={{ backgroundColor: 'rgba(109,40,217,0.2)', border: '2px solid #7C3AED', borderRadius: 12, padding: '16px 20px', marginBottom: 16, textAlign: 'center' }}>
         <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>Code de session</div>
         <div style={{ color: '#A78BFA', fontSize: 36, fontWeight: 900, letterSpacing: 10, fontFamily: 'monospace' }}>{code}</div>
@@ -150,10 +161,10 @@ function ActiveSession({ code, onCopy, copied, onLeave }) {
         {copied ? '✅ Code copié !' : '📋 Copier le code'}
       </button>
 
-      <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: 12, marginBottom: 20 }}>
+      <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
         <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, margin: 0, lineHeight: 1.7 }}>
           💡 <strong style={{ color: 'rgba(255,255,255,0.8)' }}>Comment ça marche :</strong><br />
-          Chaque modification est synchronisée en temps réel pour tous les membres de la session. Travaillez chacun sur vos propres écrans pour éviter les conflits.
+          Chacun travaille sur ses propres écrans. Les écrans des autres sont visibles mais non modifiables. Clique sur 🔄 pour voir les dernières modifications.
         </p>
       </div>
 
@@ -171,12 +182,34 @@ function ActiveSession({ code, onCopy, copied, onLeave }) {
   );
 }
 
-function StartSession({ joinInput, setJoinInput, onJoin, onCreate, loading, error, joinRef }) {
+function StartSession({ nickname, setNickname, joinInput, setJoinInput, onJoin, onCreate, loading, error, setError, joinRef }) {
   return (
     <div>
-      <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13, marginBottom: 24, lineHeight: 1.6 }}>
-        Crée une session pour partager ton projet, ou rejoins une session existante avec un code.
-      </p>
+      {/* Nickname input — required for both actions */}
+      <div style={{ marginBottom: 20 }}>
+        <div style={{ color: '#A78BFA', fontSize: 12, fontWeight: 700, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>
+          👤 Ton prénom
+        </div>
+        <input
+          value={nickname}
+          onChange={e => { setNickname(e.target.value); setError(''); }}
+          onKeyDown={e => { if (e.key === 'Enter') onJoin(); }}
+          placeholder="Entre ton prénom…"
+          maxLength={20}
+          style={{
+            width: '100%', padding: '10px 14px', borderRadius: 8,
+            border: `1.5px solid ${error && !nickname.trim() ? '#FCA5A5' : 'rgba(167,139,250,0.4)'}`,
+            backgroundColor: 'rgba(167,139,250,0.08)', color: 'white',
+            fontSize: 15, fontWeight: 700, fontFamily: 'Nunito, sans-serif',
+            outline: 'none', boxSizing: 'border-box',
+          }}
+        />
+        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, margin: '4px 0 0', fontFamily: 'Nunito, sans-serif' }}>
+          Ton prénom sera affiché à côté de tes écrans.
+        </p>
+      </div>
+
+      {error && <p style={{ color: '#FCA5A5', fontSize: 12, margin: '-8px 0 12px', fontFamily: 'Nunito, sans-serif' }}>{error}</p>}
 
       {/* Create */}
       <div style={{ backgroundColor: 'rgba(109,40,217,0.15)', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 12, padding: 18, marginBottom: 16 }}>
@@ -211,20 +244,19 @@ function StartSession({ joinInput, setJoinInput, onJoin, onCreate, loading, erro
         <input
           ref={joinRef}
           value={joinInput}
-          onChange={e => { setJoinInput(e.target.value.toUpperCase()); }}
+          onChange={e => { setJoinInput(e.target.value.toUpperCase()); setError(''); }}
           onKeyDown={e => { if (e.key === 'Enter') onJoin(); }}
           placeholder="ABCDEF"
           maxLength={6}
           style={{
             width: '100%', padding: '10px 14px', borderRadius: 8,
-            border: `1.5px solid ${error ? '#FCA5A5' : 'rgba(255,255,255,0.15)'}`,
+            border: `1.5px solid rgba(255,255,255,0.15)`,
             backgroundColor: 'rgba(255,255,255,0.08)', color: 'white',
             fontSize: 22, fontWeight: 900, fontFamily: 'monospace',
             letterSpacing: 8, textAlign: 'center', outline: 'none',
             boxSizing: 'border-box',
           }}
         />
-        {error && <p style={{ color: '#FCA5A5', fontSize: 12, margin: '6px 0 0' }}>{error}</p>}
         <button
           onClick={onJoin}
           disabled={loading || joinInput.length === 0}

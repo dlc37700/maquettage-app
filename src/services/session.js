@@ -2,6 +2,7 @@ import { ref, set, get } from 'firebase/database';
 import { db } from './firebase';
 
 const CLIENT_ID_KEY = 'maquettage_client_id';
+const NICKNAME_KEY = 'maquettage_nickname';
 
 export function getClientId() {
   let id = sessionStorage.getItem(CLIENT_ID_KEY);
@@ -12,6 +13,14 @@ export function getClientId() {
   return id;
 }
 
+export function getClientNickname() {
+  return sessionStorage.getItem(NICKNAME_KEY) || '';
+}
+
+export function setClientNickname(name) {
+  sessionStorage.setItem(NICKNAME_KEY, name.trim());
+}
+
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 export function generateSessionCode() {
   return Array.from({ length: 6 }, () =>
@@ -19,17 +28,16 @@ export function generateSessionCode() {
   ).join('');
 }
 
-// Each client writes only their own screens under their own path
 export function writeOwnScreens(code, ownScreens, projectName) {
   if (!db || !code) return;
   set(ref(db, `sessions/${code}/clients/${getClientId()}`), {
     updatedAt: Date.now(),
     projectName,
+    nickname: getClientNickname() || 'Anonyme',
     screensJson: JSON.stringify(ownScreens),
   }).catch(err => console.error('[Session] Write error:', err));
 }
 
-// Load all clients and merge into { screens, projectName }
 export async function loadSessionOnce(code) {
   if (!db || !code) return null;
   try {
@@ -46,10 +54,11 @@ export async function loadSessionOnce(code) {
       try {
         const screens = JSON.parse(data.screensJson || '[]');
         if (!Array.isArray(screens)) return;
+        const nickname = data.nickname || 'Anonyme';
         if (clientId === myId) {
           ownScreens = screens;
         } else {
-          remoteScreens.push(...screens.map(s => ({ ...s, _remote: true })));
+          remoteScreens.push(...screens.map(s => ({ ...s, _remote: true, _nickname: nickname })));
         }
         if (!projectName && data.projectName) projectName = data.projectName;
       } catch { /* ignore malformed data */ }
