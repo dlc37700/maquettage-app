@@ -7,7 +7,10 @@ import PhoneFrame from './components/PhoneFrame';
 import PropertiesPanel from './components/PropertiesPanel';
 import WelcomeModal from './components/WelcomeModal';
 import CollabModal from './components/CollabModal';
-import { writeSession, subscribeSession } from './services/session';
+import { writeSession, subscribeSession, loadSessionOnce } from './services/session';
+import { isFirebaseConfigured } from './services/firebase';
+
+const SESSION_STORAGE_KEY = 'maquetapp-session-code';
 
 function AppInner() {
   const { state, dispatch } = useProject();
@@ -37,6 +40,7 @@ function AppInner() {
     if (unsubscribeRef.current) unsubscribeRef.current();
     if (remoteProject) dispatch({ type: 'LOAD_PROJECT', project: remoteProject });
     setSessionCode(code);
+    localStorage.setItem(SESSION_STORAGE_KEY, code);
     unsubscribeRef.current = subscribeSession(code, (project) => {
       dispatch({ type: 'SYNC_PROJECT', project });
     });
@@ -46,7 +50,23 @@ function AppInner() {
   const leaveSession = useCallback(() => {
     if (unsubscribeRef.current) { unsubscribeRef.current(); unsubscribeRef.current = null; }
     setSessionCode(null);
+    localStorage.removeItem(SESSION_STORAGE_KEY);
   }, []);
+
+  // On mount: reconnect to saved session if any
+  useEffect(() => {
+    if (!isFirebaseConfigured) return;
+    const saved = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!saved) return;
+    loadSessionOnce(saved).then((project) => {
+      if (!project) { localStorage.removeItem(SESSION_STORAGE_KEY); return; }
+      setSessionCode(saved);
+      dispatch({ type: 'LOAD_PROJECT', project });
+      unsubscribeRef.current = subscribeSession(saved, (p) => {
+        dispatch({ type: 'SYNC_PROJECT', project: p });
+      });
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const updateScale = () => {
