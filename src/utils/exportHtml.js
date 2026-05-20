@@ -18,6 +18,9 @@ function lucideRef(name) {
 function compToHtml(comp) {
   const { type, props, position: pos, zIndex } = comp;
   const base = `position:absolute;left:${pos.x}px;top:${pos.y}px;width:${pos.width}px;height:${pos.height}px;opacity:${props.opacity ?? 1};z-index:${zIndex || 1};box-sizing:border-box;`;
+  const navOnclick = props.navigateTo
+    ? ` onclick="document.querySelectorAll('.screen').forEach((el)=>el.style.display=el.id==='screen-${props.navigateTo}'?'block':'none')"`
+    : '';
 
   switch (type) {
     case 'button': {
@@ -31,7 +34,7 @@ function compToHtml(comp) {
           : '';
       const labelHtml = !iconOnly && props.label ? `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(props.label)}</span>` : '';
       const flexDir = props.iconPosition === 'right' ? 'row-reverse' : 'row';
-      return `<button style="${base}${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};font-size:${props.fontSize || 16}px;border-radius:${props.borderRadius || 12}px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;flex-direction:${flexDir};font-family:Nunito,sans-serif;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.15);padding:0 12px">${iconHtml}${labelHtml}</button>`;
+      return `<button${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};font-size:${props.fontSize || 16}px;border-radius:${props.borderRadius || 12}px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;flex-direction:${flexDir};font-family:Nunito,sans-serif;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.15);padding:0 12px">${iconHtml}${labelHtml}</button>`;
     }
 
     case 'text': {
@@ -96,7 +99,7 @@ function compToHtml(comp) {
 </nav>`;
 
     case 'card':
-      return `<div style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-radius:${props.borderRadius || 16}px;box-shadow:0 2px 16px rgba(0,0,0,0.10)"></div>`;
+      return `<div${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-radius:${props.borderRadius || 16}px;box-shadow:0 2px 16px rgba(0,0,0,0.10)${navOnclick ? ';cursor:pointer' : ''}"></div>`;
 
     case 'colorblock':
       return `<div style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-radius:${props.borderRadius || 0}px"></div>`;
@@ -115,7 +118,7 @@ function compToHtml(comp) {
 </div>`;
 
     case 'listitem':
-      return `<div style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-bottom:1px solid #F3F4F6;display:flex;align-items:center;padding:0 16px;gap:12px">
+      return `<div${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-bottom:1px solid #F3F4F6;display:flex;align-items:center;padding:0 16px;gap:12px${navOnclick ? ';cursor:pointer' : ''}">
   <div style="width:34px;height:34px;background-color:#EDE9FE;border-radius:9px;flex-shrink:0"></div>
   <span style="flex:1;color:${props.textColor};font-size:14px;font-family:Nunito,sans-serif;font-weight:600">${escHtml(props.label)}</span>
   <i data-lucide="chevron-right" style="width:16px;height:16px;color:#9CA3AF"></i>
@@ -132,12 +135,12 @@ function compToHtml(comp) {
   }
 }
 
-function screenToHtml(screen, index, total) {
+function screenToHtml(screen, index, total, allScreens) {
   const sorted = [...screen.components].sort((a, b) => (a.zIndex || 1) - (b.zIndex || 1));
   const components = sorted.map(compToHtml).filter(Boolean).join('\n    ');
 
-  return `<!-- ===== Écran ${index + 1}: ${escHtml(screen.name)} ===== -->
-<div id="screen-${index}" class="screen" style="display:${index === 0 ? 'block' : 'none'};position:relative;width:390px;height:844px;${getBgCss(screen.backgroundColor, screen.backgroundGradient)};overflow:hidden;flex-shrink:0">
+  return `<!-- ===== Écran: ${escHtml(screen.name)} ===== -->
+<div id="screen-${screen.id}" class="screen" style="display:${index === 0 ? 'block' : 'none'};position:relative;width:390px;height:844px;${getBgCss(screen.backgroundColor, screen.backgroundGradient)};overflow:hidden;flex-shrink:0">
     ${components}
 </div>`;
 }
@@ -145,18 +148,18 @@ function screenToHtml(screen, index, total) {
 export function exportProjectAsHtml(state) {
   const { screens, projectName } = state;
 
-  const screensHtml = screens.map((s, i) => screenToHtml(s, i, screens.length)).join('\n\n');
+  const screensHtml = screens.map((s, i) => screenToHtml(s, i, screens.length, screens)).join('\n\n');
 
   const navHtml = screens.length > 1 ? `
   <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap">
-    ${screens.map((s, i) => `<button onclick="showScreen(${i})" id="nav-${i}" style="padding:6px 14px;border-radius:20px;border:none;cursor:pointer;font-family:Nunito,sans-serif;font-size:12px;font-weight:700;background-color:${i === 0 ? '#6C63FF' : '#E5E7EB'};color:${i === 0 ? 'white' : '#374151'}">${escHtml(s.name)}</button>`).join('')}
+    ${screens.map((s, i) => `<button onclick="showScreen('${s.id}')" id="nav-${s.id}" style="padding:6px 14px;border-radius:20px;border:none;cursor:pointer;font-family:Nunito,sans-serif;font-size:12px;font-weight:700;background-color:${i === 0 ? '#6C63FF' : '#E5E7EB'};color:${i === 0 ? 'white' : '#374151'}">${escHtml(s.name)}</button>`).join('')}
   </div>
   <script>
-    function showScreen(idx) {
-      document.querySelectorAll('.screen').forEach((el, i) => el.style.display = i === idx ? 'block' : 'none');
-      document.querySelectorAll('[id^="nav-"]').forEach((btn, i) => {
-        btn.style.backgroundColor = i === idx ? '#6C63FF' : '#E5E7EB';
-        btn.style.color = i === idx ? 'white' : '#374151';
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(el => el.style.display = el.id === 'screen-' + id ? 'block' : 'none');
+      document.querySelectorAll('[id^="nav-"]').forEach(btn => {
+        btn.style.backgroundColor = btn.id === 'nav-' + id ? '#6C63FF' : '#E5E7EB';
+        btn.style.color = btn.id === 'nav-' + id ? 'white' : '#374151';
       });
     }
   <\/script>` : '';

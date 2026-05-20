@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { useProject, useActiveScreen } from '../hooks/useProject';
 import * as LucideIcons from 'lucide-react';
+import * as TablerIcons from '@tabler/icons-react';
 
 const CANVAS_W = 390;
 const CANVAS_H = 844;
@@ -9,6 +10,16 @@ function LucideIcon({ name, size = 24, color = '#6C63FF' }) {
   const Icon = LucideIcons[name];
   if (!Icon) return <LucideIcons.Circle size={size} color={color} />;
   return <Icon size={size} color={color} />;
+}
+
+function AnyIcon({ name, iconSet, size = 24, color = '#6C63FF', strokeWidth = 2 }) {
+  if (!name) return null;
+  if (iconSet === 'tabler') {
+    const T = TablerIcons[name];
+    return T ? <T size={size} color={color} stroke={color} /> : null;
+  }
+  const L = LucideIcons[name];
+  return L ? <L size={size} color={color} strokeWidth={strokeWidth} /> : null;
 }
 
 function getBg(bgColor, bgGradient) {
@@ -24,8 +35,6 @@ function ComponentRenderer({ comp }) {
 
   switch (type) {
     case 'button': {
-      const HasIcon = props.iconName && LucideIcons[props.iconName];
-      const IconEl = HasIcon ? LucideIcons[props.iconName] : null;
       const iconOnly = props.iconPosition === 'only';
       const useEmoji = iconOnly && props.emoji;
       return (
@@ -41,9 +50,9 @@ function ComponentRenderer({ comp }) {
           {useEmoji
             ? <span style={{ fontSize: Math.min(pos.width, pos.height) * 0.52, lineHeight: 1 }}>{props.emoji}</span>
             : <>
-                {IconEl && props.iconPosition !== 'right' && <IconEl size={props.fontSize + 4} color={props.textColor} strokeWidth={2.5} />}
+                {props.iconName && props.iconPosition !== 'right' && <AnyIcon name={props.iconName} iconSet={props.iconSet || 'lucide'} size={props.fontSize + 4} color={props.textColor} strokeWidth={2.5} />}
                 {!iconOnly && props.label && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{props.label}</span>}
-                {IconEl && props.iconPosition === 'right' && <IconEl size={props.fontSize + 4} color={props.textColor} strokeWidth={2.5} />}
+                {props.iconName && props.iconPosition === 'right' && <AnyIcon name={props.iconName} iconSet={props.iconSet || 'lucide'} size={props.fontSize + 4} color={props.textColor} strokeWidth={2.5} />}
               </>
           }
         </div>
@@ -116,7 +125,7 @@ function ComponentRenderer({ comp }) {
       return <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}><LucideIcons.User size={Math.min(pos.width, pos.height) * 0.55} color="white" /></div>;
 
     case 'icon':
-      return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><LucideIcon name={props.iconName} color={props.color} size={Math.max(16, iconSize)} /></div>;
+      return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><AnyIcon name={props.iconName} iconSet={props.iconSet || 'lucide'} color={props.color} size={Math.max(16, iconSize)} /></div>;
 
     case 'navbar':
       return (
@@ -316,6 +325,11 @@ export default function Canvas({ canvasRef }) {
             <div className="component-outline" style={{ width: '100%', height: '100%' }}>
               <ComponentRenderer comp={comp} />
             </div>
+            {comp.props?.navigateTo && (
+              <div style={{ position: 'absolute', top: 3, right: 3, width: 16, height: 16, backgroundColor: '#3B82F6', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10 }}>
+                <span style={{ fontSize: 9, color: 'white', lineHeight: 1 }}>🔗</span>
+              </div>
+            )}
             {isSelected && ['nw', 'ne', 'sw', 'se'].map((h) => (
               <div key={h} className={`resize-handle ${h}`} onMouseDown={(e) => handleResizeMouseDown(e, comp.id, h)} />
             ))}

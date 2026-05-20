@@ -1,6 +1,8 @@
 import React, { useRef } from 'react';
 import { useProject, useActiveScreen } from '../hooks/useProject';
-import { COMPONENT_DEFINITIONS, ICON_OPTIONS, THEMES } from '../data/componentDefinitions';
+import { COMPONENT_DEFINITIONS, THEMES } from '../data/componentDefinitions';
+// ICON_OPTIONS removed — now using IconPicker with iconLibraries
+import IconPicker from './IconPicker';
 
 function Field({ label, children }) {
   return <div style={{ marginBottom: 12 }}><div style={{ color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>{label}</div>{children}</div>;
@@ -137,7 +139,7 @@ function BgPicker({ bgColor, bgGradient, onColorChange, onGradientChange }) {
 }
 
 function ComponentProperties({ comp }) {
-  const { dispatch } = useProject();
+  const { dispatch, state } = useProject();
   const screen = useActiveScreen();
   if (!comp || !screen) return null;
   const update = (props) => dispatch({ type: 'UPDATE_COMPONENT_PROPS', id: comp.id, props });
@@ -172,10 +174,11 @@ function ComponentProperties({ comp }) {
       {comp.type === 'button' && (
         <>
           <Field label="Icône">
-            <SelectInput
+            <IconPicker
               value={p.iconName || ''}
+              iconSet={p.iconSet || 'lucide'}
               onChange={v => update({ iconName: v })}
-              options={[{ value: '', label: 'Aucune icône' }, ...ICON_OPTIONS.map(n => ({ value: n, label: n }))]}
+              onSetChange={s => update({ iconSet: s })}
             />
           </Field>
           {p.iconName && (
@@ -216,7 +219,12 @@ function ComponentProperties({ comp }) {
       {'count' in p && <Field label="Nombre"><NumberInput value={p.count} onChange={v => update({ count: v })} max={99} /></Field>}
       {('iconName' in p) && comp.type === 'icon' && (
         <Field label="Icône">
-          <SelectInput value={p.iconName} onChange={v => update({ iconName: v })} options={ICON_OPTIONS.map(n => ({ value: n, label: n }))} />
+          <IconPicker
+            value={p.iconName}
+            iconSet={p.iconSet || 'lucide'}
+            onChange={v => update({ iconName: v })}
+            onSetChange={s => update({ iconSet: s })}
+          />
         </Field>
       )}
       {'label' in p && comp.type === 'switch' && <Field label="Texte"><TextInput value={p.label} onChange={v => update({ label: v })} /></Field>}
@@ -227,6 +235,20 @@ function ComponentProperties({ comp }) {
         <button onClick={() => dispatch({ type: 'SET_Z_INDEX', id: comp.id, zIndex: maxZ + 1 })} style={aBtnStyle('#EDE9FE', '#6C63FF')}>⬆️ Devant</button>
         <button onClick={() => dispatch({ type: 'SET_Z_INDEX', id: comp.id, zIndex: Math.max(0, (comp.zIndex || 1) - 1) })} style={aBtnStyle('#F3F4F6', '#374151')}>⬇️ Derrière</button>
       </div>
+
+      <SectionTitle>Navigation</SectionTitle>
+      <Field label="Lien vers écran">
+        <select
+          value={p.navigateTo || ''}
+          onChange={e => update({ navigateTo: e.target.value })}
+          style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1.5px solid #E5E7EB', fontSize: 13, fontFamily: 'Nunito, sans-serif', outline: 'none', color: '#1F2937', backgroundColor: '#F9FAFB', cursor: 'pointer' }}
+        >
+          <option value="">— Aucune navigation —</option>
+          {screen.components && state.screens.map(s => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
+      </Field>
     </div>
   );
 }
