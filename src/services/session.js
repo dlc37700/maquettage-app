@@ -1,4 +1,4 @@
-import { ref, onValue, off, update } from 'firebase/database';
+import { ref, onValue, off, update, get } from 'firebase/database';
 import { db } from './firebase';
 
 const CLIENT_ID_KEY = 'maquettage_client_id';
@@ -19,57 +19,67 @@ export function generateSessionCode() {
   ).join('');
 }
 
-// Write a single screen + update meta (one atomic multi-path update)
+// Store screen as JSON string to prevent Firebase from mangling arrays
 export function writeScreen(code, screen, projectName) {
   if (!db || !code || !screen?.id) return;
-  const { _remote, _ownerId, ...clean } = screen;
+  const { _remote, _ownerId, updatedAt, updatedBy, ...clean } = screen;
+  const ts = Date.now();
   const updates = {};
   updates[`sessions/${code}/screens/${screen.id}`] = {
-    ...clean,
-    updatedAt: Date.now(),
+    id: screen.id,           // top-level for quick filtering
+    updatedAt: ts,
     updatedBy: getClientId(),
+    screenJson: JSON.stringify({ ...clean, updatedAt: ts }),
   };
   if (projectName) {
-    updates[`sessions/${code}/meta`] = { projectName, updatedAt: Date.now() };
+    updates[`sessions/${code}/meta`] = { projectName, updatedAt: ts };
   }
-  update(ref(db), updates);
+  update(ref(db), updates).catch(err =>
+    console.error('[Session] Write error:', err)
+  );
 }
 
-// Remove a screen from the session and mark it as deleted
+// Delete a screen + record it in the deleted index
 export function removeScreen(code, screenId) {
   if (!db || !code || !screenId) return;
   const updates = {};
-  updates[`sessions/${code}/screens/${screenId}`] = null; // deletes the node
+  updates[`sessions/${code}/screens/${screenId}`] = null;
   updates[`sessions/${code}/deleted/${screenId}`] = Date.now();
-  update(ref(db), updates);
+  update(ref(db), updates).catch(err =>
+    console.error('[Session] Delete error:', err)
+  );
 }
 
-function parseSession(snapshot) {
-  const data = snapshot.val();
-  if (!data) return null;
+function parseScreensFromData(data) {
+  if (!data) return [];
   const deleted = data.deleted || {};
-  const screens = Object.values(data.screens || {})
-    .filter(s => s?.id && !deleted[s.id])
+  return Object.values(data.screens || {})
+    .filter(s => s?.id && s.screenJson && !deleted[s.id])
+    .map(s => {
+      try { return JSON.parse(s.screenJson); }
+      catch { return null; }
+    })
+    .filter(Boolean)
     .sort((a, b) => (a.updatedAt || 0) - (b.updatedAt || 0));
-  return { screens, projectName: data.meta?.projectName || 'Mon Projet' };
 }
 
-export function loadSessionOnce(code) {
-  if (!db || !code) return Promise.resolve(null);
-  return new Promise((resolve) => {
-    const r = ref(db, `sessions/${code}`);
-    onValue(r, (snapshot) => {
-      const parsed = parseSession(snapshot);
-      resolve(parsed && parsed.screens.length > 0 ? parsed : null);
-    }, (err) => {
-      console.error('[Session] Load error:', err);
-      resolve(null);
-    }, { onlyOnce: true });
-  });
+// One-time read using get() — more reliable than onValue+onlyOnce
+export async function loadSessionOnce(code) {
+  if (!db || !code) return null;
+  try {
+    const snapshot = await get(ref(db, `sessions/${code}`));
+    const data = snapshot.val();
+    if (!data) return null;
+    const screens = parseScreensFromData(data);
+    if (screens.length === 0) return null;
+    return { screens, projectName: data.meta?.projectName || 'Mon Projet' };
+  } catch (err) {
+    console.error('[Session] Load error:', err);
+    return null;
+  }
 }
 
-// Subscribe — callback receives { remoteScreens, deletedIds }
-// remoteScreens = screens written by OTHER clients only
+// Subscribe — only fires for OTHER clients' changes
 export function subscribeSession(code, onUpdate) {
   if (!db || !code) return () => {};
   const r = ref(db, `sessions/${code}`);
@@ -82,9 +92,13 @@ export function subscribeSession(code, onUpdate) {
       const deleted = data.deleted || {};
       const deletedIds = Object.keys(deleted);
 
-      // Only propagate screens from other clients
       const remoteScreens = Object.values(data.screens || {})
-        .filter(s => s?.id && s.updatedBy !== myId && !deleted[s.id]);
+        .filter(s => s?.id && s.updatedBy !== myId && !deleted[s.id] && s.screenJson)
+        .map(s => {
+          try { return JSON.parse(s.screenJson); }
+          catch { return null; }
+        })
+        .filter(Boolean);
 
       onUpdate({ remoteScreens, deletedIds });
     } catch (err) {
@@ -92,6 +106,6 @@ export function subscribeSession(code, onUpdate) {
     }
   };
 
-  onValue(r, handler, (err) => console.error('[Session] Firebase error:', err));
+  onValue(r, handler, err => console.error('[Session] Firebase error:', err));
   return () => off(r, 'value', handler);
 }
