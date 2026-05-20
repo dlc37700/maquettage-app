@@ -22,7 +22,7 @@ function MiniComp({ comp }) {
   switch (type) {
     case 'button':
       return (
-        <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), borderRadius: props.borderRadius, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+        <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), borderRadius: props.borderRadius, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: props.bgColor === 'transparent' ? 'none' : '0 2px 8px rgba(0,0,0,0.15)' }}>
           {props.emoji && props.iconPosition === 'only'
             ? <span style={{ fontSize: Math.min(pos.width, pos.height) * 0.52, lineHeight: 1 }}>{props.emoji}</span>
             : <span style={{ color: props.textColor, fontSize: props.fontSize, fontFamily: props.fontFamily || 'Nunito', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '0 8px' }}>{props.label}</span>}

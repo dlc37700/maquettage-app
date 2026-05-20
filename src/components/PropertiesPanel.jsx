@@ -196,7 +196,15 @@ function ComponentProperties({ comp }) {
       {'label' in p && comp.type !== 'switch' && <Field label="Texte"><TextInput value={p.label} onChange={v => update({ label: v })} /></Field>}
       {'title' in p && <Field label="Titre"><TextInput value={p.title} onChange={v => update({ title: v })} /></Field>}
       {'placeholder' in p && <Field label="Placeholder"><TextInput value={p.placeholder} onChange={v => update({ placeholder: v })} /></Field>}
-      {'bgColor' in p && comp.type !== 'image' && (
+      {comp.type === 'button' && (
+        <Field label="Fond transparent">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Toggle value={p.bgColor === 'transparent'} onChange={v => update({ bgColor: v ? 'transparent' : '#6C63FF', bgGradient: null })} />
+            <span style={{ fontSize: 12, color: '#6B7280', fontFamily: 'Nunito, sans-serif' }}>Sans arrière-plan</span>
+          </div>
+        </Field>
+      )}
+      {'bgColor' in p && comp.type !== 'image' && p.bgColor !== 'transparent' && (
         <Field label="Fond">
           <BgPicker
             bgColor={p.bgColor}

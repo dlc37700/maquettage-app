@@ -34,7 +34,8 @@ function compToHtml(comp) {
           : '';
       const labelHtml = !iconOnly && props.label ? `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(props.label)}</span>` : '';
       const flexDir = props.iconPosition === 'right' ? 'row-reverse' : 'row';
-      return `<button${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};font-size:${props.fontSize || 16}px;border-radius:${props.borderRadius || 12}px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;flex-direction:${flexDir};font-family:${props.fontFamily || 'Nunito'},sans-serif;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.15);padding:0 12px">${iconHtml}${labelHtml}</button>`;
+      const shadow = props.bgColor === 'transparent' ? '' : ';box-shadow:0 2px 8px rgba(0,0,0,0.15)';
+      return `<button${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};font-size:${props.fontSize || 16}px;border-radius:${props.borderRadius || 12}px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;flex-direction:${flexDir};font-family:${props.fontFamily || 'Nunito'},sans-serif;font-weight:700${shadow};padding:0 12px">${iconHtml}${labelHtml}</button>`;
     }
 
     case 'text': {

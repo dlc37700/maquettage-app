@@ -44,7 +44,7 @@ function ComponentRenderer({ comp }) {
           fontSize: props.fontSize, borderRadius: props.borderRadius,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontWeight: 700, fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif`,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          boxShadow: props.bgColor === 'transparent' ? 'none' : '0 2px 8px rgba(0,0,0,0.15)',
           gap: 6, padding: '0 12px', overflow: 'hidden',
         }}>
           {useEmoji
