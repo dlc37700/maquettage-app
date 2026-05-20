@@ -23,11 +23,23 @@ export function generateSessionCode() {
 
 export function writeSession(code, project) {
   if (!db || !code) return;
+  // Store as JSON string to avoid Firebase array-to-object conversion
   set(ref(db, `sessions/${code}`), {
     clientId: getClientId(),
     updatedAt: Date.now(),
-    project,
+    projectJson: JSON.stringify(project),
   });
+}
+
+function parseProject(data) {
+  if (!data?.projectJson) return null;
+  try {
+    const project = JSON.parse(data.projectJson);
+    if (!project || !Array.isArray(project.screens)) return null;
+    return project;
+  } catch {
+    return null;
+  }
 }
 
 export function loadSessionOnce(code) {
@@ -35,20 +47,10 @@ export function loadSessionOnce(code) {
   return new Promise((resolve) => {
     const r = ref(db, `sessions/${code}`);
     onValue(r, (snapshot) => {
-      off(r, 'value');
-      try {
-        const data = snapshot.val();
-        const project = data?.project ?? null;
-        // Validate minimum structure
-        if (project && Array.isArray(project.screens) && project.screens.length > 0) {
-          resolve(project);
-        } else {
-          resolve(null);
-        }
-      } catch (err) {
-        console.error('[Session] Erreur lecture :', err);
-        resolve(null);
-      }
+      resolve(parseProject(snapshot.val()));
+    }, (err) => {
+      console.error('[Session] Erreur lecture :', err);
+      resolve(null);
     }, { onlyOnce: true });
   });
 }
@@ -61,9 +63,8 @@ export function subscribeSession(code, onRemoteUpdate) {
       const data = snapshot.val();
       if (!data) return;
       if (data.clientId === getClientId()) return; // ignore own writes
-      const project = data.project;
-      if (!project || !Array.isArray(project.screens)) return;
-      onRemoteUpdate(project);
+      const project = parseProject(data);
+      if (project) onRemoteUpdate(project);
     } catch (err) {
       console.error('[Session] Erreur sync :', err);
     }
