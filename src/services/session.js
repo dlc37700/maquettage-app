@@ -36,8 +36,19 @@ export function loadSessionOnce(code) {
     const r = ref(db, `sessions/${code}`);
     onValue(r, (snapshot) => {
       off(r, 'value');
-      const data = snapshot.val();
-      resolve(data?.project ?? null);
+      try {
+        const data = snapshot.val();
+        const project = data?.project ?? null;
+        // Validate minimum structure
+        if (project && Array.isArray(project.screens) && project.screens.length > 0) {
+          resolve(project);
+        } else {
+          resolve(null);
+        }
+      } catch (err) {
+        console.error('[Session] Erreur lecture :', err);
+        resolve(null);
+      }
     }, { onlyOnce: true });
   });
 }
@@ -46,11 +57,17 @@ export function subscribeSession(code, onRemoteUpdate) {
   if (!db || !code) return () => {};
   const r = ref(db, `sessions/${code}`);
   const handler = (snapshot) => {
-    const data = snapshot.val();
-    if (!data) return;
-    if (data.clientId === getClientId()) return; // ignore own writes
-    onRemoteUpdate(data.project);
+    try {
+      const data = snapshot.val();
+      if (!data) return;
+      if (data.clientId === getClientId()) return; // ignore own writes
+      const project = data.project;
+      if (!project || !Array.isArray(project.screens)) return;
+      onRemoteUpdate(project);
+    } catch (err) {
+      console.error('[Session] Erreur sync :', err);
+    }
   };
-  onValue(r, handler);
+  onValue(r, handler, (err) => console.error('[Session] Firebase error :', err));
   return () => off(r, 'value', handler);
 }

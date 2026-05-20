@@ -10,10 +10,15 @@ export const isFirebaseConfigured = !!(apiKey && databaseURL);
 let _db = null;
 
 if (isFirebaseConfigured) {
-  const app = getApps().length === 0
-    ? initializeApp({ apiKey, databaseURL, projectId })
-    : getApps()[0];
-  _db = getDatabase(app);
+  try {
+    const app = getApps().length === 0
+      ? initializeApp({ apiKey, authDomain: `${projectId}.firebaseapp.com`, databaseURL, projectId })
+      : getApps()[0];
+    // Pass databaseURL explicitly for non-US regions (Europe, etc.)
+    _db = getDatabase(app, databaseURL);
+  } catch (err) {
+    console.error('[Firebase] Initialisation échouée :', err);
+  }
 }
 
 export const db = _db;

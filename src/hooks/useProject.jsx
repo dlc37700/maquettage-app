@@ -244,7 +244,10 @@ function reducer(state, action) {
       });
 
     case 'LOAD_PROJECT': {
-      const screens = action.project.screens || [INITIAL_SCREEN];
+      if (!action.project) return state;
+      const screens = (Array.isArray(action.project.screens) && action.project.screens.length > 0)
+        ? action.project.screens
+        : [INITIAL_SCREEN];
       return {
         ...INITIAL_STATE,
         projectName: action.project.projectName || 'Mon Projet',
