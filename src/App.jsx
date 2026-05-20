@@ -7,7 +7,7 @@ import PhoneFrame from './components/PhoneFrame';
 import PropertiesPanel from './components/PropertiesPanel';
 import WelcomeModal from './components/WelcomeModal';
 import CollabModal from './components/CollabModal';
-import { writeSession, subscribeSession, loadSessionOnce } from './services/session';
+import { writeClientScreens, subscribeSession, loadSessionOnce, getClientId } from './services/session';
 import { isFirebaseConfigured } from './services/firebase';
 
 const SESSION_STORAGE_KEY = 'maquetapp-session-code';
@@ -27,25 +27,34 @@ function AppInner() {
     setShowWelcome(false);
   };
 
-  // Sync to Firebase whenever state changes (debounced 1s)
+  // Sync to Firebase: only write OWN screens (not remote ones)
   useEffect(() => {
     if (!sessionCode) return;
+    const ownScreens = state.screens.filter(s => !s._remote);
     const timer = setTimeout(() => {
-      writeSession(sessionCode, { projectName: state.projectName, screens: state.screens });
+      writeClientScreens(sessionCode, ownScreens, state.projectName);
     }, 1000);
     return () => clearTimeout(timer);
   }, [state.projectName, state.screens, sessionCode]);
 
-  const joinSession = useCallback((code, remoteProject) => {
+  const startSubscription = useCallback((code) => {
     if (unsubscribeRef.current) unsubscribeRef.current();
-    if (remoteProject) dispatch({ type: 'LOAD_PROJECT', project: remoteProject });
+    unsubscribeRef.current = subscribeSession(code, (remoteScreens) => {
+      dispatch({ type: 'SYNC_PROJECT', remoteScreens });
+    });
+  }, [dispatch]);
+
+  const joinSession = useCallback((code, sessionData) => {
+    // sessionData = { screens, projectName } when joining existing; null when creating
+    if (sessionData) dispatch({ type: 'LOAD_PROJECT', project: sessionData });
     setSessionCode(code);
     localStorage.setItem(SESSION_STORAGE_KEY, code);
-    unsubscribeRef.current = subscribeSession(code, (project) => {
-      dispatch({ type: 'SYNC_PROJECT', project });
-    });
+    // Immediately register in Firebase with own screens
+    const ownScreens = (sessionData?.screens ?? state.screens).filter(s => !s._remote);
+    writeClientScreens(code, ownScreens, state.projectName);
+    startSubscription(code);
     setShowCollabModal(false);
-  }, [dispatch]);
+  }, [dispatch, state.screens, state.projectName, startSubscription]);
 
   const leaveSession = useCallback(() => {
     if (unsubscribeRef.current) { unsubscribeRef.current(); unsubscribeRef.current = null; }
@@ -58,13 +67,11 @@ function AppInner() {
     if (!isFirebaseConfigured) return;
     const saved = localStorage.getItem(SESSION_STORAGE_KEY);
     if (!saved) return;
-    loadSessionOnce(saved).then((project) => {
-      if (!project) { localStorage.removeItem(SESSION_STORAGE_KEY); return; }
+    loadSessionOnce(saved).then((sessionData) => {
+      if (!sessionData) { localStorage.removeItem(SESSION_STORAGE_KEY); return; }
+      dispatch({ type: 'LOAD_PROJECT', project: sessionData });
       setSessionCode(saved);
-      dispatch({ type: 'LOAD_PROJECT', project });
-      unsubscribeRef.current = subscribeSession(saved, (p) => {
-        dispatch({ type: 'SYNC_PROJECT', project: p });
-      });
+      startSubscription(saved);
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

@@ -1,9 +1,9 @@
-import { ref, set, onValue, off, serverTimestamp } from 'firebase/database';
+import { ref, set, onValue, off } from 'firebase/database';
 import { db } from './firebase';
 
 const CLIENT_ID_KEY = 'maquettage_client_id';
 
-function getClientId() {
+export function getClientId() {
   let id = sessionStorage.getItem(CLIENT_ID_KEY);
   if (!id) {
     id = Math.random().toString(36).slice(2, 10);
@@ -12,63 +12,80 @@ function getClientId() {
   return id;
 }
 
-// 6-char code using unambiguous characters
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-
 export function generateSessionCode() {
   return Array.from({ length: 6 }, () =>
     CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]
   ).join('');
 }
 
-export function writeSession(code, project) {
+// Each client writes ONLY their own screens under their own path
+export function writeClientScreens(code, ownScreens, projectName) {
   if (!db || !code) return;
-  // Store as JSON string to avoid Firebase array-to-object conversion
-  set(ref(db, `sessions/${code}`), {
-    clientId: getClientId(),
+  set(ref(db, `sessions/${code}/clients/${getClientId()}`), {
     updatedAt: Date.now(),
-    projectJson: JSON.stringify(project),
+    projectName,
+    screensJson: JSON.stringify(ownScreens),
   });
 }
 
-function parseProject(data) {
-  if (!data?.projectJson) return null;
-  try {
-    const project = JSON.parse(data.projectJson);
-    if (!project || !Array.isArray(project.screens)) return null;
-    return project;
-  } catch {
-    return null;
-  }
+// Parse all clients' data from Firebase into { ownScreens, remoteScreens, projectName }
+function parseAllClients(snapshot) {
+  const allClients = snapshot.val();
+  if (!allClients || typeof allClients !== 'object') return null;
+
+  const myId = getClientId();
+  let ownScreens = [];
+  let remoteScreens = [];
+  let projectName = null;
+
+  Object.entries(allClients).forEach(([clientId, data]) => {
+    try {
+      const screens = JSON.parse(data.screensJson || '[]');
+      if (!Array.isArray(screens)) return;
+      if (clientId === myId) {
+        ownScreens = screens; // restore own screens on refresh
+      } else {
+        remoteScreens.push(...screens.map(s => ({ ...s, _remote: true, _ownerId: clientId })));
+      }
+      if (!projectName && data.projectName) projectName = data.projectName;
+    } catch { /* ignore malformed data */ }
+  });
+
+  return { ownScreens, remoteScreens, projectName };
 }
 
+// Load session once (for join / page refresh)
 export function loadSessionOnce(code) {
   if (!db || !code) return Promise.resolve(null);
   return new Promise((resolve) => {
-    const r = ref(db, `sessions/${code}`);
+    const r = ref(db, `sessions/${code}/clients`);
     onValue(r, (snapshot) => {
-      resolve(parseProject(snapshot.val()));
+      const parsed = parseAllClients(snapshot);
+      if (!parsed) { resolve(null); return; }
+      const allScreens = [...parsed.ownScreens, ...parsed.remoteScreens];
+      if (allScreens.length === 0) { resolve(null); return; }
+      resolve({ screens: allScreens, projectName: parsed.projectName });
     }, (err) => {
-      console.error('[Session] Erreur lecture :', err);
+      console.error('[Session] Read error:', err);
       resolve(null);
     }, { onlyOnce: true });
   });
 }
 
-export function subscribeSession(code, onRemoteUpdate) {
+// Subscribe to remote changes — only fires when OTHER clients change
+export function subscribeSession(code, onRemoteScreens) {
   if (!db || !code) return () => {};
-  const r = ref(db, `sessions/${code}`);
+  const r = ref(db, `sessions/${code}/clients`);
   const handler = (snapshot) => {
     try {
-      const data = snapshot.val();
-      if (!data) return;
-      if (data.clientId === getClientId()) return; // ignore own writes
-      const project = parseProject(data);
-      if (project) onRemoteUpdate(project);
+      const parsed = parseAllClients(snapshot);
+      if (!parsed) return;
+      onRemoteScreens(parsed.remoteScreens);
     } catch (err) {
-      console.error('[Session] Erreur sync :', err);
+      console.error('[Session] Sync error:', err);
     }
   };
-  onValue(r, handler, (err) => console.error('[Session] Firebase error :', err));
+  onValue(r, handler, (err) => console.error('[Session] Firebase error:', err));
   return () => off(r, 'value', handler);
 }
