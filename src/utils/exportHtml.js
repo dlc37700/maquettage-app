@@ -34,28 +34,28 @@ function compToHtml(comp) {
           : '';
       const labelHtml = !iconOnly && props.label ? `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(props.label)}</span>` : '';
       const flexDir = props.iconPosition === 'right' ? 'row-reverse' : 'row';
-      return `<button${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};font-size:${props.fontSize || 16}px;border-radius:${props.borderRadius || 12}px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;flex-direction:${flexDir};font-family:Nunito,sans-serif;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.15);padding:0 12px">${iconHtml}${labelHtml}</button>`;
+      return `<button${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};font-size:${props.fontSize || 16}px;border-radius:${props.borderRadius || 12}px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;flex-direction:${flexDir};font-family:${props.fontFamily || 'Nunito'},sans-serif;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.15);padding:0 12px">${iconHtml}${labelHtml}</button>`;
     }
 
     case 'text': {
       const fw = props.fontWeight === 'bold' ? 700 : props.fontWeight === 'semibold' ? 600 : 400;
-      return `<p style="${base}color:${props.textColor};font-size:${props.fontSize || 16}px;font-weight:${fw};font-family:Nunito,sans-serif;margin:0;display:flex;align-items:center;line-height:1.4;overflow:hidden">${escHtml(props.label)}</p>`;
+      return `<p style="${base}color:${props.textColor};font-size:${props.fontSize || 16}px;font-weight:${fw};font-family:${props.fontFamily || 'Nunito'},sans-serif;margin:0;display:flex;align-items:center;line-height:1.4;overflow:hidden">${escHtml(props.label)}</p>`;
     }
 
     case 'input':
       return `<div style="${base}display:flex;flex-direction:column;gap:4px">
-  <label style="font-size:12px;color:#6B7280;font-family:Nunito,sans-serif;font-weight:600">${escHtml(props.label)}</label>
-  <input type="text" placeholder="${escHtml(props.placeholder)}" style="flex:1;${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};border-radius:${props.borderRadius || 8}px;border:1.5px solid #E5E7EB;padding:0 12px;font-size:14px;font-family:Nunito,sans-serif;outline:none;width:100%;box-sizing:border-box">
+  <label style="font-size:12px;color:#6B7280;font-family:${props.fontFamily || 'Nunito'},sans-serif;font-weight:600">${escHtml(props.label)}</label>
+  <input type="text" placeholder="${escHtml(props.placeholder)}" style="flex:1;${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};border-radius:${props.borderRadius || 8}px;border:1.5px solid #E5E7EB;padding:0 12px;font-size:14px;font-family:${props.fontFamily || 'Nunito'},sans-serif;outline:none;width:100%;box-sizing:border-box">
 </div>`;
 
     case 'checkbox':
-      return `<label style="${base}display:flex;align-items:center;gap:10px;cursor:pointer;font-family:Nunito,sans-serif;color:${props.textColor};font-size:${props.fontSize || 14}px">
+      return `<label style="${base}display:flex;align-items:center;gap:10px;cursor:pointer;font-family:${props.fontFamily || 'Nunito'},sans-serif;color:${props.textColor};font-size:${props.fontSize || 14}px">
   <input type="checkbox"${props.checked ? ' checked' : ''} style="width:18px;height:18px;accent-color:${props.accentColor};cursor:pointer;flex-shrink:0">
   <span>${escHtml(props.label)}</span>
 </label>`;
 
     case 'radio':
-      return `<label style="${base}display:flex;align-items:center;gap:10px;cursor:pointer;font-family:Nunito,sans-serif;color:${props.textColor};font-size:${props.fontSize || 14}px">
+      return `<label style="${base}display:flex;align-items:center;gap:10px;cursor:pointer;font-family:${props.fontFamily || 'Nunito'},sans-serif;color:${props.textColor};font-size:${props.fontSize || 14}px">
   <input type="radio"${props.checked ? ' checked' : ''} style="width:18px;height:18px;accent-color:${props.accentColor};cursor:pointer;flex-shrink:0">
   <span>${escHtml(props.label)}</span>
 </label>`;
@@ -90,7 +90,7 @@ function compToHtml(comp) {
     case 'header':
       return `<header style="${base}${getBgCss(props.bgColor, props.bgGradient)};display:flex;align-items:center;padding:0 16px;gap:12px">
   ${props.showBack ? `<button onclick="history.back()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;padding:0"><i data-lucide="arrow-left" style="width:20px;height:20px;color:${props.textColor}"></i></button>` : ''}
-  <span style="color:${props.textColor};font-size:18px;font-weight:700;font-family:Nunito,sans-serif;flex:1">${escHtml(props.title)}</span>
+  <span style="color:${props.textColor};font-size:18px;font-weight:700;font-family:${props.fontFamily || 'Nunito'},sans-serif;flex:1">${escHtml(props.title)}</span>
 </header>`;
 
     case 'navbar':
@@ -106,7 +106,7 @@ function compToHtml(comp) {
 
     case 'switch': {
       const id = `sw-${Math.random().toString(36).slice(2, 7)}`;
-      return `<label for="${id}" style="${base}display:flex;align-items:center;gap:12px;cursor:pointer;font-family:Nunito,sans-serif;font-size:${props.fontSize || 14}px;color:#1F2937">
+      return `<label for="${id}" style="${base}display:flex;align-items:center;gap:12px;cursor:pointer;font-family:${props.fontFamily || 'Nunito'},sans-serif;font-size:${props.fontSize || 14}px;color:#1F2937">
   <span style="flex:1">${escHtml(props.label)}</span>
   <input type="checkbox" id="${id}" role="switch"${props.checked ? ' checked' : ''} style="width:46px;height:26px;appearance:none;background-color:${props.checked ? props.activeColor : '#D1D5DB'};border-radius:13px;position:relative;cursor:pointer;flex-shrink:0;transition:background .15s;outline:none" onclick="this.style.backgroundColor=this.checked?'${props.activeColor}':'#D1D5DB'">
 </label>`;
@@ -120,12 +120,12 @@ function compToHtml(comp) {
     case 'listitem':
       return `<div${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-bottom:1px solid #F3F4F6;display:flex;align-items:center;padding:0 16px;gap:12px${navOnclick ? ';cursor:pointer' : ''}">
   <div style="width:34px;height:34px;background-color:#EDE9FE;border-radius:9px;flex-shrink:0"></div>
-  <span style="flex:1;color:${props.textColor};font-size:14px;font-family:Nunito,sans-serif;font-weight:600">${escHtml(props.label)}</span>
+  <span style="flex:1;color:${props.textColor};font-size:14px;font-family:${props.fontFamily || 'Nunito'},sans-serif;font-weight:600">${escHtml(props.label)}</span>
   <i data-lucide="chevron-right" style="width:16px;height:16px;color:#9CA3AF"></i>
 </div>`;
 
     case 'badge':
-      return `<span style="${base}${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${Math.round(Math.min(pos.width, pos.height) * 0.38)}px;font-weight:700;font-family:Nunito,sans-serif">${props.count ?? 0}</span>`;
+      return `<span style="${base}${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${Math.round(Math.min(pos.width, pos.height) * 0.38)}px;font-weight:700;font-family:${props.fontFamily || 'Nunito'},sans-serif">${props.count ?? 0}</span>`;
 
     case 'separator':
       return `<hr style="${base}border:none;border-top:1px solid ${props.color || '#E5E7EB'};margin:0">`;
@@ -171,7 +171,7 @@ export function exportProjectAsHtml(state) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${escHtml(projectName)}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Caveat:wght@400;700&family=Dancing+Script:wght@400;700&family=Josefin+Sans:wght@400;600;700&family=Lato:wght@400;700&family=Merriweather:wght@400;700&family=Montserrat:wght@400;600;700&family=Nunito:wght@400;600;700;800;900&family=Open+Sans:wght@400;600;700&family=Oswald:wght@400;700&family=Pacifico&family=Playfair+Display:wght@400;700&family=Poppins:wght@400;600;700&family=Quicksand:wght@400;600;700&family=Raleway:wght@400;600;700&family=Roboto:wght@400;700&family=Ubuntu:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"><\/script>
   <style>
     *, *::before, *::after { box-sizing: border-box; }

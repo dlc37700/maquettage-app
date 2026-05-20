@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { useProject, useActiveScreen } from '../hooks/useProject';
-import { COMPONENT_DEFINITIONS, THEMES } from '../data/componentDefinitions';
+import { COMPONENT_DEFINITIONS, THEMES, FONT_OPTIONS } from '../data/componentDefinitions';
 // ICON_OPTIONS removed — now using IconPicker with iconLibraries
 import IconPicker from './IconPicker';
 
@@ -210,7 +210,20 @@ function ComponentProperties({ comp }) {
       {'color' in p && comp.type === 'icon' && <Field label="Couleur"><ColorInput value={p.color} onChange={v => update({ color: v })} /></Field>}
       {'activeColor' in p && <Field label="Couleur active"><ColorInput value={p.activeColor} onChange={v => update({ activeColor: v })} /></Field>}
       {'accentColor' in p && <Field label="Accentuation"><ColorInput value={p.accentColor} onChange={v => update({ accentColor: v })} /></Field>}
-      {'fontSize' in p && <Field label={`Police (${p.fontSize}px)`}><RangeInput value={p.fontSize} onChange={v => update({ fontSize: v })} min={8} max={48} /></Field>}
+      {'fontFamily' in p && (
+        <Field label="Police d'écriture">
+          <select
+            value={p.fontFamily || 'Nunito'}
+            onChange={e => update({ fontFamily: e.target.value })}
+            style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1.5px solid #E5E7EB', fontSize: 13, fontFamily: `${p.fontFamily || 'Nunito'}, sans-serif`, outline: 'none', color: '#1F2937', backgroundColor: '#F9FAFB', cursor: 'pointer' }}
+          >
+            {FONT_OPTIONS.map(f => (
+              <option key={f.value} value={f.value} style={{ fontFamily: `${f.value}, sans-serif` }}>{f.label}</option>
+            ))}
+          </select>
+        </Field>
+      )}
+      {'fontSize' in p && <Field label={`Taille (${p.fontSize}px)`}><RangeInput value={p.fontSize} onChange={v => update({ fontSize: v })} min={8} max={48} /></Field>}
       {'fontWeight' in p && <Field label="Style"><SelectInput value={p.fontWeight} onChange={v => update({ fontWeight: v })} options={[{ value: 'normal', label: 'Normal' }, { value: 'semibold', label: 'Semi-gras' }, { value: 'bold', label: 'Gras' }]} /></Field>}
       {'borderRadius' in p && <Field label={`Arrondi (${p.borderRadius}px)`}><RangeInput value={p.borderRadius} onChange={v => update({ borderRadius: v })} max={60} /></Field>}
       {'checked' in p && <Field label="Coché"><Toggle value={p.checked} onChange={v => update({ checked: v })} /></Field>}

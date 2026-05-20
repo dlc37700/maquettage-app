@@ -25,23 +25,23 @@ function MiniComp({ comp }) {
         <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), borderRadius: props.borderRadius, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
           {props.emoji && props.iconPosition === 'only'
             ? <span style={{ fontSize: Math.min(pos.width, pos.height) * 0.52, lineHeight: 1 }}>{props.emoji}</span>
-            : <span style={{ color: props.textColor, fontSize: props.fontSize, fontFamily: 'Nunito', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '0 8px' }}>{props.label}</span>}
+            : <span style={{ color: props.textColor, fontSize: props.fontSize, fontFamily: props.fontFamily || 'Nunito', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '0 8px' }}>{props.label}</span>}
         </div>
       );
     case 'text': {
       const fw = props.fontWeight === 'bold' ? 700 : props.fontWeight === 'semibold' ? 600 : 400;
-      return <div style={{ ...base, color: props.textColor, fontSize: props.fontSize, fontFamily: 'Nunito', fontWeight: fw, display: 'flex', alignItems: 'center', lineHeight: 1.4 }}>{props.label}</div>;
+      return <div style={{ ...base, color: props.textColor, fontSize: props.fontSize, fontFamily: props.fontFamily || 'Nunito', fontWeight: fw, display: 'flex', alignItems: 'center', lineHeight: 1.4 }}>{props.label}</div>;
     }
     case 'input':
       return <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), borderRadius: props.borderRadius, border: '1.5px solid #E5E7EB', display: 'flex', alignItems: 'center', padding: '0 10px' }}>
-        <span style={{ color: props.textColor, fontSize: 13, fontFamily: 'Nunito' }}>{props.placeholder}</span>
+        <span style={{ color: props.textColor, fontSize: 13, fontFamily: props.fontFamily || 'Nunito' }}>{props.placeholder}</span>
       </div>;
     case 'checkbox':
     case 'radio':
       return (
         <div style={{ ...base, display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 18, height: 18, flexShrink: 0, borderRadius: type === 'radio' ? '50%' : 4, border: `2px solid ${props.accentColor}`, backgroundColor: props.checked ? props.accentColor : 'white' }} />
-          <span style={{ color: props.textColor, fontSize: props.fontSize, fontFamily: 'Nunito' }}>{props.label}</span>
+          <span style={{ color: props.textColor, fontSize: props.fontSize, fontFamily: props.fontFamily || 'Nunito' }}>{props.label}</span>
         </div>
       );
     case 'image':
@@ -53,7 +53,7 @@ function MiniComp({ comp }) {
       return <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), borderRadius: '50%' }} />;
     case 'header':
       return <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), display: 'flex', alignItems: 'center', padding: '0 16px' }}>
-        <span style={{ color: props.textColor, fontSize: 18, fontWeight: 700, fontFamily: 'Nunito' }}>{props.title}</span>
+        <span style={{ color: props.textColor, fontSize: 18, fontWeight: 700, fontFamily: props.fontFamily || 'Nunito' }}>{props.title}</span>
       </div>;
     case 'navbar':
       return <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), borderTop: '1px solid #E5E7EB' }} />;
@@ -64,7 +64,7 @@ function MiniComp({ comp }) {
     case 'switch':
       return (
         <div style={{ ...base, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ flex: 1, color: '#1F2937', fontSize: props.fontSize, fontFamily: 'Nunito' }}>{props.label}</span>
+          <span style={{ flex: 1, color: '#1F2937', fontSize: props.fontSize, fontFamily: props.fontFamily || 'Nunito' }}>{props.label}</span>
           <div style={{ width: 46, height: 26, backgroundColor: props.checked ? props.activeColor : '#D1D5DB', borderRadius: 13, flexShrink: 0 }} />
         </div>
       );
@@ -80,11 +80,11 @@ function MiniComp({ comp }) {
       return (
         <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12, borderBottom: '1px solid #F3F4F6' }}>
           <div style={{ width: 34, height: 34, backgroundColor: '#EDE9FE', borderRadius: 9, flexShrink: 0 }} />
-          <span style={{ flex: 1, color: props.textColor, fontSize: 14, fontFamily: 'Nunito', fontWeight: 600 }}>{props.label}</span>
+          <span style={{ flex: 1, color: props.textColor, fontSize: 14, fontFamily: props.fontFamily || 'Nunito', fontWeight: 600 }}>{props.label}</span>
         </div>
       );
     case 'badge':
-      return <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: props.textColor, fontSize: Math.min(pos.width, pos.height) * 0.38, fontWeight: 700, fontFamily: 'Nunito' }}>{props.count}</div>;
+      return <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: props.textColor, fontSize: Math.min(pos.width, pos.height) * 0.38, fontWeight: 700, fontFamily: props.fontFamily || 'Nunito' }}>{props.count}</div>;
     case 'separator':
       return <div style={{ ...base, borderTop: `1px solid ${props.color || '#E5E7EB'}` }} />;
     default:

@@ -43,7 +43,7 @@ function ComponentRenderer({ comp }) {
           ...getBg(props.bgColor, props.bgGradient), color: props.textColor,
           fontSize: props.fontSize, borderRadius: props.borderRadius,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontWeight: 700, fontFamily: 'Nunito, sans-serif',
+          fontWeight: 700, fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif`,
           boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
           gap: 6, padding: '0 12px', overflow: 'hidden',
         }}>
@@ -60,13 +60,13 @@ function ComponentRenderer({ comp }) {
     }
 
     case 'text':
-      return <div style={{ width: '100%', height: '100%', color: props.textColor, fontSize: props.fontSize, fontWeight: props.fontWeight === 'bold' ? 700 : props.fontWeight === 'semibold' ? 600 : 400, fontFamily: 'Nunito, sans-serif', display: 'flex', alignItems: 'center', lineHeight: 1.4, overflow: 'hidden' }}>{props.label}</div>;
+      return <div style={{ width: '100%', height: '100%', color: props.textColor, fontSize: props.fontSize, fontWeight: props.fontWeight === 'bold' ? 700 : props.fontWeight === 'semibold' ? 600 : 400, fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif`, display: 'flex', alignItems: 'center', lineHeight: 1.4, overflow: 'hidden' }}>{props.label}</div>;
 
     case 'input':
       return (
         <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3 }}>
-          {props.label && <div style={{ fontSize: 11, color: '#6B7280', fontFamily: 'Nunito, sans-serif', fontWeight: 600 }}>{props.label}</div>}
-          <div style={{ flex: 1, ...getBg(props.bgColor, props.bgGradient), border: '1.5px solid #D1D5DB', borderRadius: props.borderRadius, color: props.textColor, fontSize: 14, padding: '0 12px', display: 'flex', alignItems: 'center', fontFamily: 'Nunito, sans-serif' }}>{props.placeholder}</div>
+          {props.label && <div style={{ fontSize: 11, color: '#6B7280', fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif`, fontWeight: 600 }}>{props.label}</div>}
+          <div style={{ flex: 1, ...getBg(props.bgColor, props.bgGradient), border: '1.5px solid #D1D5DB', borderRadius: props.borderRadius, color: props.textColor, fontSize: 14, padding: '0 12px', display: 'flex', alignItems: 'center', fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif` }}>{props.placeholder}</div>
         </div>
       );
 
@@ -76,7 +76,7 @@ function ComponentRenderer({ comp }) {
           <div style={{ width: 20, height: 20, border: `2px solid ${props.accentColor || '#6C63FF'}`, borderRadius: 5, backgroundColor: props.checked ? (props.accentColor || '#6C63FF') : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             {props.checked && <LucideIcons.Check size={13} color="white" strokeWidth={3} />}
           </div>
-          <span style={{ color: props.textColor, fontSize: props.fontSize || 14, fontFamily: 'Nunito, sans-serif' }}>{props.label}</span>
+          <span style={{ color: props.textColor, fontSize: props.fontSize || 14, fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif` }}>{props.label}</span>
         </div>
       );
 
@@ -86,7 +86,7 @@ function ComponentRenderer({ comp }) {
           <div style={{ width: 20, height: 20, border: `2px solid ${props.accentColor || '#6C63FF'}`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             {props.checked && <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: props.accentColor || '#6C63FF' }} />}
           </div>
-          <span style={{ color: props.textColor, fontSize: props.fontSize || 14, fontFamily: 'Nunito, sans-serif' }}>{props.label}</span>
+          <span style={{ color: props.textColor, fontSize: props.fontSize || 14, fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif` }}>{props.label}</span>
         </div>
       );
 
@@ -143,7 +143,7 @@ function ComponentRenderer({ comp }) {
       return (
         <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
           {props.showBack && <LucideIcon name="ArrowLeft" color={props.textColor} size={20} />}
-          <span style={{ color: props.textColor, fontSize: 18, fontWeight: 700, fontFamily: 'Nunito, sans-serif', flex: 1 }}>{props.title}</span>
+          <span style={{ color: props.textColor, fontSize: 18, fontWeight: 700, fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif`, flex: 1 }}>{props.title}</span>
         </div>
       );
 
@@ -153,7 +153,7 @@ function ComponentRenderer({ comp }) {
     case 'switch':
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, height: '100%' }}>
-          <span style={{ color: '#1F2937', fontSize: props.fontSize || 14, fontFamily: 'Nunito, sans-serif', flex: 1 }}>{props.label}</span>
+          <span style={{ color: '#1F2937', fontSize: props.fontSize || 14, fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif`, flex: 1 }}>{props.label}</span>
           <div style={{ width: 46, height: 26, backgroundColor: props.checked ? props.activeColor : '#D1D5DB', borderRadius: 13, position: 'relative', flexShrink: 0 }}>
             <div style={{ position: 'absolute', top: 3, left: props.checked ? 23 : 3, width: 20, height: 20, backgroundColor: 'white', borderRadius: '50%', boxShadow: '0 1px 4px rgba(0,0,0,0.25)', transition: 'left 0.15s' }} />
           </div>
@@ -174,13 +174,13 @@ function ComponentRenderer({ comp }) {
       return (
         <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
           <div style={{ width: 34, height: 34, backgroundColor: '#EDE9FE', borderRadius: 9, flexShrink: 0 }} />
-          <span style={{ flex: 1, color: props.textColor, fontSize: 14, fontFamily: 'Nunito, sans-serif', fontWeight: 600 }}>{props.label}</span>
+          <span style={{ flex: 1, color: props.textColor, fontSize: 14, fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif`, fontWeight: 600 }}>{props.label}</span>
           <LucideIcons.ChevronRight size={16} color="#9CA3AF" />
         </div>
       );
 
     case 'badge':
-      return <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), borderRadius: '50%', color: props.textColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.min(pos.width, pos.height) * 0.38, fontWeight: 700, fontFamily: 'Nunito, sans-serif' }}>{props.count}</div>;
+      return <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), borderRadius: '50%', color: props.textColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.min(pos.width, pos.height) * 0.38, fontWeight: 700, fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif` }}>{props.count}</div>;
 
     case 'separator':
       return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}><div style={{ width: '100%', height: 1.5, backgroundColor: props.color }} /></div>;
