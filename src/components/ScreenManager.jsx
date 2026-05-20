@@ -1,6 +1,90 @@
 import React, { useState, useRef } from 'react';
 import { useProject, useActiveScreen } from '../hooks/useProject';
 
+const THUMB_W = 120;
+const SCALE = THUMB_W / 390;
+const THUMB_H = Math.round(844 * SCALE);
+
+function MiniComp({ comp }) {
+  const { type, props, position: pos, zIndex } = comp;
+  const base = {
+    position: 'absolute', left: pos.x, top: pos.y,
+    width: pos.width, height: pos.height,
+    opacity: props.opacity ?? 1, zIndex: zIndex || 1, overflow: 'hidden',
+  };
+  switch (type) {
+    case 'button':
+      return (
+        <div style={{ ...base, backgroundColor: props.bgColor, borderRadius: props.borderRadius, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+          {props.emoji && props.iconPosition === 'only'
+            ? <span style={{ fontSize: Math.min(pos.width, pos.height) * 0.52, lineHeight: 1 }}>{props.emoji}</span>
+            : <span style={{ color: props.textColor, fontSize: props.fontSize, fontFamily: 'Nunito', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '0 8px' }}>{props.label}</span>}
+        </div>
+      );
+    case 'text': {
+      const fw = props.fontWeight === 'bold' ? 700 : props.fontWeight === 'semibold' ? 600 : 400;
+      return <div style={{ ...base, color: props.textColor, fontSize: props.fontSize, fontFamily: 'Nunito', fontWeight: fw, display: 'flex', alignItems: 'center', lineHeight: 1.4 }}>{props.label}</div>;
+    }
+    case 'input':
+      return <div style={{ ...base, backgroundColor: props.bgColor, borderRadius: props.borderRadius, border: '1.5px solid #E5E7EB', display: 'flex', alignItems: 'center', padding: '0 10px' }}>
+        <span style={{ color: props.textColor, fontSize: 13, fontFamily: 'Nunito' }}>{props.placeholder}</span>
+      </div>;
+    case 'checkbox':
+    case 'radio':
+      return (
+        <div style={{ ...base, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 18, height: 18, flexShrink: 0, borderRadius: type === 'radio' ? '50%' : 4, border: `2px solid ${props.accentColor}`, backgroundColor: props.checked ? props.accentColor : 'white' }} />
+          <span style={{ color: props.textColor, fontSize: props.fontSize, fontFamily: 'Nunito' }}>{props.label}</span>
+        </div>
+      );
+    case 'image':
+      if (props.imageData) return <img src={props.imageData} alt="" style={{ ...base, objectFit: 'cover', borderRadius: props.borderRadius }} />;
+      return <div style={{ ...base, backgroundColor: props.bgColor, borderRadius: props.borderRadius, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #D1D5DB' }}><span style={{ fontSize: 24 }}>🖼️</span></div>;
+    case 'avatar':
+      if (props.imageData) return <img src={props.imageData} alt="" style={{ ...base, objectFit: 'cover', borderRadius: '50%' }} />;
+      if (props.emoji) return <div style={{ ...base, backgroundColor: props.bgColor, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: Math.min(pos.width, pos.height) * 0.55, lineHeight: 1 }}>{props.emoji}</span></div>;
+      return <div style={{ ...base, backgroundColor: props.bgColor, borderRadius: '50%' }} />;
+    case 'header':
+      return <div style={{ ...base, backgroundColor: props.bgColor, display: 'flex', alignItems: 'center', padding: '0 16px' }}>
+        <span style={{ color: props.textColor, fontSize: 18, fontWeight: 700, fontFamily: 'Nunito' }}>{props.title}</span>
+      </div>;
+    case 'navbar':
+      return <div style={{ ...base, backgroundColor: props.bgColor, borderTop: '1px solid #E5E7EB' }} />;
+    case 'card':
+      return <div style={{ ...base, backgroundColor: props.bgColor, borderRadius: props.borderRadius, boxShadow: '0 2px 16px rgba(0,0,0,0.10)' }} />;
+    case 'colorblock':
+      return <div style={{ ...base, backgroundColor: props.bgColor, borderRadius: props.borderRadius || 0 }} />;
+    case 'switch':
+      return (
+        <div style={{ ...base, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ flex: 1, color: '#1F2937', fontSize: props.fontSize, fontFamily: 'Nunito' }}>{props.label}</span>
+          <div style={{ width: 46, height: 26, backgroundColor: props.checked ? props.activeColor : '#D1D5DB', borderRadius: 13, flexShrink: 0 }} />
+        </div>
+      );
+    case 'slider':
+      return (
+        <div style={{ ...base, display: 'flex', alignItems: 'center' }}>
+          <div style={{ flex: 1, height: 6, backgroundColor: '#E5E7EB', borderRadius: 3, position: 'relative' }}>
+            <div style={{ position: 'absolute', left: 0, top: 0, width: `${props.value}%`, height: '100%', backgroundColor: props.activeColor, borderRadius: 3 }} />
+          </div>
+        </div>
+      );
+    case 'listitem':
+      return (
+        <div style={{ ...base, backgroundColor: props.bgColor, display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12, borderBottom: '1px solid #F3F4F6' }}>
+          <div style={{ width: 34, height: 34, backgroundColor: '#EDE9FE', borderRadius: 9, flexShrink: 0 }} />
+          <span style={{ flex: 1, color: props.textColor, fontSize: 14, fontFamily: 'Nunito', fontWeight: 600 }}>{props.label}</span>
+        </div>
+      );
+    case 'badge':
+      return <div style={{ ...base, backgroundColor: props.bgColor, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: props.textColor, fontSize: Math.min(pos.width, pos.height) * 0.38, fontWeight: 700, fontFamily: 'Nunito' }}>{props.count}</div>;
+    case 'separator':
+      return <div style={{ ...base, borderTop: `1px solid ${props.color || '#E5E7EB'}` }} />;
+    default:
+      return <div style={{ ...base, backgroundColor: '#E5E7EB' }} />;
+  }
+}
+
 function ScreenThumbnail({ screen, isActive, onClick, onRename, onDelete, onDuplicate }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(screen.name);
@@ -33,37 +117,13 @@ function ScreenThumbnail({ screen, isActive, onClick, onRename, onDelete, onDupl
         position: 'relative',
       }}
     >
-      {/* Mini preview */}
-      <div style={{
-        width: '100%',
-        paddingBottom: '216%',
-        backgroundColor: bgPreview,
-        borderRadius: 6,
-        overflow: 'hidden',
-        position: 'relative',
-        marginBottom: 6,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-      }}>
-        {/* Simplified component previews */}
-        {screen.components.slice(0, 6).map((comp) => {
-          const scaleX = 140 / 390;
-          const scaleY = 302 / 844;
-          return (
-            <div
-              key={comp.id}
-              style={{
-                position: 'absolute',
-                left: comp.position.x * scaleX,
-                top: comp.position.y * scaleY,
-                width: comp.position.width * scaleX,
-                height: comp.position.height * scaleY,
-                backgroundColor: comp.props?.bgColor || comp.props?.color || '#6C63FF',
-                borderRadius: (comp.props?.borderRadius || 0) * scaleX,
-                opacity: comp.props?.opacity ?? 1,
-              }}
-            />
-          );
-        })}
+      {/* Mini preview — CSS scale */}
+      <div style={{ width: THUMB_W, height: THUMB_H, borderRadius: 6, overflow: 'hidden', position: 'relative', margin: '0 auto 6px', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', flexShrink: 0 }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, width: 390, height: 844, backgroundColor: bgPreview, transform: `scale(${SCALE})`, transformOrigin: 'top left', pointerEvents: 'none' }}>
+          {[...screen.components].sort((a, b) => (a.zIndex || 1) - (b.zIndex || 1)).map(comp => (
+            <MiniComp key={comp.id} comp={comp} />
+          ))}
+        </div>
       </div>
 
       {/* Screen name */}
