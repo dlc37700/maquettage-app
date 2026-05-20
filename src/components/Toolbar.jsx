@@ -4,7 +4,7 @@ import { exportProjectAsJson, importProjectFromJson } from '../utils/exportJson'
 import { exportScreenAsPng } from '../utils/exportPng';
 import { exportProjectAsHtml } from '../utils/exportHtml';
 
-export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp }) {
+export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessionCode, onCollabClick }) {
   const { state, dispatch } = useProject();
   const screen = useActiveScreen();
   const importRef = useRef(null);
@@ -159,6 +159,37 @@ export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp }) {
         label="Charger"
         color="#60A5FA"
       />
+
+      <div style={{ width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.15)' }} />
+
+      {/* Collaboration */}
+      {sessionCode ? (
+        <button
+          onClick={onCollabClick}
+          title="Session collaborative active"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '5px 12px', borderRadius: 8, border: 'none',
+            background: 'linear-gradient(135deg, rgba(124,58,237,0.4), rgba(108,99,255,0.4))',
+            color: '#A78BFA', fontSize: 12, fontFamily: 'Nunito, sans-serif',
+            fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap',
+            boxShadow: '0 0 0 1.5px #7C3AED',
+            animation: 'pulse-border 2s ease-in-out infinite',
+          }}
+        >
+          <span style={{ fontSize: 14 }}>👥</span>
+          <span style={{ letterSpacing: 2, fontFamily: 'monospace', fontSize: 13 }}>{sessionCode}</span>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: '#34D399', display: 'inline-block', flexShrink: 0 }} />
+        </button>
+      ) : (
+        <ToolBtn
+          onClick={onCollabClick}
+          title="Travail collaboratif"
+          emoji="👥"
+          label="Collaborer"
+          color="#A78BFA"
+        />
+      )}
 
       <div style={{ width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.15)' }} />
 

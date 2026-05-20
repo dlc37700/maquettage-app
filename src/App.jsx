@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ProjectProvider, useProject } from './hooks/useProject';
 import Toolbar from './components/Toolbar';
 import ComponentPalette from './components/ComponentPalette';
@@ -6,6 +6,8 @@ import ScreenManager from './components/ScreenManager';
 import PhoneFrame from './components/PhoneFrame';
 import PropertiesPanel from './components/PropertiesPanel';
 import WelcomeModal from './components/WelcomeModal';
+import CollabModal from './components/CollabModal';
+import { writeSession, subscribeSession } from './services/session';
 
 function AppInner() {
   const { state, dispatch } = useProject();
@@ -13,11 +15,38 @@ function AppInner() {
   const phoneScaleWrapperRef = useRef(null);
   const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem('maquetapp-visited'));
   const [phoneScale, setPhoneScale] = useState(0.8);
+  const [sessionCode, setSessionCode] = useState(null);
+  const [showCollabModal, setShowCollabModal] = useState(false);
+  const unsubscribeRef = useRef(null);
 
   const closeWelcome = () => {
     localStorage.setItem('maquetapp-visited', '1');
     setShowWelcome(false);
   };
+
+  // Sync to Firebase whenever state changes (debounced 1s)
+  useEffect(() => {
+    if (!sessionCode) return;
+    const timer = setTimeout(() => {
+      writeSession(sessionCode, { projectName: state.projectName, screens: state.screens });
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [state.projectName, state.screens, sessionCode]);
+
+  const joinSession = useCallback((code, remoteProject) => {
+    if (unsubscribeRef.current) unsubscribeRef.current();
+    if (remoteProject) dispatch({ type: 'LOAD_PROJECT', project: remoteProject });
+    setSessionCode(code);
+    unsubscribeRef.current = subscribeSession(code, (project) => {
+      dispatch({ type: 'LOAD_PROJECT', project });
+    });
+    setShowCollabModal(false);
+  }, [dispatch]);
+
+  const leaveSession = useCallback(() => {
+    if (unsubscribeRef.current) { unsubscribeRef.current(); unsubscribeRef.current = null; }
+    setSessionCode(null);
+  }, []);
 
   useEffect(() => {
     const updateScale = () => {
@@ -62,7 +91,13 @@ function AppInner() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', fontFamily: 'Nunito, sans-serif' }}>
-      <Toolbar canvasRef={canvasRef} phoneScaleWrapperRef={phoneScaleWrapperRef} onHelp={() => setShowWelcome(true)} />
+      <Toolbar
+        canvasRef={canvasRef}
+        phoneScaleWrapperRef={phoneScaleWrapperRef}
+        onHelp={() => setShowWelcome(true)}
+        sessionCode={sessionCode}
+        onCollabClick={() => setShowCollabModal(true)}
+      />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
         <div style={{ display: 'flex', height: '100%', flexShrink: 0 }}>
           <ScreenManager />
@@ -101,6 +136,15 @@ function AppInner() {
         <PropertiesPanel />
       </div>
       {showWelcome && <WelcomeModal onClose={closeWelcome} />}
+      {showCollabModal && (
+        <CollabModal
+          state={state}
+          sessionCode={sessionCode}
+          onJoin={joinSession}
+          onLeave={leaveSession}
+          onClose={() => setShowCollabModal(false)}
+        />
+      )}
     </div>
   );
 }
