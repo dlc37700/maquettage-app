@@ -129,7 +129,7 @@ export async function loadSessionOnce(code) {
 
     const allScreens = [...ownScreens, ...remoteScreens];
     if (allScreens.length === 0) return null;
-    return { screens: allScreens, projectName: projectName || 'Mon Projet' };
+    return { screens: allScreens, projectName: projectName || 'Mon Projet', creatorId: meta?.createdBy || null };
   } catch (err) {
     console.error('[Session] Load error:', err);
     return null;

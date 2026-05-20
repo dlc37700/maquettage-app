@@ -4,8 +4,9 @@ import { exportProjectAsJson, importProjectFromJson } from '../utils/exportJson'
 import { exportScreenAsPng } from '../utils/exportPng';
 import { exportProjectAsHtml } from '../utils/exportHtml';
 
-export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessionCode, onCollabClick }) {
+export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessionCode, isCreator, onCollabClick }) {
   const { state, dispatch } = useProject();
+  const projectNameLocked = !!(sessionCode && !isCreator);
   const screen = useActiveScreen();
   const importRef = useRef(null);
   const [exporting, setExporting] = useState(false);
@@ -78,23 +79,32 @@ export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessi
 
       {/* Project name */}
       <div style={{ width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.15)', marginRight: 4 }} />
-      <input
-        value={state.projectName}
-        onChange={e => dispatch({ type: 'SET_PROJECT_NAME', name: e.target.value })}
-        style={{
-          backgroundColor: 'rgba(255,255,255,0.1)',
-          border: '1px solid rgba(255,255,255,0.15)',
-          borderRadius: 8,
-          color: 'white',
-          padding: '5px 12px',
-          fontSize: 13,
-          fontFamily: 'Nunito, sans-serif',
-          fontWeight: 700,
-          outline: 'none',
-          width: 180,
-        }}
-        placeholder="Nom du projet…"
-      />
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        <input
+          value={state.projectName}
+          onChange={e => !projectNameLocked && dispatch({ type: 'SET_PROJECT_NAME', name: e.target.value })}
+          readOnly={projectNameLocked}
+          title={projectNameLocked ? 'Seul le créateur de la session peut modifier le nom du projet' : undefined}
+          style={{
+            backgroundColor: projectNameLocked ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.1)',
+            border: '1px solid rgba(255,255,255,0.15)',
+            borderRadius: 8,
+            color: projectNameLocked ? 'rgba(255,255,255,0.5)' : 'white',
+            padding: '5px 12px',
+            paddingRight: projectNameLocked ? 28 : 12,
+            fontSize: 13,
+            fontFamily: 'Nunito, sans-serif',
+            fontWeight: 700,
+            outline: 'none',
+            width: 180,
+            cursor: projectNameLocked ? 'default' : 'text',
+          }}
+          placeholder="Nom du projet…"
+        />
+        {projectNameLocked && (
+          <span style={{ position: 'absolute', right: 8, fontSize: 13, pointerEvents: 'none' }} title="Seul le créateur peut modifier le nom">🔒</span>
+        )}
+      </div>
 
       <div style={{ flex: 1 }} />
 

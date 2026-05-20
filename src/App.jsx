@@ -10,7 +10,7 @@ import CollabModal from './components/CollabModal';
 import ChatPanel from './components/ChatPanel';
 import AdminPanel from './components/AdminPanel';
 import MobileLayout from './components/MobileLayout';
-import { writeOwnScreens, loadSessionOnce, subscribeToSession } from './services/session';
+import { writeOwnScreens, loadSessionOnce, subscribeToSession, getClientId } from './services/session';
 import { isFirebaseConfigured } from './services/firebase';
 
 const SESSION_STORAGE_KEY = 'maquetapp-session-code';
@@ -25,6 +25,7 @@ function AppInner() {
   const [showCollabModal, setShowCollabModal] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [isCreator, setIsCreator] = useState(false);
 
   const closeWelcome = () => {
     localStorage.setItem('maquetapp-visited', '1');
@@ -57,8 +58,10 @@ function AppInner() {
     return unsub;
   }, [sessionCode, dispatch]);
 
-  const joinSession = useCallback((code, sessionData) => {
+  const joinSession = useCallback((code, sessionData, options = {}) => {
     if (sessionData) dispatch({ type: 'LOAD_PROJECT', project: sessionData });
+    if (options.projectName) dispatch({ type: 'SET_PROJECT_NAME', name: options.projectName });
+    setIsCreator(options.isCreator || false);
     setSessionCode(code);
     localStorage.setItem(SESSION_STORAGE_KEY, code);
     setShowCollabModal(false);
@@ -75,9 +78,10 @@ function AppInner() {
     const saved = localStorage.getItem(SESSION_STORAGE_KEY);
     if (!saved) return;
     loadSessionOnce(saved).then((sessionData) => {
-      if (!sessionData) { localStorage.removeItem(SESSION_STORAGE_KEY); return; }
+      if (!sessionData || sessionData.blocked) { localStorage.removeItem(SESSION_STORAGE_KEY); return; }
       dispatch({ type: 'LOAD_PROJECT', project: sessionData });
       setSessionCode(saved);
+      setIsCreator(sessionData.creatorId === getClientId());
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -145,6 +149,7 @@ function AppInner() {
       <>
         <MobileLayout
           sessionCode={sessionCode}
+          isCreator={isCreator}
           onCollabClick={() => setShowCollabModal(true)}
           onHelp={() => setShowWelcome(true)}
           onAdminClick={() => setShowAdmin(true)}
@@ -162,6 +167,7 @@ function AppInner() {
         phoneScaleWrapperRef={phoneScaleWrapperRef}
         onHelp={() => setShowWelcome(true)}
         sessionCode={sessionCode}
+        isCreator={isCreator}
         onCollabClick={() => setShowCollabModal(true)}
       />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>

@@ -172,8 +172,9 @@ function MoreSheet({ onExportPng, onExportHtml, onExportJson, onImportJson, onHe
 
 // ─── main mobile layout ──────────────────────────────────────────────────────
 
-export default function MobileLayout({ sessionCode, onCollabClick, onHelp, onAdminClick }) {
+export default function MobileLayout({ sessionCode, isCreator, onCollabClick, onHelp, onAdminClick }) {
   const { state, dispatch } = useProject();
+  const projectNameLocked = !!(sessionCode && !isCreator);
   const activeScreen = useActiveScreen();
   const canvasRef = useRef(null);
   const phoneScaleWrapperRef = useRef(null);
@@ -239,12 +240,17 @@ export default function MobileLayout({ sessionCode, onCollabClick, onHelp, onAdm
         <span style={{ color: 'white', fontSize: 14, fontWeight: 900, letterSpacing: -0.5, flexShrink: 0 }}>
           Maquet<span style={{ color: '#A78BFA' }}>App</span>
         </span>
-        <input
-          value={state.projectName}
-          onChange={e => dispatch({ type: 'SET_PROJECT_NAME', name: e.target.value })}
-          style={{ flex: 1, minWidth: 0, backgroundColor: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: 'white', padding: '4px 9px', fontSize: 12, fontFamily: 'Nunito, sans-serif', fontWeight: 700, outline: 'none' }}
-          placeholder="Nom du projet…"
-        />
+        <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <input
+            value={state.projectName}
+            onChange={e => !projectNameLocked && dispatch({ type: 'SET_PROJECT_NAME', name: e.target.value })}
+            readOnly={projectNameLocked}
+            title={projectNameLocked ? 'Seul le créateur peut modifier le nom du projet' : undefined}
+            style={{ width: '100%', backgroundColor: projectNameLocked ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, color: projectNameLocked ? 'rgba(255,255,255,0.45)' : 'white', padding: '4px 9px', paddingRight: projectNameLocked ? 24 : 9, fontSize: 12, fontFamily: 'Nunito, sans-serif', fontWeight: 700, outline: 'none', cursor: projectNameLocked ? 'default' : 'text', boxSizing: 'border-box' }}
+            placeholder="Nom du projet…"
+          />
+          {projectNameLocked && <span style={{ position: 'absolute', right: 6, fontSize: 11, pointerEvents: 'none' }}>🔒</span>}
+        </div>
         {sessionCode && (
           <button
             onClick={onCollabClick}
