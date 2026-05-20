@@ -5,20 +5,20 @@ const CLIENT_ID_KEY = 'maquettage_client_id';
 const NICKNAME_KEY = 'maquettage_nickname';
 
 export function getClientId() {
-  let id = sessionStorage.getItem(CLIENT_ID_KEY);
+  let id = localStorage.getItem(CLIENT_ID_KEY);
   if (!id) {
     id = Math.random().toString(36).slice(2, 10);
-    sessionStorage.setItem(CLIENT_ID_KEY, id);
+    localStorage.setItem(CLIENT_ID_KEY, id);
   }
   return id;
 }
 
 export function getClientNickname() {
-  return sessionStorage.getItem(NICKNAME_KEY) || '';
+  return localStorage.getItem(NICKNAME_KEY) || '';
 }
 
 export function setClientNickname(name) {
-  sessionStorage.setItem(NICKNAME_KEY, name.trim());
+  localStorage.setItem(NICKNAME_KEY, name.trim());
 }
 
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
