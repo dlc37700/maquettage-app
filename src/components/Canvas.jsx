@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { useProject, useActiveScreen } from '../hooks/useProject';
 import * as LucideIcons from 'lucide-react';
 import * as TablerIcons from '@tabler/icons-react';
@@ -212,6 +212,7 @@ export default function Canvas({ canvasRef }) {
   const localRef = useRef(null);
   const ref = canvasRef || localRef;
   const dragState = useRef(null);
+  const [guides, setGuides] = useState([]);
 
   // Calculate scale factors based on rendered size vs logical size
   const getScale = useCallback(() => {
@@ -319,36 +320,73 @@ export default function Canvas({ canvasRef }) {
 
   useEffect(() => {
     const MIN_SIZE = 20;
+    const SNAP_DIST = 6;
+
+    // Returns snapped {x, y} and alignment guide lines for a move operation
+    const computeSnap = (ds, rawX, rawY) => {
+      const w = ds.width, h = ds.height;
+      const activeScreen = state.screens.find(s => s.id === state.activeScreenId);
+      const others = (activeScreen?.components || []).filter(c => c.id !== ds.compId);
+      const xT = [0, CANVAS_W / 2, CANVAS_W, ...others.flatMap(c => [c.position.x, c.position.x + c.position.width / 2, c.position.x + c.position.width])];
+      const yT = [0, CANVAS_H / 2, CANVAS_H, ...others.flatMap(c => [c.position.y, c.position.y + c.position.height / 2, c.position.y + c.position.height])];
+      let x = rawX, y = rawY;
+      let bx = SNAP_DIST, by = SNAP_DIST, gx = null, gy = null;
+      for (const t of xT) {
+        for (const [a, off] of [[rawX, 0], [rawX + w / 2, -w / 2], [rawX + w, -w]]) {
+          const d = Math.abs(a - t);
+          if (d < bx) { bx = d; x = t + off; gx = t; }
+        }
+      }
+      for (const t of yT) {
+        for (const [a, off] of [[rawY, 0], [rawY + h / 2, -h / 2], [rawY + h, -h]]) {
+          const d = Math.abs(a - t);
+          if (d < by) { by = d; y = t + off; gy = t; }
+        }
+      }
+      const gs = [];
+      if (gx !== null) gs.push({ axis: 'v', pos: gx });
+      if (gy !== null) gs.push({ axis: 'h', pos: gy });
+      return { x: Math.max(0, Math.min(x, CANVAS_W - w)), y: Math.max(0, Math.min(y, CANVAS_H - h)), guides: gs };
+    };
+
+    const doResize = (ds, dx, dy) => {
+      let { origX: x, origY: y, origW: w, origH: h } = ds;
+      switch (ds.handle) {
+        case 'se': w = Math.max(MIN_SIZE, ds.origW + dx); h = Math.max(MIN_SIZE, ds.origH + dy); break;
+        case 'sw': w = Math.max(MIN_SIZE, ds.origW - dx); x = ds.origX + ds.origW - w; h = Math.max(MIN_SIZE, ds.origH + dy); break;
+        case 'ne': w = Math.max(MIN_SIZE, ds.origW + dx); h = Math.max(MIN_SIZE, ds.origH - dy); y = ds.origY + ds.origH - h; break;
+        case 'nw': w = Math.max(MIN_SIZE, ds.origW - dx); x = ds.origX + ds.origW - w; h = Math.max(MIN_SIZE, ds.origH - dy); y = ds.origY + ds.origH - h; break;
+      }
+      return { x: Math.max(0, x), y: Math.max(0, y), width: Math.min(w, CANVAS_W - Math.max(0, x)), height: Math.min(h, CANVAS_H - Math.max(0, y)) };
+    };
+
     const onMouseMove = (e) => {
       const ds = dragState.current;
       if (!ds) return;
       const dx = (e.clientX - ds.startMouseX) * ds.scaleX;
       const dy = (e.clientY - ds.startMouseY) * ds.scaleY;
       if (ds.type === 'move') {
-        dispatch({ type: 'MOVE_COMPONENT', id: ds.compId, x: Math.max(0, Math.min(ds.origX + dx, CANVAS_W - ds.width)), y: Math.max(0, Math.min(ds.origY + dy, CANVAS_H - ds.height)) });
+        const { x, y, guides: g } = computeSnap(ds, ds.origX + dx, ds.origY + dy);
+        setGuides(g);
+        dispatch({ type: 'MOVE_COMPONENT', id: ds.compId, x, y });
       } else if (ds.type === 'resize') {
-        let { origX: x, origY: y, origW: w, origH: h } = ds;
-        switch (ds.handle) {
-          case 'se': w = Math.max(MIN_SIZE, ds.origW + dx); h = Math.max(MIN_SIZE, ds.origH + dy); break;
-          case 'sw': w = Math.max(MIN_SIZE, ds.origW - dx); x = ds.origX + ds.origW - w; h = Math.max(MIN_SIZE, ds.origH + dy); break;
-          case 'ne': w = Math.max(MIN_SIZE, ds.origW + dx); h = Math.max(MIN_SIZE, ds.origH - dy); y = ds.origY + ds.origH - h; break;
-          case 'nw': w = Math.max(MIN_SIZE, ds.origW - dx); x = ds.origX + ds.origW - w; h = Math.max(MIN_SIZE, ds.origH - dy); y = ds.origY + ds.origH - h; break;
-        }
-        x = Math.max(0, x); y = Math.max(0, y);
-        w = Math.min(w, CANVAS_W - x); h = Math.min(h, CANVAS_H - y);
-        dispatch({ type: 'RESIZE_COMPONENT', id: ds.compId, x, y, width: w, height: h });
+        setGuides([]);
+        const pos = doResize(ds, dx, dy);
+        dispatch({ type: 'RESIZE_COMPONENT', id: ds.compId, ...pos });
       }
     };
     const onMouseUp = (e) => {
       const ds = dragState.current;
       if (!ds) return;
+      setGuides([]);
       const dx = (e.clientX - ds.startMouseX) * ds.scaleX;
       const dy = (e.clientY - ds.startMouseY) * ds.scaleY;
       if (ds.type === 'move') {
-        if (Math.abs(dx) > 1 || Math.abs(dy) > 1) dispatch({ type: 'COMMIT_MOVE', id: ds.compId, x: Math.max(0, Math.min(ds.origX + dx, CANVAS_W - ds.width)), y: Math.max(0, Math.min(ds.origY + dy, CANVAS_H - ds.height)) });
+        const { x, y } = computeSnap(ds, ds.origX + dx, ds.origY + dy);
+        if (Math.abs(x - ds.origX) > 1 || Math.abs(y - ds.origY) > 1) dispatch({ type: 'COMMIT_MOVE', id: ds.compId, x, y });
       } else if (ds.type === 'resize') {
-        const screen = state.screens.find(s => s.id === state.activeScreenId);
-        const comp = screen?.components.find(c => c.id === ds.compId);
+        const activeScreen = state.screens.find(s => s.id === state.activeScreenId);
+        const comp = activeScreen?.components.find(c => c.id === ds.compId);
         if (comp) dispatch({ type: 'COMMIT_RESIZE', id: ds.compId, x: comp.position.x, y: comp.position.y, width: comp.position.width, height: comp.position.height });
       }
       dragState.current = null;
@@ -361,32 +399,29 @@ export default function Canvas({ canvasRef }) {
       const dx = (touch.clientX - ds.startMouseX) * ds.scaleX;
       const dy = (touch.clientY - ds.startMouseY) * ds.scaleY;
       if (ds.type === 'move') {
-        dispatch({ type: 'MOVE_COMPONENT', id: ds.compId, x: Math.max(0, Math.min(ds.origX + dx, CANVAS_W - ds.width)), y: Math.max(0, Math.min(ds.origY + dy, CANVAS_H - ds.height)) });
+        const { x, y, guides: g } = computeSnap(ds, ds.origX + dx, ds.origY + dy);
+        setGuides(g);
+        dispatch({ type: 'MOVE_COMPONENT', id: ds.compId, x, y });
       } else if (ds.type === 'resize') {
-        let { origX: x, origY: y, origW: w, origH: h } = ds;
-        switch (ds.handle) {
-          case 'se': w = Math.max(MIN_SIZE, ds.origW + dx); h = Math.max(MIN_SIZE, ds.origH + dy); break;
-          case 'sw': w = Math.max(MIN_SIZE, ds.origW - dx); x = ds.origX + ds.origW - w; h = Math.max(MIN_SIZE, ds.origH + dy); break;
-          case 'ne': w = Math.max(MIN_SIZE, ds.origW + dx); h = Math.max(MIN_SIZE, ds.origH - dy); y = ds.origY + ds.origH - h; break;
-          case 'nw': w = Math.max(MIN_SIZE, ds.origW - dx); x = ds.origX + ds.origW - w; h = Math.max(MIN_SIZE, ds.origH - dy); y = ds.origY + ds.origH - h; break;
-        }
-        x = Math.max(0, x); y = Math.max(0, y);
-        w = Math.min(w, CANVAS_W - x); h = Math.min(h, CANVAS_H - y);
-        dispatch({ type: 'RESIZE_COMPONENT', id: ds.compId, x, y, width: w, height: h });
+        setGuides([]);
+        const pos = doResize(ds, dx, dy);
+        dispatch({ type: 'RESIZE_COMPONENT', id: ds.compId, ...pos });
       }
     };
     const onTouchEnd = (e) => {
       const ds = dragState.current;
       if (!ds) return;
+      setGuides([]);
       if (e.changedTouches.length === 0) { dragState.current = null; return; }
       const touch = e.changedTouches[0];
       const dx = (touch.clientX - ds.startMouseX) * ds.scaleX;
       const dy = (touch.clientY - ds.startMouseY) * ds.scaleY;
       if (ds.type === 'move') {
-        if (Math.abs(dx) > 1 || Math.abs(dy) > 1) dispatch({ type: 'COMMIT_MOVE', id: ds.compId, x: Math.max(0, Math.min(ds.origX + dx, CANVAS_W - ds.width)), y: Math.max(0, Math.min(ds.origY + dy, CANVAS_H - ds.height)) });
+        const { x, y } = computeSnap(ds, ds.origX + dx, ds.origY + dy);
+        if (Math.abs(x - ds.origX) > 1 || Math.abs(y - ds.origY) > 1) dispatch({ type: 'COMMIT_MOVE', id: ds.compId, x, y });
       } else if (ds.type === 'resize') {
-        const screen = state.screens.find(s => s.id === state.activeScreenId);
-        const comp = screen?.components.find(c => c.id === ds.compId);
+        const activeScreen = state.screens.find(s => s.id === state.activeScreenId);
+        const comp = activeScreen?.components.find(c => c.id === ds.compId);
         if (comp) dispatch({ type: 'COMMIT_RESIZE', id: ds.compId, x: comp.position.x, y: comp.position.y, width: comp.position.width, height: comp.position.height });
       }
       dragState.current = null;
@@ -401,7 +436,7 @@ export default function Canvas({ canvasRef }) {
       document.removeEventListener('touchmove', onTouchMove);
       document.removeEventListener('touchend', onTouchEnd);
     };
-  }, [dispatch, state]);
+  }, [dispatch, state, setGuides]);
 
   if (!screen) return null;
   const sortedComponents = [...(screen.components || [])].sort((a, b) => (a.zIndex || 1) - (b.zIndex || 1));
@@ -439,6 +474,16 @@ export default function Canvas({ canvasRef }) {
           </div>
         );
       })}
+      {/* Alignment guide lines */}
+      {guides.map((g, i) => (
+        <div key={i} style={{
+          position: 'absolute', pointerEvents: 'none', zIndex: 9998,
+          backgroundColor: '#FF3B82',
+          ...(g.axis === 'v'
+            ? { left: Math.round(g.pos) - 0.5, top: 0, width: 1, height: CANVAS_H }
+            : { top: Math.round(g.pos) - 0.5, left: 0, height: 1, width: CANVAS_W }),
+        }} />
+      ))}
       {/* Read-only overlay for remote screens */}
       {isRemote && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 9999, cursor: 'default' }} title={`Écran de ${screen._nickname || 'un camarade'} — lecture seule`} />
