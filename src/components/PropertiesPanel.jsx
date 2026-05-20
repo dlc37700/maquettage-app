@@ -302,7 +302,7 @@ function ScreenProperties() {
   );
 }
 
-export default function PropertiesPanel() {
+export default function PropertiesPanel({ mobile = false }) {
   const { state } = useProject();
   const screen = useActiveScreen();
   const selectedComp = screen?.components.find(c => c.id === state.selectedComponentId);
@@ -310,7 +310,7 @@ export default function PropertiesPanel() {
 
   if (screen?._remote) {
     return (
-      <div style={{ width: 230, minWidth: 200, height: '100%', backgroundColor: '#FFFFFF', borderLeft: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 20, textAlign: 'center' }}>
+      <div style={{ width: mobile ? '100%' : 230, minWidth: mobile ? 0 : 200, height: '100%', backgroundColor: '#FFFFFF', borderLeft: mobile ? 'none' : '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0, padding: 20, textAlign: 'center' }}>
         <div style={{ fontSize: 36, marginBottom: 12 }}>👁️</div>
         <div style={{ fontSize: 13, fontWeight: 800, color: '#1F2937', fontFamily: 'Nunito, sans-serif', marginBottom: 6 }}>Lecture seule</div>
         <div style={{ fontSize: 12, color: '#6B7280', fontFamily: 'Nunito, sans-serif', lineHeight: 1.5 }}>
@@ -323,7 +323,7 @@ export default function PropertiesPanel() {
   }
 
   return (
-    <div style={{ width: 230, minWidth: 200, height: '100%', backgroundColor: '#FFFFFF', borderLeft: '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}>
+    <div style={{ width: mobile ? '100%' : 230, minWidth: mobile ? 0 : 200, height: '100%', backgroundColor: '#FFFFFF', borderLeft: mobile ? 'none' : '1px solid #E5E7EB', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}>
       <div style={{ padding: '12px 14px 8px', borderBottom: '1px solid #F3F4F6', backgroundColor: '#FAFAFA' }}>
         <div style={{ color: '#6C63FF', fontSize: 10, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 2 }}>Propriétés</div>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#1F2937', fontFamily: 'Nunito, sans-serif' }}>{selectedComp ? (def?.label || selectedComp.type) : 'Écran'}</div>

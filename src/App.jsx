@@ -9,6 +9,7 @@ import WelcomeModal from './components/WelcomeModal';
 import CollabModal from './components/CollabModal';
 import ChatPanel from './components/ChatPanel';
 import AdminPanel from './components/AdminPanel';
+import MobileLayout from './components/MobileLayout';
 import { writeOwnScreens, loadSessionOnce, subscribeToSession } from './services/session';
 import { isFirebaseConfigured } from './services/firebase';
 
@@ -23,11 +24,18 @@ function AppInner() {
   const [sessionCode, setSessionCode] = useState(null);
   const [showCollabModal, setShowCollabModal] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
 
   const closeWelcome = () => {
     localStorage.setItem('maquetapp-visited', '1');
     setShowWelcome(false);
   };
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   // Debounced write of own screens whenever state changes
   useEffect(() => {
@@ -116,6 +124,37 @@ function AppInner() {
 
   const activeScreen = state.screens.find(s => s.id === state.activeScreenId);
 
+  const modals = (
+    <>
+      {showWelcome && <WelcomeModal onClose={closeWelcome} />}
+      {showCollabModal && (
+        <CollabModal
+          state={state}
+          sessionCode={sessionCode}
+          onJoin={joinSession}
+          onLeave={leaveSession}
+          onClose={() => setShowCollabModal(false)}
+        />
+      )}
+      {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
+    </>
+  );
+
+  if (isMobile) {
+    return (
+      <>
+        <MobileLayout
+          sessionCode={sessionCode}
+          onCollabClick={() => setShowCollabModal(true)}
+          onHelp={() => setShowWelcome(true)}
+          onAdminClick={() => setShowAdmin(true)}
+        />
+        <ChatPanel sessionCode={sessionCode} />
+        {modals}
+      </>
+    );
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', fontFamily: 'Nunito, sans-serif' }}>
       <Toolbar
@@ -162,16 +201,6 @@ function AppInner() {
 
         <PropertiesPanel />
       </div>
-      {showWelcome && <WelcomeModal onClose={closeWelcome} />}
-      {showCollabModal && (
-        <CollabModal
-          state={state}
-          sessionCode={sessionCode}
-          onJoin={joinSession}
-          onLeave={leaveSession}
-          onClose={() => setShowCollabModal(false)}
-        />
-      )}
       <ChatPanel sessionCode={sessionCode} />
       {isFirebaseConfigured && (
         <button
@@ -187,7 +216,7 @@ function AppInner() {
           onMouseLeave={e => e.currentTarget.style.opacity = '0.35'}
         >👨‍🏫</button>
       )}
-      {showAdmin && <AdminPanel onClose={() => setShowAdmin(false)} />}
+      {modals}
     </div>
   );
 }

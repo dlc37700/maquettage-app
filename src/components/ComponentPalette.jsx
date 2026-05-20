@@ -19,7 +19,7 @@ const CATEGORY_ICONS = {
   Actions: '⚡', Commerce: '🛒', Médias: '🎬', Quotidien: '☀️',
 };
 
-export default function ComponentPalette() {
+export default function ComponentPalette({ mobile = false }) {
   const { dispatch } = useProject();
   const [search, setSearch] = useState('');
   const [openPresets, setOpenPresets] = useState(true);
@@ -38,7 +38,7 @@ export default function ComponentPalette() {
   const presetCategories = Object.entries(groupBy(BUTTON_PRESETS, 'category'));
 
   return (
-    <div style={{ width: 210, minWidth: 190, height: '100%', background: 'linear-gradient(180deg, #1e1b4b 0%, #312e81 100%)', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}>
+    <div style={{ width: mobile ? '100%' : 210, minWidth: mobile ? 0 : 190, height: '100%', background: 'linear-gradient(180deg, #1e1b4b 0%, #312e81 100%)', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0 }}>
       {/* Header */}
       <div style={{ padding: '12px 12px 8px', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
         <div style={{ color: '#A78BFA', fontSize: 10, fontWeight: 800, letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 6 }}>Composants</div>
