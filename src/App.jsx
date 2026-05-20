@@ -38,7 +38,7 @@ function AppInner() {
     if (remoteProject) dispatch({ type: 'LOAD_PROJECT', project: remoteProject });
     setSessionCode(code);
     unsubscribeRef.current = subscribeSession(code, (project) => {
-      dispatch({ type: 'LOAD_PROJECT', project });
+      dispatch({ type: 'SYNC_PROJECT', project });
     });
     setShowCollabModal(false);
   }, [dispatch]);

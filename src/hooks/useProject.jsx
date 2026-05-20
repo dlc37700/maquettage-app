@@ -256,6 +256,24 @@ function reducer(state, action) {
       };
     }
 
+    // Used by collaboration sync — preserves the user's current active screen
+    case 'SYNC_PROJECT': {
+      if (!action.project) return state;
+      const screens = (Array.isArray(action.project.screens) && action.project.screens.length > 0)
+        ? action.project.screens
+        : state.screens;
+      const activeStillExists = screens.some(s => s.id === state.activeScreenId);
+      return {
+        ...state,
+        projectName: action.project.projectName || state.projectName,
+        screens,
+        activeScreenId: activeStillExists ? state.activeScreenId : screens[0]?.id,
+        selectedComponentId: null,
+        past: [],
+        future: [],
+      };
+    }
+
     case 'UNDO': {
       if (state.past.length === 0) return state;
       const previous = state.past[state.past.length - 1];
