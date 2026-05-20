@@ -51,7 +51,7 @@ function ComponentRenderer({ comp }) {
             ? <span style={{ fontSize: Math.min(pos.width, pos.height) * 0.52, lineHeight: 1 }}>{props.emoji}</span>
             : <>
                 {props.iconName && props.iconPosition !== 'right' && <AnyIcon name={props.iconName} iconSet={props.iconSet || 'lucide'} size={props.fontSize + 4} color={props.textColor} strokeWidth={2.5} />}
-                {!iconOnly && props.label && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{props.label}</span>}
+                {!iconOnly && props.label && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontStyle: props.fontStyle || 'normal', textDecoration: props.textDecoration || 'none' }}>{props.label}</span>}
                 {props.iconName && props.iconPosition === 'right' && <AnyIcon name={props.iconName} iconSet={props.iconSet || 'lucide'} size={props.fontSize + 4} color={props.textColor} strokeWidth={2.5} />}
               </>
           }
@@ -59,8 +59,11 @@ function ComponentRenderer({ comp }) {
       );
     }
 
-    case 'text':
-      return <div style={{ width: '100%', height: '100%', color: props.textColor, fontSize: props.fontSize, fontWeight: props.fontWeight === 'bold' ? 700 : props.fontWeight === 'semibold' ? 600 : 400, fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif`, display: 'flex', alignItems: 'center', lineHeight: 1.4, overflow: 'hidden' }}>{props.label}</div>;
+    case 'text': {
+      const fw = props.fontWeight === 'bold' ? 700 : props.fontWeight === 'semibold' ? 600 : 400;
+      const vAlign = props.verticalAlign === 'top' ? 'flex-start' : props.verticalAlign === 'bottom' ? 'flex-end' : 'center';
+      return <div style={{ width: '100%', height: '100%', color: props.textColor, fontSize: props.fontSize, fontWeight: fw, fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif`, fontStyle: props.fontStyle || 'normal', textDecoration: props.textDecoration || 'none', textAlign: props.textAlign || 'left', display: 'flex', alignItems: vAlign, lineHeight: 1.4, overflow: 'hidden', padding: '2px 4px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{props.label}</div>;
+    }
 
     case 'input':
       return (
@@ -94,7 +97,7 @@ function ComponentRenderer({ comp }) {
       if (props.imageData) {
         return (
           <div style={{ width: '100%', height: '100%', borderRadius: props.borderRadius || 8, overflow: 'hidden' }}>
-            <img src={props.imageData} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+            <img src={props.imageData} alt="" style={{ width: '100%', height: '100%', objectFit: props.objectFit || 'cover', display: 'block' }} />
           </div>
         );
       }
@@ -143,11 +146,16 @@ function ComponentRenderer({ comp }) {
       return (
         <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
           {props.showBack && <LucideIcon name="ArrowLeft" color={props.textColor} size={20} />}
-          <span style={{ color: props.textColor, fontSize: 18, fontWeight: 700, fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif`, flex: 1 }}>{props.title}</span>
+          <span style={{ color: props.textColor, fontSize: 18, fontWeight: 700, fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif`, flex: 1, textAlign: props.textAlign || 'left' }}>{props.title}</span>
         </div>
       );
 
     case 'card':
+      if (props.backgroundImage) {
+        return <div style={{ width: '100%', height: '100%', borderRadius: props.borderRadius, boxShadow: '0 2px 16px rgba(0,0,0,0.10)', overflow: 'hidden' }}>
+          <img src={props.backgroundImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        </div>;
+      }
       return <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), borderRadius: props.borderRadius, boxShadow: '0 2px 16px rgba(0,0,0,0.10)' }} />;
 
     case 'switch':
@@ -186,6 +194,11 @@ function ComponentRenderer({ comp }) {
       return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}><div style={{ width: '100%', height: 1.5, backgroundColor: props.color }} /></div>;
 
     case 'colorblock':
+      if (props.backgroundImage) {
+        return <div style={{ width: '100%', height: '100%', borderRadius: props.borderRadius || 0, overflow: 'hidden' }}>
+          <img src={props.backgroundImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        </div>;
+      }
       return <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), borderRadius: props.borderRadius }} />;
 
     default:
@@ -313,13 +326,16 @@ export default function Canvas({ canvasRef }) {
   if (!screen) return null;
   const sortedComponents = [...(screen.components || [])].sort((a, b) => (a.zIndex || 1) - (b.zIndex || 1));
   const isRemote = !!screen._remote;
+  const screenBg = screen.backgroundImage
+    ? { backgroundImage: `url(${screen.backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }
+    : getBg(screen.backgroundColor, screen.backgroundGradient);
 
   return (
     <div ref={ref}
       onClick={isRemote ? undefined : handleCanvasClick}
       onDragOver={isRemote ? undefined : handleDragOver}
       onDrop={isRemote ? undefined : handleDrop}
-      style={{ ...getBg(screen.backgroundColor, screen.backgroundGradient), position: 'relative', width: CANVAS_W, height: CANVAS_H, overflow: 'hidden', flexShrink: 0 }}>
+      style={{ ...screenBg, position: 'relative', width: CANVAS_W, height: CANVAS_H, overflow: 'hidden', flexShrink: 0 }}>
       {sortedComponents.map((comp) => {
         const isSelected = !isRemote && comp.id === state.selectedComponentId;
         const { x, y, width, height } = comp.position;

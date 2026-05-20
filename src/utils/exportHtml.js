@@ -32,7 +32,7 @@ function compToHtml(comp) {
         : props.iconName
           ? `<i data-lucide="${lucideRef(props.iconName)}" style="width:${(props.fontSize || 16) + 4}px;height:${(props.fontSize || 16) + 4}px;flex-shrink:0"></i>`
           : '';
-      const labelHtml = !iconOnly && props.label ? `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(props.label)}</span>` : '';
+      const labelHtml = !iconOnly && props.label ? `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:${props.fontStyle || 'normal'};text-decoration:${props.textDecoration || 'none'}">${escHtml(props.label)}</span>` : '';
       const flexDir = props.iconPosition === 'right' ? 'row-reverse' : 'row';
       const shadow = props.bgColor === 'transparent' ? '' : ';box-shadow:0 2px 8px rgba(0,0,0,0.15)';
       return `<button${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};font-size:${props.fontSize || 16}px;border-radius:${props.borderRadius || 12}px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;flex-direction:${flexDir};font-family:${props.fontFamily || 'Nunito'},sans-serif;font-weight:700${shadow};padding:0 12px">${iconHtml}${labelHtml}</button>`;
@@ -40,7 +40,8 @@ function compToHtml(comp) {
 
     case 'text': {
       const fw = props.fontWeight === 'bold' ? 700 : props.fontWeight === 'semibold' ? 600 : 400;
-      return `<p style="${base}color:${props.textColor};font-size:${props.fontSize || 16}px;font-weight:${fw};font-family:${props.fontFamily || 'Nunito'},sans-serif;margin:0;display:flex;align-items:center;line-height:1.4;overflow:hidden">${escHtml(props.label)}</p>`;
+      const vAlign = props.verticalAlign === 'top' ? 'flex-start' : props.verticalAlign === 'bottom' ? 'flex-end' : 'center';
+      return `<p style="${base}color:${props.textColor};font-size:${props.fontSize || 16}px;font-weight:${fw};font-family:${props.fontFamily || 'Nunito'},sans-serif;font-style:${props.fontStyle || 'normal'};text-decoration:${props.textDecoration || 'none'};text-align:${props.textAlign || 'left'};margin:0;display:flex;align-items:${vAlign};line-height:1.4;overflow:hidden;padding:2px 4px;white-space:pre-wrap;word-break:break-word">${escHtml(props.label)}</p>`;
     }
 
     case 'input':
@@ -63,7 +64,7 @@ function compToHtml(comp) {
 
     case 'image':
       if (props.imageData) {
-        return `<img src="${props.imageData}" alt="" style="${base}border-radius:${props.borderRadius || 8}px;object-fit:cover">`;
+        return `<img src="${props.imageData}" alt="" style="${base}border-radius:${props.borderRadius || 8}px;object-fit:${props.objectFit || 'cover'}">`;
       }
       return `<div style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-radius:${props.borderRadius || 8}px;display:flex;align-items:center;justify-content:center;border:2px dashed #D1D5DB">
   <span style="font-size:32px">🖼️</span>
@@ -91,7 +92,7 @@ function compToHtml(comp) {
     case 'header':
       return `<header style="${base}${getBgCss(props.bgColor, props.bgGradient)};display:flex;align-items:center;padding:0 16px;gap:12px">
   ${props.showBack ? `<button onclick="history.back()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;padding:0"><i data-lucide="arrow-left" style="width:20px;height:20px;color:${props.textColor}"></i></button>` : ''}
-  <span style="color:${props.textColor};font-size:18px;font-weight:700;font-family:${props.fontFamily || 'Nunito'},sans-serif;flex:1">${escHtml(props.title)}</span>
+  <span style="color:${props.textColor};font-size:18px;font-weight:700;font-family:${props.fontFamily || 'Nunito'},sans-serif;flex:1;text-align:${props.textAlign || 'left'}">${escHtml(props.title)}</span>
 </header>`;
 
     case 'navbar':
@@ -100,9 +101,15 @@ function compToHtml(comp) {
 </nav>`;
 
     case 'card':
+      if (props.backgroundImage) {
+        return `<div${navOnclick} style="${base}border-radius:${props.borderRadius || 16}px;box-shadow:0 2px 16px rgba(0,0,0,0.10);overflow:hidden${navOnclick ? ';cursor:pointer' : ''}"><img src="${props.backgroundImage}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>`;
+      }
       return `<div${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-radius:${props.borderRadius || 16}px;box-shadow:0 2px 16px rgba(0,0,0,0.10)${navOnclick ? ';cursor:pointer' : ''}"></div>`;
 
     case 'colorblock':
+      if (props.backgroundImage) {
+        return `<div style="${base}border-radius:${props.borderRadius || 0}px;overflow:hidden"><img src="${props.backgroundImage}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>`;
+      }
       return `<div style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-radius:${props.borderRadius || 0}px"></div>`;
 
     case 'switch': {
@@ -140,8 +147,11 @@ function screenToHtml(screen, index, total, allScreens) {
   const sorted = [...screen.components].sort((a, b) => (a.zIndex || 1) - (b.zIndex || 1));
   const components = sorted.map(compToHtml).filter(Boolean).join('\n    ');
 
+  const screenBgCss = screen.backgroundImage
+    ? `background-image:url(${screen.backgroundImage});background-size:cover;background-position:center;background-repeat:no-repeat`
+    : getBgCss(screen.backgroundColor, screen.backgroundGradient);
   return `<!-- ===== Écran: ${escHtml(screen.name)} ===== -->
-<div id="screen-${screen.id}" class="screen" style="display:${index === 0 ? 'block' : 'none'};position:relative;width:390px;height:844px;${getBgCss(screen.backgroundColor, screen.backgroundGradient)};overflow:hidden;flex-shrink:0">
+<div id="screen-${screen.id}" class="screen" style="display:${index === 0 ? 'block' : 'none'};position:relative;width:390px;height:844px;${screenBgCss};overflow:hidden;flex-shrink:0">
     ${components}
 </div>`;
 }

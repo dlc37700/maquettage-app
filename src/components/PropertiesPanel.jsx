@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { useProject, useActiveScreen } from '../hooks/useProject';
 import { COMPONENT_DEFINITIONS, THEMES, FONT_OPTIONS } from '../data/componentDefinitions';
 // ICON_OPTIONS removed — now using IconPicker with iconLibraries
@@ -30,6 +30,14 @@ function SectionTitle({ children }) {
 }
 function aBtnStyle(bg, color) {
   return { flex: 1, padding: '7px 4px', borderRadius: 8, border: 'none', backgroundColor: bg, color, fontSize: 12, fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer' };
+}
+
+function FormatBtn({ active, onClick, title, children }) {
+  return (
+    <button onClick={onClick} title={title} style={{ flex: 1, minWidth: 0, padding: '6px 2px', borderRadius: 6, border: `1.5px solid ${active ? '#6C63FF' : '#E5E7EB'}`, backgroundColor: active ? '#EDE9FE' : '#F9FAFB', color: active ? '#6C63FF' : '#6B7280', fontSize: 13, fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+      {children}
+    </button>
+  );
 }
 
 function ImageUpload({ value, onChange, shape = 'rect' }) {
@@ -69,9 +77,10 @@ const GRADIENT_PRESETS = [
   { from: '#F59E0B', to: '#EF4444', angle: 135 },
 ];
 
-function BgPicker({ bgColor, bgGradient, onColorChange, onGradientChange }) {
+function BgPicker({ bgColor, bgGradient, backgroundImage, onColorChange, onGradientChange, onImageChange }) {
   const isGrad = !!bgGradient;
   const grad = bgGradient || { from: bgColor || '#6C63FF', to: '#EC4899', angle: 135 };
+  const [tab, setTab] = useState(backgroundImage ? 'image' : isGrad ? 'gradient' : 'solid');
 
   const tabStyle = (active) => ({
     flex: 1, padding: '4px 0', borderRadius: 6, border: 'none', cursor: 'pointer',
@@ -84,11 +93,14 @@ function BgPicker({ bgColor, bgGradient, onColorChange, onGradientChange }) {
     <div>
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 8, backgroundColor: '#F3F4F6', borderRadius: 8, padding: 3 }}>
-        <button style={tabStyle(!isGrad)} onClick={() => onGradientChange(null)}>Uni</button>
-        <button style={tabStyle(isGrad)} onClick={() => onGradientChange(grad)}>Dégradé</button>
+        <button style={tabStyle(tab === 'solid')} onClick={() => { setTab('solid'); onGradientChange(null); onImageChange?.(null); }}>Uni</button>
+        <button style={tabStyle(tab === 'gradient')} onClick={() => { setTab('gradient'); onGradientChange(grad); onImageChange?.(null); }}>Dégradé</button>
+        {onImageChange && <button style={tabStyle(tab === 'image')} onClick={() => setTab('image')}>Image</button>}
       </div>
 
-      {!isGrad ? (
+      {tab === 'image' && onImageChange ? (
+        <ImageUpload value={backgroundImage} onChange={v => onImageChange(v)} />
+      ) : tab === 'solid' ? (
         <ColorInput value={bgColor} onChange={onColorChange} />
       ) : (
         <div>
@@ -169,6 +181,11 @@ function ComponentProperties({ comp }) {
           <ImageUpload value={p.imageData} onChange={v => update({ imageData: v })} shape={comp.type === 'avatar' ? 'circle' : 'rect'} />
         </Field>
       )}
+      {comp.type === 'image' && p.imageData && (
+        <Field label="Ajustement">
+          <SelectInput value={p.objectFit || 'cover'} onChange={v => update({ objectFit: v })} options={[{ value: 'cover', label: 'Recadrer (cover)' }, { value: 'contain', label: 'Entier (contain)' }, { value: 'fill', label: 'Étirer (fill)' }]} />
+        </Field>
+      )}
 
       {/* Button icon options */}
       {comp.type === 'button' && (
@@ -209,8 +226,10 @@ function ComponentProperties({ comp }) {
           <BgPicker
             bgColor={p.bgColor}
             bgGradient={p.bgGradient || null}
+            backgroundImage={(comp.type === 'card' || comp.type === 'colorblock') ? (p.backgroundImage || null) : undefined}
             onColorChange={v => update({ bgColor: v, bgGradient: null })}
             onGradientChange={g => update({ bgGradient: g })}
+            onImageChange={(comp.type === 'card' || comp.type === 'colorblock') ? (v => update({ backgroundImage: v, bgGradient: null })) : undefined}
           />
         </Field>
       )}
@@ -233,6 +252,52 @@ function ComponentProperties({ comp }) {
       )}
       {'fontSize' in p && <Field label={`Taille (${p.fontSize}px)`}><RangeInput value={p.fontSize} onChange={v => update({ fontSize: v })} min={8} max={48} /></Field>}
       {'fontWeight' in p && <Field label="Style"><SelectInput value={p.fontWeight} onChange={v => update({ fontWeight: v })} options={[{ value: 'normal', label: 'Normal' }, { value: 'semibold', label: 'Semi-gras' }, { value: 'bold', label: 'Gras' }]} /></Field>}
+      {/* Text format: italic, underline, strikethrough */}
+      {('fontStyle' in p || 'textDecoration' in p) && (
+        <Field label="Style texte">
+          <div style={{ display: 'flex', gap: 4 }}>
+            {'fontStyle' in p && (
+              <FormatBtn active={p.fontStyle === 'italic'} onClick={() => update({ fontStyle: p.fontStyle === 'italic' ? 'normal' : 'italic' })} title="Italique">
+                <em style={{ fontStyle: 'italic' }}>I</em>
+              </FormatBtn>
+            )}
+            {'textDecoration' in p && (
+              <FormatBtn
+                active={(p.textDecoration || 'none').includes('underline')}
+                onClick={() => { const d = p.textDecoration || 'none'; const hasU = d.includes('underline'); const hasS = d.includes('line-through'); update({ textDecoration: hasU ? (hasS ? 'line-through' : 'none') : (hasS ? 'underline line-through' : 'underline') }); }}
+                title="Souligné"
+              ><span style={{ textDecoration: 'underline' }}>U</span></FormatBtn>
+            )}
+            {'textDecoration' in p && (
+              <FormatBtn
+                active={(p.textDecoration || 'none').includes('line-through')}
+                onClick={() => { const d = p.textDecoration || 'none'; const hasS = d.includes('line-through'); const hasU = d.includes('underline'); update({ textDecoration: hasS ? (hasU ? 'underline' : 'none') : (hasU ? 'underline line-through' : 'line-through') }); }}
+                title="Barré"
+              ><span style={{ textDecoration: 'line-through' }}>S</span></FormatBtn>
+            )}
+          </div>
+        </Field>
+      )}
+      {/* Horizontal text alignment */}
+      {'textAlign' in p && (
+        <Field label="Alignement H">
+          <div style={{ display: 'flex', gap: 4 }}>
+            {[['left', '⬅', 'Gauche'], ['center', '⊙', 'Centre'], ['right', '➡', 'Droite']].map(([val, icon, lbl]) => (
+              <FormatBtn key={val} active={(p.textAlign || 'left') === val} onClick={() => update({ textAlign: val })} title={lbl}>{icon}</FormatBtn>
+            ))}
+          </div>
+        </Field>
+      )}
+      {/* Vertical text alignment (text component only) */}
+      {'verticalAlign' in p && (
+        <Field label="Alignement V">
+          <div style={{ display: 'flex', gap: 4 }}>
+            {[['top', '⬆', 'Haut'], ['middle', '↕', 'Milieu'], ['bottom', '⬇', 'Bas']].map(([val, icon, lbl]) => (
+              <FormatBtn key={val} active={(p.verticalAlign || 'middle') === val} onClick={() => update({ verticalAlign: val })} title={lbl}>{icon}</FormatBtn>
+            ))}
+          </div>
+        </Field>
+      )}
       {'borderRadius' in p && <Field label={`Arrondi (${p.borderRadius}px)`}><RangeInput value={p.borderRadius} onChange={v => update({ borderRadius: v })} max={60} /></Field>}
       {'checked' in p && <Field label="Coché"><Toggle value={p.checked} onChange={v => update({ checked: v })} /></Field>}
       {'showBack' in p && <Field label="Bouton retour"><Toggle value={p.showBack} onChange={v => update({ showBack: v })} /></Field>}
@@ -285,8 +350,10 @@ function ScreenProperties() {
         <BgPicker
           bgColor={screen.backgroundColor}
           bgGradient={screen.backgroundGradient || null}
+          backgroundImage={screen.backgroundImage || null}
           onColorChange={v => dispatch({ type: 'SET_BACKGROUND', color: v, gradient: null })}
           onGradientChange={g => dispatch({ type: 'SET_BACKGROUND', color: screen.backgroundColor, gradient: g })}
+          onImageChange={v => dispatch({ type: 'SET_BACKGROUND', image: v })}
         />
       </Field>
       <SectionTitle>Thèmes rapides</SectionTitle>

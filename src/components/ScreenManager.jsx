@@ -137,11 +137,18 @@ function ScreenThumbnail({ screen, isActive, isRemote, onClick, onRename, onDele
       )}
       {/* Mini preview — CSS scale */}
       <div style={{ width: THUMB_W, height: THUMB_H, borderRadius: 6, overflow: 'hidden', position: 'relative', margin: '0 auto 6px', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', flexShrink: 0 }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, width: 390, height: 844, ...getBg(screen.backgroundColor, screen.backgroundGradient), transform: `scale(${SCALE})`, transformOrigin: 'top left', pointerEvents: 'none' }}>
-          {[...screen.components].sort((a, b) => (a.zIndex || 1) - (b.zIndex || 1)).map(comp => (
-            <MiniComp key={comp.id} comp={comp} />
-          ))}
-        </div>
+        {(() => {
+          const thumbBg = screen.backgroundImage
+            ? { backgroundImage: `url(${screen.backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+            : getBg(screen.backgroundColor, screen.backgroundGradient);
+          return (
+            <div style={{ position: 'absolute', top: 0, left: 0, width: 390, height: 844, ...thumbBg, transform: `scale(${SCALE})`, transformOrigin: 'top left', pointerEvents: 'none' }}>
+              {[...screen.components].sort((a, b) => (a.zIndex || 1) - (b.zIndex || 1)).map(comp => (
+                <MiniComp key={comp.id} comp={comp} />
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Screen name */}

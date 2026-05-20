@@ -234,14 +234,22 @@ function reducer(state, action) {
         ),
       });
 
-    case 'SET_BACKGROUND':
+    case 'SET_BACKGROUND': {
+      const hasImageAction = 'image' in action;
+      const hasBgAction = 'color' in action || 'gradient' in action;
       return pushHistory(state, {
         screens: state.screens.map(s =>
           s.id === state.activeScreenId
-            ? { ...s, backgroundColor: action.color, backgroundGradient: action.gradient !== undefined ? action.gradient : s.backgroundGradient }
+            ? {
+                ...s,
+                backgroundColor: action.color !== undefined ? action.color : s.backgroundColor,
+                backgroundGradient: action.gradient !== undefined ? action.gradient : s.backgroundGradient,
+                backgroundImage: hasImageAction ? action.image : (hasBgAction ? null : s.backgroundImage),
+              }
             : s
         ),
       });
+    }
 
     case 'LOAD_PROJECT': {
       if (!action.project) return state;
