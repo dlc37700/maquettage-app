@@ -258,29 +258,17 @@ function reducer(state, action) {
       };
     }
 
-    // Used by collaboration sync — merges remote screens without touching own screens
+    // Real-time collaboration sync — replaces all remote screens, own screens untouched
     case 'SYNC_SCREENS': {
-      const { remoteScreens = [], deletedIds = [] } = action;
-      const deletedSet = new Set(deletedIds);
-      const remoteById = new Map(remoteScreens.map(s => [s.id, s]));
-
-      // Keep own screens (remove deleted), update screens modified by others
-      const kept = state.screens
-        .filter(s => !deletedSet.has(s.id))
-        .map(s => remoteById.has(s.id) ? remoteById.get(s.id) : s);
-
-      // Append brand-new screens from remote not yet in local state
-      const keptIds = new Set(kept.map(s => s.id));
-      const brandNew = remoteScreens.filter(s => !keptIds.has(s.id));
-
-      const merged = [...kept, ...brandNew];
+      const { remoteScreens = [] } = action;
+      const ownScreens = state.screens.filter(s => !s._remote);
+      const merged = [...ownScreens, ...remoteScreens];
       const screens = merged.length > 0 ? merged : [INITIAL_SCREEN];
       const activeStillExists = screens.some(s => s.id === state.activeScreenId);
       return {
         ...state,
         screens,
-        activeScreenId: activeStillExists ? state.activeScreenId : screens[0]?.id,
-        selectedComponentId: null,
+        activeScreenId: activeStillExists ? state.activeScreenId : (ownScreens[0]?.id || screens[0]?.id),
       };
     }
 

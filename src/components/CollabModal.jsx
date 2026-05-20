@@ -164,7 +164,7 @@ function ActiveSession({ code, onCopy, copied, onLeave, nickname }) {
       <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 8, padding: 12, marginBottom: 16 }}>
         <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, margin: 0, lineHeight: 1.7 }}>
           💡 <strong style={{ color: 'rgba(255,255,255,0.8)' }}>Comment ça marche :</strong><br />
-          Chacun travaille sur ses propres écrans. Les écrans des autres sont visibles mais non modifiables. Clique sur 🔄 pour voir les dernières modifications.
+          Chacun travaille sur ses propres écrans. Les modifications de chacun apparaissent en temps réel chez tous les membres. Les écrans des autres sont visibles mais non modifiables.
         </p>
       </div>
 

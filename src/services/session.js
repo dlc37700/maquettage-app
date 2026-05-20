@@ -38,6 +38,27 @@ export function writeOwnScreens(code, ownScreens, projectName) {
   }).catch(err => console.error('[Session] Write error:', err));
 }
 
+export function subscribeToSession(code, onRemoteScreens) {
+  if (!db || !code) return () => {};
+  const unsub = onValue(ref(db, `sessions/${code}/clients`), (snapshot) => {
+    const allClients = snapshot.val();
+    if (!allClients || typeof allClients !== 'object') { onRemoteScreens([]); return; }
+    const myId = getClientId();
+    const remoteScreens = [];
+    Object.entries(allClients).forEach(([clientId, data]) => {
+      if (clientId === myId) return;
+      try {
+        const screens = JSON.parse(data.screensJson || '[]');
+        if (!Array.isArray(screens)) return;
+        const nickname = data.nickname || 'Anonyme';
+        remoteScreens.push(...screens.map(s => ({ ...s, _remote: true, _nickname: nickname })));
+      } catch { }
+    });
+    onRemoteScreens(remoteScreens);
+  });
+  return unsub;
+}
+
 export function sendMessage(code, text) {
   if (!db || !code || !text.trim()) return;
   push(ref(db, `sessions/${code}/messages`), {

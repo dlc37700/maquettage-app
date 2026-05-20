@@ -8,7 +8,7 @@ import PropertiesPanel from './components/PropertiesPanel';
 import WelcomeModal from './components/WelcomeModal';
 import CollabModal from './components/CollabModal';
 import ChatPanel from './components/ChatPanel';
-import { writeOwnScreens, loadSessionOnce } from './services/session';
+import { writeOwnScreens, loadSessionOnce, subscribeToSession } from './services/session';
 import { isFirebaseConfigured } from './services/firebase';
 
 const SESSION_STORAGE_KEY = 'maquetapp-session-code';
@@ -21,7 +21,6 @@ function AppInner() {
   const [phoneScale, setPhoneScale] = useState(0.8);
   const [sessionCode, setSessionCode] = useState(null);
   const [showCollabModal, setShowCollabModal] = useState(false);
-  const [reloading, setReloading] = useState(false);
 
   const closeWelcome = () => {
     localStorage.setItem('maquetapp-visited', '1');
@@ -39,12 +38,13 @@ function AppInner() {
     return () => clearTimeout(timer);
   }, [state.screens, state.projectName, sessionCode]);
 
-  const reloadSession = useCallback(async () => {
+  // Real-time sync of remote screens
+  useEffect(() => {
     if (!sessionCode) return;
-    setReloading(true);
-    const sessionData = await loadSessionOnce(sessionCode);
-    if (sessionData) dispatch({ type: 'LOAD_PROJECT', project: sessionData });
-    setReloading(false);
+    const unsub = subscribeToSession(sessionCode, (remoteScreens) => {
+      dispatch({ type: 'SYNC_SCREENS', remoteScreens });
+    });
+    return unsub;
   }, [sessionCode, dispatch]);
 
   const joinSession = useCallback((code, sessionData) => {
@@ -122,8 +122,6 @@ function AppInner() {
         onHelp={() => setShowWelcome(true)}
         sessionCode={sessionCode}
         onCollabClick={() => setShowCollabModal(true)}
-        onReload={reloadSession}
-        reloading={reloading}
       />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
         <div style={{ display: 'flex', height: '100%', flexShrink: 0 }}>
