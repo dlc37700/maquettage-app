@@ -38,7 +38,7 @@ function NavBtn({ icon, label, active, onClick }) {
   return (
     <button
       onClick={onClick}
-      style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '6px 0', background: 'none', border: 'none', cursor: 'pointer', color: active ? '#A78BFA' : 'rgba(255,255,255,0.45)', transition: 'color 0.15s' }}
+      style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '6px 0', minHeight: 56, background: 'none', border: 'none', cursor: 'pointer', color: active ? '#A78BFA' : 'rgba(255,255,255,0.45)', transition: 'color 0.15s' }}
     >
       <span style={{ fontSize: 19, lineHeight: 1 }}>{icon}</span>
       <span style={{ fontSize: 10, fontFamily: 'Nunito, sans-serif', fontWeight: 700, letterSpacing: 0.2 }}>{label}</span>
@@ -181,19 +181,26 @@ export default function MobileLayout({ sessionCode, isCreator, onCollabClick, on
   const importRef = useRef(null);
 
   const [phoneScale, setPhoneScale] = useState(0.65);
+  const [containerHeight, setContainerHeight] = useState(window.innerHeight);
   const [activeSheet, setActiveSheet] = useState(null);
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const update = () => {
+      const h = window.innerHeight;
+      setContainerHeight(h);
       const availW = window.innerWidth - 24;
-      const availH = window.innerHeight - 52 - 56 - 68;
+      const availH = h - 52 - 56 - 68;
       const scale = Math.min(availW / 430, availH / 932, 1);
       setPhoneScale(Math.max(0.32, scale));
     };
     update();
     window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
+    window.addEventListener('orientationchange', () => setTimeout(update, 100));
+    return () => {
+      window.removeEventListener('resize', update);
+      window.removeEventListener('orientationchange', update);
+    };
   }, []);
 
   const toggleSheet = (name) => setActiveSheet(prev => prev === name ? null : name);
@@ -232,7 +239,7 @@ export default function MobileLayout({ sessionCode, isCreator, onCollabClick, on
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', fontFamily: 'Nunito, sans-serif' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: containerHeight, overflow: 'hidden', fontFamily: 'Nunito, sans-serif' }}>
 
       {/* ── Top bar ── */}
       <div style={{ height: 52, backgroundColor: '#1e1b4b', display: 'flex', alignItems: 'center', padding: '0 10px', gap: 6, flexShrink: 0, boxShadow: '0 2px 12px rgba(0,0,0,0.3)' }}>
@@ -294,7 +301,7 @@ export default function MobileLayout({ sessionCode, isCreator, onCollabClick, on
       {/* ── Bottom sheet panel ── */}
       {activeSheet && (
         <div style={{
-          position: 'fixed', bottom: 56, left: 0, right: 0, zIndex: 201,
+          position: 'fixed', bottom: 'calc(56px + env(safe-area-inset-bottom, 0px))', left: 0, right: 0, zIndex: 201,
           borderRadius: '18px 18px 0 0',
           overflow: 'hidden',
           boxShadow: '0 -6px 32px rgba(0,0,0,0.35)',
@@ -338,7 +345,7 @@ export default function MobileLayout({ sessionCode, isCreator, onCollabClick, on
       <input ref={importRef} type="file" accept=".json" onChange={handleImportJson} style={{ display: 'none' }} />
 
       {/* ── Bottom nav ── */}
-      <div style={{ height: 56, backgroundColor: '#1e1b4b', display: 'flex', alignItems: 'stretch', flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.08)', zIndex: 300, position: 'relative' }}>
+      <div style={{ backgroundColor: '#1e1b4b', display: 'flex', alignItems: 'stretch', flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.08)', zIndex: 300, position: 'relative', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <NavBtn icon="📋" label="Écrans" active={activeSheet === 'screens'} onClick={() => toggleSheet('screens')} />
         <NavBtn icon="➕" label="Ajouter" active={activeSheet === 'components'} onClick={() => toggleSheet('components')} />
         <NavBtn icon="⚙️" label="Propriétés" active={activeSheet === 'properties'} onClick={() => toggleSheet('properties')} />
