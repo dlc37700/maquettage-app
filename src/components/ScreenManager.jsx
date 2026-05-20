@@ -84,7 +84,7 @@ function MiniComp({ comp }) {
         </div>
       );
     case 'badge':
-      return <div style={{ ...base, backgroundColor: props.bgColor, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: props.textColor, fontSize: Math.min(pos.width, pos.height) * 0.38, fontWeight: 700, fontFamily: 'Nunito' }}>{props.count}</div>;
+      return <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: props.textColor, fontSize: Math.min(pos.width, pos.height) * 0.38, fontWeight: 700, fontFamily: 'Nunito' }}>{props.count}</div>;
     case 'separator':
       return <div style={{ ...base, borderTop: `1px solid ${props.color || '#E5E7EB'}` }} />;
     default:
@@ -126,7 +126,7 @@ function ScreenThumbnail({ screen, isActive, onClick, onRename, onDelete, onDupl
     >
       {/* Mini preview — CSS scale */}
       <div style={{ width: THUMB_W, height: THUMB_H, borderRadius: 6, overflow: 'hidden', position: 'relative', margin: '0 auto 6px', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', flexShrink: 0 }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, width: 390, height: 844, backgroundColor: bgPreview, transform: `scale(${SCALE})`, transformOrigin: 'top left', pointerEvents: 'none' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, width: 390, height: 844, ...getBg(screen.backgroundColor, screen.backgroundGradient), transform: `scale(${SCALE})`, transformOrigin: 'top left', pointerEvents: 'none' }}>
           {[...screen.components].sort((a, b) => (a.zIndex || 1) - (b.zIndex || 1)).map(comp => (
             <MiniComp key={comp.id} comp={comp} />
           ))}

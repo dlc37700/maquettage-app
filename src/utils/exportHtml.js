@@ -1,3 +1,10 @@
+function getBgCss(bgColor, bgGradient) {
+  if (bgGradient && bgGradient.from && bgGradient.to) {
+    return `background:linear-gradient(${bgGradient.angle ?? 135}deg,${bgGradient.from},${bgGradient.to})`;
+  }
+  return `background-color:${bgColor}`;
+}
+
 function escHtml(str) {
   return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -24,7 +31,7 @@ function compToHtml(comp) {
           : '';
       const labelHtml = !iconOnly && props.label ? `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(props.label)}</span>` : '';
       const flexDir = props.iconPosition === 'right' ? 'row-reverse' : 'row';
-      return `<button style="${base}background-color:${props.bgColor};color:${props.textColor};font-size:${props.fontSize || 16}px;border-radius:${props.borderRadius || 12}px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;flex-direction:${flexDir};font-family:Nunito,sans-serif;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.15);padding:0 12px">${iconHtml}${labelHtml}</button>`;
+      return `<button style="${base}${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};font-size:${props.fontSize || 16}px;border-radius:${props.borderRadius || 12}px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;flex-direction:${flexDir};font-family:Nunito,sans-serif;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,0.15);padding:0 12px">${iconHtml}${labelHtml}</button>`;
     }
 
     case 'text': {
