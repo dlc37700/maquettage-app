@@ -7,6 +7,8 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
   const [joinInput, setJoinInput] = useState('');
   const [nickname, setNickname] = useState(() => getClientNickname());
   const [projectName, setProjectName] = useState(() => state.projectName || '');
+  const [className, setClassName] = useState(() => localStorage.getItem('maquettage_classname') || '');
+  const [schoolName, setSchoolName] = useState(() => localStorage.getItem('maquettage_schoolname') || '');
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
@@ -19,13 +21,17 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
   const handleCreate = async () => {
     if (!nickname.trim()) { setError('Entre ton prénom avant de créer une session.'); return; }
     if (!projectName.trim()) { setError('Entre le nom du projet avant de créer une session.'); return; }
+    if (!className.trim()) { setError('Entre le nom de ta classe avant de créer une session.'); return; }
+    if (!schoolName.trim()) { setError('Entre le nom de ton établissement avant de créer une session.'); return; }
     setLoading(true);
     setClientNickname(nickname.trim());
+    localStorage.setItem('maquettage_classname', className.trim());
+    localStorage.setItem('maquettage_schoolname', schoolName.trim());
     const code = generateSessionCode();
     const trimmedName = projectName.trim();
     const ownScreens = state.screens.filter(s => !s._remote);
     writeOwnScreens(code, ownScreens, trimmedName);
-    initSessionMeta(code, nickname.trim());
+    initSessionMeta(code, nickname.trim(), className.trim(), schoolName.trim());
     onJoin(code, null, { projectName: trimmedName, isCreator: true });
     setLoading(false);
   };
@@ -104,6 +110,10 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
             setNickname={setNickname}
             projectName={projectName}
             setProjectName={setProjectName}
+            className={className}
+            setClassName={setClassName}
+            schoolName={schoolName}
+            setSchoolName={setSchoolName}
             joinInput={joinInput}
             setJoinInput={setJoinInput}
             onJoin={handleJoin}
@@ -194,7 +204,15 @@ function ActiveSession({ code, onCopy, copied, onLeave, nickname }) {
   );
 }
 
-function StartSession({ nickname, setNickname, projectName, setProjectName, joinInput, setJoinInput, onJoin, onCreate, loading, error, setError, joinRef }) {
+function StartSession({ nickname, setNickname, projectName, setProjectName, className, setClassName, schoolName, setSchoolName, joinInput, setJoinInput, onJoin, onCreate, loading, error, setError, joinRef }) {
+  const fieldStyle = (hasError) => ({
+    width: '100%', padding: '9px 12px', borderRadius: 8,
+    border: `1.5px solid ${hasError ? '#FCA5A5' : 'rgba(167,139,250,0.3)'}`,
+    backgroundColor: 'rgba(255,255,255,0.06)', color: 'white',
+    fontSize: 13, fontWeight: 700, fontFamily: 'Nunito, sans-serif',
+    outline: 'none', boxSizing: 'border-box',
+  });
+
   return (
     <div>
       {/* Nickname input — required for both actions */}
@@ -228,28 +246,46 @@ function StartSession({ nickname, setNickname, projectName, setProjectName, join
         <div style={{ color: '#A78BFA', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>
           ✨ Créer une nouvelle session
         </div>
-        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, margin: '0 0 10px', lineHeight: 1.5 }}>
+        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, margin: '0 0 12px', lineHeight: 1.5 }}>
           Génère un code et partage-le avec tes camarades.
         </p>
-        {/* Project name — required, only editable by creator */}
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.8 }}>
-            📁 Nom du projet *
-          </div>
+
+        {/* Project name */}
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.8 }}>📁 Nom du projet *</div>
           <input
             value={projectName}
             onChange={e => { setProjectName(e.target.value); setError(''); }}
             placeholder="Ex : Application météo…"
             maxLength={40}
-            style={{
-              width: '100%', padding: '9px 12px', borderRadius: 8,
-              border: `1.5px solid ${error && !projectName.trim() ? '#FCA5A5' : 'rgba(167,139,250,0.3)'}`,
-              backgroundColor: 'rgba(255,255,255,0.06)', color: 'white',
-              fontSize: 13, fontWeight: 700, fontFamily: 'Nunito, sans-serif',
-              outline: 'none', boxSizing: 'border-box',
-            }}
+            style={fieldStyle(error && !projectName.trim())}
           />
         </div>
+
+        {/* Class name */}
+        <div style={{ marginBottom: 10 }}>
+          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.8 }}>🏫 Classe *</div>
+          <input
+            value={className}
+            onChange={e => { setClassName(e.target.value); setError(''); }}
+            placeholder="Ex : 4C, 3B, 5ème 2…"
+            maxLength={20}
+            style={fieldStyle(error && !className.trim())}
+          />
+        </div>
+
+        {/* School name */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.8 }}>🏛️ Établissement *</div>
+          <input
+            value={schoolName}
+            onChange={e => { setSchoolName(e.target.value); setError(''); }}
+            placeholder="Ex : Collège Montaigne, Lycée Hugo…"
+            maxLength={60}
+            style={fieldStyle(error && !schoolName.trim())}
+          />
+        </div>
+
         <button
           onClick={onCreate}
           disabled={loading}

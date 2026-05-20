@@ -1,12 +1,14 @@
 import { ref, get, set, update, remove } from 'firebase/database';
 import { db } from './firebase';
 
-export async function initSessionMeta(code, nickname) {
+export async function initSessionMeta(code, nickname, className, schoolName) {
   if (!db || !code) return;
   try {
     await set(ref(db, `sessions/${code}/meta`), {
       createdAt: Date.now(),
       createdBy: nickname,
+      className: className || '',
+      schoolName: schoolName || '',
       blocked: false,
     });
   } catch (err) {
@@ -53,6 +55,8 @@ export async function getAllSessions() {
         code,
         createdAt: meta.createdAt || 0,
         createdBy: meta.createdBy || '?',
+        className: meta.className || '',
+        schoolName: meta.schoolName || '',
         blocked: meta.blocked || false,
         members,
         lastActivity,

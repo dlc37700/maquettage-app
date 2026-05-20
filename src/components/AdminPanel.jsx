@@ -154,6 +154,8 @@ export default function AdminPanel({ onClose }) {
           <button onClick={() => setSelected(null)} style={{ ...btn({ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', fontSize: 13 }) }}>← Retour</button>
           <span style={{ color: 'white', fontWeight: 900, fontSize: 18, fontFamily: 'monospace', letterSpacing: 4 }}>{session.code}</span>
           <StatusBadge session={session} />
+          {session.className && <span style={{ backgroundColor: 'rgba(167,139,250,0.25)', color: '#C4B5FD', borderRadius: 6, padding: '3px 10px', fontSize: 13, fontWeight: 800 }}>🏫 {session.className}</span>}
+          {session.schoolName && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: 600 }}>{session.schoolName}</span>}
           <div style={{ flex: 1 }} />
           <button onClick={() => handleBlock(session)} style={{ ...btn({ backgroundColor: session.blocked ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)', color: session.blocked ? '#10B981' : '#EF4444' }) }}>
             {session.blocked ? '🔓 Débloquer' : '🔒 Bloquer'}
@@ -221,10 +223,16 @@ export default function AdminPanel({ onClose }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
             {sessions.map(session => (
               <div key={session.code} style={{ backgroundColor: 'white', borderRadius: 12, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: `1px solid ${session.blocked ? '#FCA5A5' : '#E5E7EB'}` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                   <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 22, color: session.blocked ? '#EF4444' : session.isActive ? '#7C3AED' : '#9CA3AF', letterSpacing: 3 }}>{session.code}</span>
                   <StatusBadge session={session} />
                 </div>
+                {(session.className || session.schoolName) && (
+                  <div style={{ display: 'flex', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
+                    {session.className && <span style={{ backgroundColor: '#EDE9FE', color: '#6D28D9', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 800 }}>🏫 {session.className}</span>}
+                    {session.schoolName && <span style={{ backgroundColor: '#F3F4F6', color: '#374151', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600 }}>{session.schoolName}</span>}
+                  </div>
+                )}
                 <p style={{ color: '#6B7280', fontSize: 12, margin: '0 0 4px' }}>Créée le {formatDate(session.createdAt)} par <strong>{session.createdBy}</strong></p>
                 <p style={{ color: '#9CA3AF', fontSize: 12, margin: '0 0 8px' }}>Dernière activité : {timeAgo(session.lastActivity)}</p>
                 {session.members.length > 0 && (
