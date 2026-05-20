@@ -5,6 +5,13 @@ const THUMB_W = 120;
 const SCALE = THUMB_W / 390;
 const THUMB_H = Math.round(844 * SCALE);
 
+function getBg(bgColor, bgGradient) {
+  if (bgGradient && bgGradient.from && bgGradient.to) {
+    return { background: `linear-gradient(${bgGradient.angle ?? 135}deg, ${bgGradient.from}, ${bgGradient.to})` };
+  }
+  return { backgroundColor: bgColor };
+}
+
 function MiniComp({ comp }) {
   const { type, props, position: pos, zIndex } = comp;
   const base = {
@@ -15,7 +22,7 @@ function MiniComp({ comp }) {
   switch (type) {
     case 'button':
       return (
-        <div style={{ ...base, backgroundColor: props.bgColor, borderRadius: props.borderRadius, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+        <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), borderRadius: props.borderRadius, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
           {props.emoji && props.iconPosition === 'only'
             ? <span style={{ fontSize: Math.min(pos.width, pos.height) * 0.52, lineHeight: 1 }}>{props.emoji}</span>
             : <span style={{ color: props.textColor, fontSize: props.fontSize, fontFamily: 'Nunito', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '0 8px' }}>{props.label}</span>}
@@ -26,7 +33,7 @@ function MiniComp({ comp }) {
       return <div style={{ ...base, color: props.textColor, fontSize: props.fontSize, fontFamily: 'Nunito', fontWeight: fw, display: 'flex', alignItems: 'center', lineHeight: 1.4 }}>{props.label}</div>;
     }
     case 'input':
-      return <div style={{ ...base, backgroundColor: props.bgColor, borderRadius: props.borderRadius, border: '1.5px solid #E5E7EB', display: 'flex', alignItems: 'center', padding: '0 10px' }}>
+      return <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), borderRadius: props.borderRadius, border: '1.5px solid #E5E7EB', display: 'flex', alignItems: 'center', padding: '0 10px' }}>
         <span style={{ color: props.textColor, fontSize: 13, fontFamily: 'Nunito' }}>{props.placeholder}</span>
       </div>;
     case 'checkbox':
@@ -39,21 +46,21 @@ function MiniComp({ comp }) {
       );
     case 'image':
       if (props.imageData) return <img src={props.imageData} alt="" style={{ ...base, objectFit: 'cover', borderRadius: props.borderRadius }} />;
-      return <div style={{ ...base, backgroundColor: props.bgColor, borderRadius: props.borderRadius, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #D1D5DB' }}><span style={{ fontSize: 24 }}>🖼️</span></div>;
+      return <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), borderRadius: props.borderRadius, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #D1D5DB' }}><span style={{ fontSize: 24 }}>🖼️</span></div>;
     case 'avatar':
       if (props.imageData) return <img src={props.imageData} alt="" style={{ ...base, objectFit: 'cover', borderRadius: '50%' }} />;
-      if (props.emoji) return <div style={{ ...base, backgroundColor: props.bgColor, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: Math.min(pos.width, pos.height) * 0.55, lineHeight: 1 }}>{props.emoji}</span></div>;
-      return <div style={{ ...base, backgroundColor: props.bgColor, borderRadius: '50%' }} />;
+      if (props.emoji) return <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span style={{ fontSize: Math.min(pos.width, pos.height) * 0.55, lineHeight: 1 }}>{props.emoji}</span></div>;
+      return <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), borderRadius: '50%' }} />;
     case 'header':
-      return <div style={{ ...base, backgroundColor: props.bgColor, display: 'flex', alignItems: 'center', padding: '0 16px' }}>
+      return <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), display: 'flex', alignItems: 'center', padding: '0 16px' }}>
         <span style={{ color: props.textColor, fontSize: 18, fontWeight: 700, fontFamily: 'Nunito' }}>{props.title}</span>
       </div>;
     case 'navbar':
-      return <div style={{ ...base, backgroundColor: props.bgColor, borderTop: '1px solid #E5E7EB' }} />;
+      return <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), borderTop: '1px solid #E5E7EB' }} />;
     case 'card':
-      return <div style={{ ...base, backgroundColor: props.bgColor, borderRadius: props.borderRadius, boxShadow: '0 2px 16px rgba(0,0,0,0.10)' }} />;
+      return <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), borderRadius: props.borderRadius, boxShadow: '0 2px 16px rgba(0,0,0,0.10)' }} />;
     case 'colorblock':
-      return <div style={{ ...base, backgroundColor: props.bgColor, borderRadius: props.borderRadius || 0 }} />;
+      return <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), borderRadius: props.borderRadius || 0 }} />;
     case 'switch':
       return (
         <div style={{ ...base, display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -71,7 +78,7 @@ function MiniComp({ comp }) {
       );
     case 'listitem':
       return (
-        <div style={{ ...base, backgroundColor: props.bgColor, display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12, borderBottom: '1px solid #F3F4F6' }}>
+        <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12, borderBottom: '1px solid #F3F4F6' }}>
           <div style={{ width: 34, height: 34, backgroundColor: '#EDE9FE', borderRadius: 9, flexShrink: 0 }} />
           <span style={{ flex: 1, color: props.textColor, fontSize: 14, fontFamily: 'Nunito', fontWeight: 600 }}>{props.label}</span>
         </div>

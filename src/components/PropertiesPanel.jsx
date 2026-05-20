@@ -56,6 +56,86 @@ function ImageUpload({ value, onChange, shape = 'rect' }) {
   );
 }
 
+const GRADIENT_PRESETS = [
+  { from: '#6C63FF', to: '#EC4899', angle: 135 },
+  { from: '#3B82F6', to: '#06B6D4', angle: 135 },
+  { from: '#F97316', to: '#EF4444', angle: 135 },
+  { from: '#10B981', to: '#06B6D4', angle: 135 },
+  { from: '#8B5CF6', to: '#3B82F6', angle: 135 },
+  { from: '#EC4899', to: '#F97316', angle: 135 },
+  { from: '#1E1B4B', to: '#6C63FF', angle: 135 },
+  { from: '#F59E0B', to: '#EF4444', angle: 135 },
+];
+
+function BgPicker({ bgColor, bgGradient, onColorChange, onGradientChange }) {
+  const isGrad = !!bgGradient;
+  const grad = bgGradient || { from: bgColor || '#6C63FF', to: '#EC4899', angle: 135 };
+
+  const tabStyle = (active) => ({
+    flex: 1, padding: '4px 0', borderRadius: 6, border: 'none', cursor: 'pointer',
+    fontSize: 11, fontFamily: 'Nunito, sans-serif', fontWeight: 700,
+    backgroundColor: active ? '#6C63FF' : 'transparent',
+    color: active ? 'white' : '#9CA3AF',
+  });
+
+  return (
+    <div>
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 4, marginBottom: 8, backgroundColor: '#F3F4F6', borderRadius: 8, padding: 3 }}>
+        <button style={tabStyle(!isGrad)} onClick={() => onGradientChange(null)}>Uni</button>
+        <button style={tabStyle(isGrad)} onClick={() => onGradientChange(grad)}>Dégradé</button>
+      </div>
+
+      {!isGrad ? (
+        <ColorInput value={bgColor} onChange={onColorChange} />
+      ) : (
+        <div>
+          {/* Two color pickers */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 6, alignItems: 'center' }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 2, fontFamily: 'Nunito', fontWeight: 700 }}>Début</div>
+              <ColorInput value={grad.from} onChange={v => onGradientChange({ ...grad, from: v })} />
+            </div>
+            <div style={{ fontSize: 16, color: '#9CA3AF', marginTop: 12 }}>→</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 2, fontFamily: 'Nunito', fontWeight: 700 }}>Fin</div>
+              <ColorInput value={grad.to} onChange={v => onGradientChange({ ...grad, to: v })} />
+            </div>
+          </div>
+          {/* Angle */}
+          <div style={{ marginBottom: 6 }}>
+            <div style={{ fontSize: 10, color: '#9CA3AF', marginBottom: 2, fontFamily: 'Nunito', fontWeight: 700 }}>Direction</div>
+            <SelectInput
+              value={String(grad.angle ?? 135)}
+              onChange={v => onGradientChange({ ...grad, angle: Number(v) })}
+              options={[
+                { value: '0',   label: '↓ Haut → Bas' },
+                { value: '90',  label: '→ Gauche → Droite' },
+                { value: '135', label: '↘ Diagonal' },
+                { value: '45',  label: '↗ Diagonal' },
+                { value: '180', label: '↑ Bas → Haut' },
+                { value: '270', label: '← Droite → Gauche' },
+              ]}
+            />
+          </div>
+          {/* Preview + presets */}
+          <div style={{ height: 28, borderRadius: 8, marginBottom: 6, background: `linear-gradient(${grad.angle ?? 135}deg, ${grad.from}, ${grad.to})` }} />
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            {GRADIENT_PRESETS.map((p, i) => (
+              <div
+                key={i}
+                onClick={() => onGradientChange({ ...p })}
+                title={`${p.from} → ${p.to}`}
+                style={{ width: 22, height: 22, borderRadius: 6, cursor: 'pointer', background: `linear-gradient(135deg, ${p.from}, ${p.to})`, border: '2px solid transparent', outline: grad.from === p.from && grad.to === p.to ? '2px solid #6C63FF' : 'none' }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ComponentProperties({ comp }) {
   const { dispatch } = useProject();
   const screen = useActiveScreen();
@@ -113,7 +193,16 @@ function ComponentProperties({ comp }) {
       {'label' in p && comp.type !== 'switch' && <Field label="Texte"><TextInput value={p.label} onChange={v => update({ label: v })} /></Field>}
       {'title' in p && <Field label="Titre"><TextInput value={p.title} onChange={v => update({ title: v })} /></Field>}
       {'placeholder' in p && <Field label="Placeholder"><TextInput value={p.placeholder} onChange={v => update({ placeholder: v })} /></Field>}
-      {'bgColor' in p && comp.type !== 'image' && <Field label="Fond"><ColorInput value={p.bgColor} onChange={v => update({ bgColor: v })} /></Field>}
+      {'bgColor' in p && comp.type !== 'image' && (
+        <Field label="Fond">
+          <BgPicker
+            bgColor={p.bgColor}
+            bgGradient={p.bgGradient || null}
+            onColorChange={v => update({ bgColor: v, bgGradient: null })}
+            onGradientChange={g => update({ bgGradient: g })}
+          />
+        </Field>
+      )}
       {'textColor' in p && <Field label="Texte"><ColorInput value={p.textColor} onChange={v => update({ textColor: v })} /></Field>}
       {'color' in p && comp.type === 'icon' && <Field label="Couleur"><ColorInput value={p.color} onChange={v => update({ color: v })} /></Field>}
       {'activeColor' in p && <Field label="Couleur active"><ColorInput value={p.activeColor} onChange={v => update({ activeColor: v })} /></Field>}
@@ -149,7 +238,14 @@ function ScreenProperties() {
   return (
     <div>
       <Field label="Nom"><TextInput value={screen.name} onChange={v => dispatch({ type: 'RENAME_SCREEN', id: screen.id, name: v })} /></Field>
-      <Field label="Fond"><ColorInput value={screen.backgroundColor} onChange={v => dispatch({ type: 'SET_BACKGROUND', color: v })} /></Field>
+      <Field label="Fond">
+        <BgPicker
+          bgColor={screen.backgroundColor}
+          bgGradient={screen.backgroundGradient || null}
+          onColorChange={v => dispatch({ type: 'SET_BACKGROUND', color: v, gradient: null })}
+          onGradientChange={g => dispatch({ type: 'SET_BACKGROUND', color: screen.backgroundColor, gradient: g })}
+        />
+      </Field>
       <SectionTitle>Thèmes rapides</SectionTitle>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {THEMES.map(theme => (

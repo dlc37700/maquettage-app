@@ -11,6 +11,13 @@ function LucideIcon({ name, size = 24, color = '#6C63FF' }) {
   return <Icon size={size} color={color} />;
 }
 
+function getBg(bgColor, bgGradient) {
+  if (bgGradient && bgGradient.from && bgGradient.to) {
+    return { background: `linear-gradient(${bgGradient.angle ?? 135}deg, ${bgGradient.from}, ${bgGradient.to})` };
+  }
+  return { backgroundColor: bgColor };
+}
+
 function ComponentRenderer({ comp }) {
   const { type, props, position: pos } = comp;
   const iconSize = Math.min(pos.width, pos.height) * 0.55;
@@ -24,7 +31,7 @@ function ComponentRenderer({ comp }) {
       return (
         <div style={{
           width: '100%', height: '100%',
-          backgroundColor: props.bgColor, color: props.textColor,
+          ...getBg(props.bgColor, props.bgGradient), color: props.textColor,
           fontSize: props.fontSize, borderRadius: props.borderRadius,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontWeight: 700, fontFamily: 'Nunito, sans-serif',
@@ -50,7 +57,7 @@ function ComponentRenderer({ comp }) {
       return (
         <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3 }}>
           {props.label && <div style={{ fontSize: 11, color: '#6B7280', fontFamily: 'Nunito, sans-serif', fontWeight: 600 }}>{props.label}</div>}
-          <div style={{ flex: 1, backgroundColor: props.bgColor, border: '1.5px solid #D1D5DB', borderRadius: props.borderRadius, color: props.textColor, fontSize: 14, padding: '0 12px', display: 'flex', alignItems: 'center', fontFamily: 'Nunito, sans-serif' }}>{props.placeholder}</div>
+          <div style={{ flex: 1, ...getBg(props.bgColor, props.bgGradient), border: '1.5px solid #D1D5DB', borderRadius: props.borderRadius, color: props.textColor, fontSize: 14, padding: '0 12px', display: 'flex', alignItems: 'center', fontFamily: 'Nunito, sans-serif' }}>{props.placeholder}</div>
         </div>
       );
 
@@ -83,7 +90,7 @@ function ComponentRenderer({ comp }) {
         );
       }
       return (
-        <div style={{ width: '100%', height: '100%', backgroundColor: props.bgColor, borderRadius: props.borderRadius || 8, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #D1D5DB' }}>
+        <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), borderRadius: props.borderRadius || 8, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #D1D5DB' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: Math.min(pos.width, pos.height) * 0.28 }}>🖼️</div>
             <div style={{ fontSize: 11, marginTop: 4, fontFamily: 'Nunito, sans-serif', color: '#9CA3AF' }}>Cliquer pour importer</div>
@@ -101,19 +108,19 @@ function ComponentRenderer({ comp }) {
       }
       if (props.emoji) {
         return (
-          <div style={{ width: '100%', height: '100%', backgroundColor: props.bgColor, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
             <span style={{ fontSize: Math.min(pos.width, pos.height) * 0.55, lineHeight: 1 }}>{props.emoji}</span>
           </div>
         );
       }
-      return <div style={{ width: '100%', height: '100%', backgroundColor: props.bgColor, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}><LucideIcons.User size={Math.min(pos.width, pos.height) * 0.55} color="white" /></div>;
+      return <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}><LucideIcons.User size={Math.min(pos.width, pos.height) * 0.55} color="white" /></div>;
 
     case 'icon':
       return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><LucideIcon name={props.iconName} color={props.color} size={Math.max(16, iconSize)} /></div>;
 
     case 'navbar':
       return (
-        <div style={{ width: '100%', height: '100%', backgroundColor: props.bgColor, borderTop: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '0 8px' }}>
+        <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), borderTop: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '0 8px' }}>
           {['Home', 'Search', 'Heart', 'User'].map((ic, i) => (
             <div key={ic} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
               <LucideIcon name={ic} color={i === 0 ? props.activeColor : '#9CA3AF'} size={22} />
@@ -125,14 +132,14 @@ function ComponentRenderer({ comp }) {
 
     case 'header':
       return (
-        <div style={{ width: '100%', height: '100%', backgroundColor: props.bgColor, display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
+        <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
           {props.showBack && <LucideIcon name="ArrowLeft" color={props.textColor} size={20} />}
           <span style={{ color: props.textColor, fontSize: 18, fontWeight: 700, fontFamily: 'Nunito, sans-serif', flex: 1 }}>{props.title}</span>
         </div>
       );
 
     case 'card':
-      return <div style={{ width: '100%', height: '100%', backgroundColor: props.bgColor, borderRadius: props.borderRadius, boxShadow: '0 2px 16px rgba(0,0,0,0.10)' }} />;
+      return <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), borderRadius: props.borderRadius, boxShadow: '0 2px 16px rgba(0,0,0,0.10)' }} />;
 
     case 'switch':
       return (
@@ -156,7 +163,7 @@ function ComponentRenderer({ comp }) {
 
     case 'listitem':
       return (
-        <div style={{ width: '100%', height: '100%', backgroundColor: props.bgColor, borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
+        <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
           <div style={{ width: 34, height: 34, backgroundColor: '#EDE9FE', borderRadius: 9, flexShrink: 0 }} />
           <span style={{ flex: 1, color: props.textColor, fontSize: 14, fontFamily: 'Nunito, sans-serif', fontWeight: 600 }}>{props.label}</span>
           <LucideIcons.ChevronRight size={16} color="#9CA3AF" />
@@ -164,13 +171,13 @@ function ComponentRenderer({ comp }) {
       );
 
     case 'badge':
-      return <div style={{ width: '100%', height: '100%', backgroundColor: props.bgColor, borderRadius: '50%', color: props.textColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.min(pos.width, pos.height) * 0.38, fontWeight: 700, fontFamily: 'Nunito, sans-serif' }}>{props.count}</div>;
+      return <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), borderRadius: '50%', color: props.textColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.min(pos.width, pos.height) * 0.38, fontWeight: 700, fontFamily: 'Nunito, sans-serif' }}>{props.count}</div>;
 
     case 'separator':
       return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}><div style={{ width: '100%', height: 1.5, backgroundColor: props.color }} /></div>;
 
     case 'colorblock':
-      return <div style={{ width: '100%', height: '100%', backgroundColor: props.bgColor, borderRadius: props.borderRadius }} />;
+      return <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), borderRadius: props.borderRadius }} />;
 
     default:
       return <div style={{ width: '100%', height: '100%', backgroundColor: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#6B7280', fontFamily: 'Nunito, sans-serif' }}>{type}</div>;
@@ -299,7 +306,7 @@ export default function Canvas({ canvasRef }) {
 
   return (
     <div ref={ref} onClick={handleCanvasClick} onDragOver={handleDragOver} onDrop={handleDrop}
-      style={{ position: 'relative', width: CANVAS_W, height: CANVAS_H, backgroundColor: screen.backgroundColor, overflow: 'hidden', flexShrink: 0 }}>
+      style={{ ...getBg(screen.backgroundColor, screen.backgroundGradient), position: 'relative', width: CANVAS_W, height: CANVAS_H, overflow: 'hidden', flexShrink: 0 }}>
       {sortedComponents.map((comp) => {
         const isSelected = comp.id === state.selectedComponentId;
         const { x, y, width, height } = comp.position;

@@ -237,7 +237,9 @@ function reducer(state, action) {
     case 'SET_BACKGROUND':
       return pushHistory(state, {
         screens: state.screens.map(s =>
-          s.id === state.activeScreenId ? { ...s, backgroundColor: action.color } : s
+          s.id === state.activeScreenId
+            ? { ...s, backgroundColor: action.color, backgroundGradient: action.gradient !== undefined ? action.gradient : s.backgroundGradient }
+            : s
         ),
       });
 
