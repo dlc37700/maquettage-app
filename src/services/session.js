@@ -1,4 +1,4 @@
-import { ref, set, get } from 'firebase/database';
+import { ref, set, get, push, onValue, query, orderByChild, limitToLast } from 'firebase/database';
 import { db } from './firebase';
 
 const CLIENT_ID_KEY = 'maquettage_client_id';
@@ -36,6 +36,29 @@ export function writeOwnScreens(code, ownScreens, projectName) {
     nickname: getClientNickname() || 'Anonyme',
     screensJson: JSON.stringify(ownScreens),
   }).catch(err => console.error('[Session] Write error:', err));
+}
+
+export function sendMessage(code, text) {
+  if (!db || !code || !text.trim()) return;
+  push(ref(db, `sessions/${code}/messages`), {
+    nickname: getClientNickname() || 'Anonyme',
+    text: text.trim(),
+    at: Date.now(),
+  }).catch(err => console.error('[Chat] Send error:', err));
+}
+
+export function subscribeToMessages(code, callback) {
+  if (!db || !code) return () => {};
+  const q = query(ref(db, `sessions/${code}/messages`), orderByChild('at'), limitToLast(100));
+  const unsub = onValue(q, (snapshot) => {
+    const val = snapshot.val();
+    if (!val) { callback([]); return; }
+    const msgs = Object.entries(val)
+      .map(([id, m]) => ({ id, ...m }))
+      .sort((a, b) => a.at - b.at);
+    callback(msgs);
+  });
+  return unsub;
 }
 
 export async function loadSessionOnce(code) {

@@ -7,6 +7,7 @@ import PhoneFrame from './components/PhoneFrame';
 import PropertiesPanel from './components/PropertiesPanel';
 import WelcomeModal from './components/WelcomeModal';
 import CollabModal from './components/CollabModal';
+import ChatPanel from './components/ChatPanel';
 import { writeOwnScreens, loadSessionOnce } from './services/session';
 import { isFirebaseConfigured } from './services/firebase';
 
@@ -171,6 +172,7 @@ function AppInner() {
           onClose={() => setShowCollabModal(false)}
         />
       )}
+      <ChatPanel sessionCode={sessionCode} />
     </div>
   );
 }
