@@ -92,7 +92,7 @@ function MiniComp({ comp }) {
   }
 }
 
-function ScreenThumbnail({ screen, isActive, onClick, onRename, onDelete, onDuplicate, isRemote }) {
+function ScreenThumbnail({ screen, isActive, onClick, onRename, onDelete, onDuplicate }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(screen.name);
   const inputRef = useRef(null);
@@ -116,26 +116,12 @@ function ScreenThumbnail({ screen, isActive, onClick, onRename, onDelete, onDupl
       style={{
         padding: '8px',
         borderRadius: 10,
-        backgroundColor: isRemote
-          ? 'rgba(16, 185, 129, 0.08)'
-          : isActive ? 'rgba(109, 40, 217, 0.3)' : 'rgba(255,255,255,0.05)',
-        border: isRemote
-          ? `2px solid ${isActive ? '#10B981' : 'rgba(16,185,129,0.25)'}`
-          : isActive ? '2px solid #7C3AED' : '2px solid transparent',
+        backgroundColor: isActive ? 'rgba(109, 40, 217, 0.3)' : 'rgba(255,255,255,0.05)',
+        border: isActive ? '2px solid #7C3AED' : '2px solid transparent',
         cursor: 'pointer',
         position: 'relative',
       }}
     >
-      {/* Remote badge */}
-      {isRemote && (
-        <div style={{
-          position: 'absolute', top: 4, right: 4, zIndex: 2,
-          backgroundColor: '#10B981', borderRadius: 4,
-          fontSize: 9, fontWeight: 800, color: 'white',
-          padding: '1px 4px', fontFamily: 'Nunito, sans-serif',
-          letterSpacing: 0.5,
-        }}>👤</div>
-      )}
       {/* Mini preview — CSS scale */}
       <div style={{ width: THUMB_W, height: THUMB_H, borderRadius: 6, overflow: 'hidden', position: 'relative', margin: '0 auto 6px', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', flexShrink: 0 }}>
         <div style={{ position: 'absolute', top: 0, left: 0, width: 390, height: 844, ...getBg(screen.backgroundColor, screen.backgroundGradient), transform: `scale(${SCALE})`, transformOrigin: 'top left', pointerEvents: 'none' }}>
@@ -182,8 +168,8 @@ function ScreenThumbnail({ screen, isActive, onClick, onRename, onDelete, onDupl
         </div>
       )}
 
-      {/* Actions (only for own screens) */}
-      {isActive && !isRemote && (
+      {/* Actions */}
+      {isActive && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: 4, marginTop: 6 }}>
           <button onClick={startEdit} title="Renommer" style={actionBtnStyle}>✏️</button>
           <button onClick={(e) => { e.stopPropagation(); onDuplicate(); }} title="Dupliquer" style={actionBtnStyle}>📋</button>
@@ -259,7 +245,6 @@ export default function ScreenManager() {
             key={screen.id}
             screen={screen}
             isActive={screen.id === state.activeScreenId}
-            isRemote={!!screen._remote}
             onClick={() => dispatch({ type: 'SET_ACTIVE_SCREEN', id: screen.id })}
             onRename={(name) => dispatch({ type: 'RENAME_SCREEN', id: screen.id, name })}
             onDelete={() => dispatch({ type: 'DELETE_SCREEN', id: screen.id })}

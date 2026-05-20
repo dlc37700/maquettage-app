@@ -256,17 +256,28 @@ function reducer(state, action) {
       };
     }
 
-    // Used by collaboration sync — keeps own screens, replaces remote screens
-    case 'SYNC_PROJECT': {
-      // action.remoteScreens: screens from other clients (each has _remote: true)
-      const ownScreens = state.screens.filter(s => !s._remote);
-      const remoteScreens = (action.remoteScreens || []).map(s => ({ ...s, _remote: true }));
-      const allScreens = [...ownScreens, ...remoteScreens];
-      const activeStillExists = allScreens.some(s => s.id === state.activeScreenId);
+    // Used by collaboration sync — merges remote screens without touching own screens
+    case 'SYNC_SCREENS': {
+      const { remoteScreens = [], deletedIds = [] } = action;
+      const deletedSet = new Set(deletedIds);
+      const remoteById = new Map(remoteScreens.map(s => [s.id, s]));
+
+      // Keep own screens (remove deleted), update screens modified by others
+      const kept = state.screens
+        .filter(s => !deletedSet.has(s.id))
+        .map(s => remoteById.has(s.id) ? remoteById.get(s.id) : s);
+
+      // Append brand-new screens from remote not yet in local state
+      const keptIds = new Set(kept.map(s => s.id));
+      const brandNew = remoteScreens.filter(s => !keptIds.has(s.id));
+
+      const merged = [...kept, ...brandNew];
+      const screens = merged.length > 0 ? merged : [INITIAL_SCREEN];
+      const activeStillExists = screens.some(s => s.id === state.activeScreenId);
       return {
         ...state,
-        screens: allScreens,
-        activeScreenId: activeStillExists ? state.activeScreenId : (ownScreens[0]?.id || allScreens[0]?.id),
+        screens,
+        activeScreenId: activeStillExists ? state.activeScreenId : screens[0]?.id,
         selectedComponentId: null,
       };
     }

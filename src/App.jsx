@@ -7,7 +7,7 @@ import PhoneFrame from './components/PhoneFrame';
 import PropertiesPanel from './components/PropertiesPanel';
 import WelcomeModal from './components/WelcomeModal';
 import CollabModal from './components/CollabModal';
-import { writeClientScreens, subscribeSession, loadSessionOnce, getClientId } from './services/session';
+import { writeScreen, removeScreen, subscribeSession, loadSessionOnce } from './services/session';
 import { isFirebaseConfigured } from './services/firebase';
 
 const SESSION_STORAGE_KEY = 'maquetapp-session-code';
@@ -21,40 +21,60 @@ function AppInner() {
   const [sessionCode, setSessionCode] = useState(null);
   const [showCollabModal, setShowCollabModal] = useState(false);
   const unsubscribeRef = useRef(null);
+  const prevScreensRef = useRef(state.screens);
 
   const closeWelcome = () => {
     localStorage.setItem('maquetapp-visited', '1');
     setShowWelcome(false);
   };
 
-  // Sync to Firebase: only write OWN screens (not remote ones)
-  useEffect(() => {
-    if (!sessionCode) return;
-    const ownScreens = state.screens.filter(s => !s._remote);
-    const timer = setTimeout(() => {
-      writeClientScreens(sessionCode, ownScreens, state.projectName);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [state.projectName, state.screens, sessionCode]);
-
   const startSubscription = useCallback((code) => {
     if (unsubscribeRef.current) unsubscribeRef.current();
-    unsubscribeRef.current = subscribeSession(code, (remoteScreens) => {
-      dispatch({ type: 'SYNC_PROJECT', remoteScreens });
+    unsubscribeRef.current = subscribeSession(code, ({ remoteScreens, deletedIds }) => {
+      dispatch({ type: 'SYNC_SCREENS', remoteScreens, deletedIds });
     });
   }, [dispatch]);
 
+  // Diff-based sync: detect added/modified/deleted screens and write to Firebase
+  useEffect(() => {
+    if (!sessionCode) return;
+    const prev = prevScreensRef.current;
+    const curr = state.screens;
+    prevScreensRef.current = curr;
+
+    const prevById = new Map(prev.map(s => [s.id, s]));
+    const currById = new Map(curr.map(s => [s.id, s]));
+
+    // Immediate: propagate deletions
+    prev.forEach(s => {
+      if (!currById.has(s.id)) removeScreen(sessionCode, s.id);
+    });
+
+    // Immediate: write brand-new screens
+    curr.forEach(s => {
+      if (!prevById.has(s.id)) writeScreen(sessionCode, s, state.projectName);
+    });
+
+    // Debounced: write modified screens
+    const modified = curr.filter(s => {
+      const p = prevById.get(s.id);
+      return p && JSON.stringify(p.components) !== JSON.stringify(s.components);
+    });
+    if (modified.length === 0) return;
+
+    const timer = setTimeout(() => {
+      modified.forEach(s => writeScreen(sessionCode, s, state.projectName));
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [state.screens, sessionCode, state.projectName]);
+
   const joinSession = useCallback((code, sessionData) => {
-    // sessionData = { screens, projectName } when joining existing; null when creating
     if (sessionData) dispatch({ type: 'LOAD_PROJECT', project: sessionData });
     setSessionCode(code);
     localStorage.setItem(SESSION_STORAGE_KEY, code);
-    // Immediately register in Firebase with own screens
-    const ownScreens = (sessionData?.screens ?? state.screens).filter(s => !s._remote);
-    writeClientScreens(code, ownScreens, state.projectName);
     startSubscription(code);
     setShowCollabModal(false);
-  }, [dispatch, state.screens, state.projectName, startSubscription]);
+  }, [dispatch, startSubscription]);
 
   const leaveSession = useCallback(() => {
     if (unsubscribeRef.current) { unsubscribeRef.current(); unsubscribeRef.current = null; }
