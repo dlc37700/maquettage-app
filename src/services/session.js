@@ -43,7 +43,7 @@ export function subscribeToSession(code, onRemoteScreens) {
   const unsub = onValue(ref(db, `sessions/${code}/clients`), (snapshot) => {
     const allClients = snapshot.val();
     if (!allClients || typeof allClients !== 'object') { onRemoteScreens([]); return; }
-    const myId = getClientId();
+    const myId = getClientId(); // always reads current localStorage value
     const remoteScreens = [];
     Object.entries(allClients).forEach(([clientId, data]) => {
       if (clientId === myId) return;
@@ -89,7 +89,21 @@ export async function loadSessionOnce(code) {
     const allClients = snapshot.val();
     if (!allClients || typeof allClients !== 'object') return null;
 
-    const myId = getClientId();
+    let myId = getClientId();
+    const myNickname = getClientNickname();
+
+    // If our clientId has no data in Firebase but another client has the same nickname,
+    // reclaim it (handles browser storage wipes, device changes, etc.)
+    if (!allClients[myId] && myNickname) {
+      const match = Object.entries(allClients)
+        .filter(([, data]) => data.nickname === myNickname)
+        .sort(([, a], [, b]) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
+      if (match) {
+        myId = match[0];
+        localStorage.setItem(CLIENT_ID_KEY, myId);
+      }
+    }
+
     let ownScreens = [];
     let remoteScreens = [];
     let projectName = null;
