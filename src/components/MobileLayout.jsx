@@ -6,6 +6,7 @@ import PropertiesPanel from './PropertiesPanel';
 import { exportProjectAsJson, importProjectFromJson } from '../utils/exportJson';
 import { exportScreenAsPng } from '../utils/exportPng';
 import { exportProjectAsHtml } from '../utils/exportHtml';
+import ChatPanel from './ChatPanel';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -343,6 +344,8 @@ export default function MobileLayout({ sessionCode, isCreator, onCollabClick, on
       )}
 
       <input ref={importRef} type="file" accept=".json" onChange={handleImportJson} style={{ display: 'none' }} />
+
+      <ChatPanel sessionCode={sessionCode} mobileNavHeight={56} />
 
       {/* ── Bottom nav ── */}
       <div style={{ backgroundColor: '#1e1b4b', display: 'flex', alignItems: 'stretch', flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.08)', zIndex: 300, position: 'relative', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>

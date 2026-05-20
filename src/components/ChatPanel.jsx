@@ -6,7 +6,7 @@ function formatTime(ts) {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-export default function ChatPanel({ sessionCode }) {
+export default function ChatPanel({ sessionCode, mobileNavHeight = 0 }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState('');
@@ -46,7 +46,7 @@ export default function ChatPanel({ sessionCode }) {
   if (!sessionCode) return null;
 
   return (
-    <div style={{ position: 'fixed', bottom: 20, right: 20, zIndex: 8000, fontFamily: 'Nunito, sans-serif' }}>
+    <div style={{ position: 'fixed', bottom: mobileNavHeight > 0 ? `calc(${mobileNavHeight}px + env(safe-area-inset-bottom, 0px) + 12px)` : 20, right: 20, zIndex: 8000, fontFamily: 'Nunito, sans-serif' }}>
       {open ? (
         <div style={{
           width: 320, height: 440,

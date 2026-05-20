@@ -154,7 +154,6 @@ function AppInner() {
           onHelp={() => setShowWelcome(true)}
           onAdminClick={() => setShowAdmin(true)}
         />
-        <ChatPanel sessionCode={sessionCode} />
         {modals}
       </>
     );
