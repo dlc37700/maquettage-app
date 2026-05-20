@@ -248,11 +248,13 @@ function reducer(state, action) {
       const screens = (Array.isArray(action.project.screens) && action.project.screens.length > 0)
         ? action.project.screens
         : [INITIAL_SCREEN];
+      // Prefer own screens (no _remote flag) for the active screen
+      const firstOwn = screens.find(s => !s._remote);
       return {
         ...INITIAL_STATE,
         projectName: action.project.projectName || 'Mon Projet',
         screens,
-        activeScreenId: screens[0]?.id || 'screen-1',
+        activeScreenId: (firstOwn || screens[0])?.id || 'screen-1',
       };
     }
 

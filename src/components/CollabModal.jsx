@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { isFirebaseConfigured } from '../services/firebase';
-import { generateSessionCode, writeScreen, loadSessionOnce } from '../services/session';
+import { generateSessionCode, writeOwnScreens, loadSessionOnce } from '../services/session';
 
 export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClose }) {
   const [joinInput, setJoinInput] = useState('');
@@ -17,8 +17,8 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
   const handleCreate = async () => {
     setLoading(true);
     const code = generateSessionCode();
-    // Publish all current screens as starting point of the session
-    state.screens.forEach(s => writeScreen(code, s, state.projectName));
+    const ownScreens = state.screens.filter(s => !s._remote);
+    writeOwnScreens(code, ownScreens, state.projectName);
     onJoin(code, null);
     setLoading(false);
   };

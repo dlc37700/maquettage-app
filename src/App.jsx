@@ -7,7 +7,7 @@ import PhoneFrame from './components/PhoneFrame';
 import PropertiesPanel from './components/PropertiesPanel';
 import WelcomeModal from './components/WelcomeModal';
 import CollabModal from './components/CollabModal';
-import { writeScreen, removeScreen, subscribeSession, loadSessionOnce } from './services/session';
+import { writeOwnScreens, loadSessionOnce } from './services/session';
 import { isFirebaseConfigured } from './services/firebase';
 
 const SESSION_STORAGE_KEY = 'maquetapp-session-code';
@@ -20,64 +20,40 @@ function AppInner() {
   const [phoneScale, setPhoneScale] = useState(0.8);
   const [sessionCode, setSessionCode] = useState(null);
   const [showCollabModal, setShowCollabModal] = useState(false);
-  const unsubscribeRef = useRef(null);
-  const prevScreensRef = useRef(state.screens);
+  const [reloading, setReloading] = useState(false);
 
   const closeWelcome = () => {
     localStorage.setItem('maquetapp-visited', '1');
     setShowWelcome(false);
   };
 
-  const startSubscription = useCallback((code) => {
-    if (unsubscribeRef.current) unsubscribeRef.current();
-    unsubscribeRef.current = subscribeSession(code, ({ remoteScreens, deletedIds }) => {
-      dispatch({ type: 'SYNC_SCREENS', remoteScreens, deletedIds });
-    });
-  }, [dispatch]);
-
-  // Diff-based sync: detect added/modified/deleted screens and write to Firebase
+  // Debounced write of own screens whenever state changes
   useEffect(() => {
     if (!sessionCode) return;
-    const prev = prevScreensRef.current;
-    const curr = state.screens;
-    prevScreensRef.current = curr;
-
-    const prevById = new Map(prev.map(s => [s.id, s]));
-    const currById = new Map(curr.map(s => [s.id, s]));
-
-    // Immediate: propagate deletions
-    prev.forEach(s => {
-      if (!currById.has(s.id)) removeScreen(sessionCode, s.id);
-    });
-
-    // Immediate: write brand-new screens
-    curr.forEach(s => {
-      if (!prevById.has(s.id)) writeScreen(sessionCode, s, state.projectName);
-    });
-
-    // Debounced: write modified screens
-    const modified = curr.filter(s => {
-      const p = prevById.get(s.id);
-      return p && JSON.stringify(p.components) !== JSON.stringify(s.components);
-    });
-    if (modified.length === 0) return;
-
+    const ownScreens = state.screens.filter(s => !s._remote);
+    if (ownScreens.length === 0) return;
     const timer = setTimeout(() => {
-      modified.forEach(s => writeScreen(sessionCode, s, state.projectName));
+      writeOwnScreens(sessionCode, ownScreens, state.projectName);
     }, 800);
     return () => clearTimeout(timer);
-  }, [state.screens, sessionCode, state.projectName]);
+  }, [state.screens, state.projectName, sessionCode]);
+
+  const reloadSession = useCallback(async () => {
+    if (!sessionCode) return;
+    setReloading(true);
+    const sessionData = await loadSessionOnce(sessionCode);
+    if (sessionData) dispatch({ type: 'LOAD_PROJECT', project: sessionData });
+    setReloading(false);
+  }, [sessionCode, dispatch]);
 
   const joinSession = useCallback((code, sessionData) => {
     if (sessionData) dispatch({ type: 'LOAD_PROJECT', project: sessionData });
     setSessionCode(code);
     localStorage.setItem(SESSION_STORAGE_KEY, code);
-    startSubscription(code);
     setShowCollabModal(false);
-  }, [dispatch, startSubscription]);
+  }, [dispatch]);
 
   const leaveSession = useCallback(() => {
-    if (unsubscribeRef.current) { unsubscribeRef.current(); unsubscribeRef.current = null; }
     setSessionCode(null);
     localStorage.removeItem(SESSION_STORAGE_KEY);
   }, []);
@@ -91,7 +67,6 @@ function AppInner() {
       if (!sessionData) { localStorage.removeItem(SESSION_STORAGE_KEY); return; }
       dispatch({ type: 'LOAD_PROJECT', project: sessionData });
       setSessionCode(saved);
-      startSubscription(saved);
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -144,6 +119,8 @@ function AppInner() {
         onHelp={() => setShowWelcome(true)}
         sessionCode={sessionCode}
         onCollabClick={() => setShowCollabModal(true)}
+        onReload={reloadSession}
+        reloading={reloading}
       />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
         <div style={{ display: 'flex', height: '100%', flexShrink: 0 }}>

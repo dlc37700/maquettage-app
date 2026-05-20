@@ -4,7 +4,7 @@ import { exportProjectAsJson, importProjectFromJson } from '../utils/exportJson'
 import { exportScreenAsPng } from '../utils/exportPng';
 import { exportProjectAsHtml } from '../utils/exportHtml';
 
-export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessionCode, onCollabClick }) {
+export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessionCode, onCollabClick, onReload, reloading }) {
   const { state, dispatch } = useProject();
   const screen = useActiveScreen();
   const importRef = useRef(null);
@@ -161,6 +161,18 @@ export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessi
       />
 
       <div style={{ width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.15)' }} />
+
+      {/* Collaboration reload */}
+      {sessionCode && (
+        <ToolBtn
+          onClick={onReload}
+          disabled={reloading}
+          title="Actualiser les écrans des autres"
+          emoji={reloading ? '⏳' : '🔄'}
+          label="Actualiser"
+          color="#34D399"
+        />
+      )}
 
       {/* Collaboration */}
       {sessionCode ? (
