@@ -237,6 +237,7 @@ export default function AdminPanel({ onClose }) {
           {session.members.map(member => (
             <div key={member.clientId} style={{ backgroundColor: 'white', borderRadius: 12, padding: 16, marginBottom: 14, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #E5E7EB' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: member.online ? '#10B981' : '#D1D5DB', flexShrink: 0 }} title={member.online ? 'En ligne' : 'Hors ligne'} />
                 <span style={{ fontWeight: 900, fontSize: 15, color: '#1F2937' }}>👤 {member.nickname}</span>
                 <span style={{ color: '#9CA3AF', fontSize: 12 }}>{timeAgo(member.updatedAt)}</span>
                 <span style={{ color: '#6B7280', fontSize: 12, marginLeft: 4 }}>{member.screens.length} écran{member.screens.length !== 1 ? 's' : ''}</span>

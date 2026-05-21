@@ -23,12 +23,10 @@ export async function getAllSessions() {
     const val = snapshot.val();
     if (!val || typeof val !== 'object') return [];
 
-    const now = Date.now();
-    const FIFTEEN_MIN = 15 * 60 * 1000;
-
     const sessions = Object.entries(val).map(([code, data]) => {
       const meta = data.meta || {};
       const clients = data.clients || {};
+      const presence = data.presence || {};
 
       const members = Object.entries(clients).map(([clientId, clientData]) => {
         let screens = [];
@@ -40,6 +38,7 @@ export async function getAllSessions() {
           clientId,
           nickname: clientData.nickname || 'Anonyme',
           updatedAt: clientData.updatedAt || 0,
+          online: !!presence[clientId],
           screens,
           projectName: clientData.projectName || null,
         };
@@ -49,7 +48,8 @@ export async function getAllSessions() {
         ? Math.max(...members.map(m => m.updatedAt))
         : (meta.createdAt || 0);
 
-      const isActive = lastActivity > 0 && (now - lastActivity) < FIFTEEN_MIN;
+      // A session is active only if at least one member's browser is still open
+      const isActive = Object.keys(presence).length > 0;
 
       return {
         code,

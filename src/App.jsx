@@ -10,7 +10,7 @@ import CollabModal from './components/CollabModal';
 import ChatPanel from './components/ChatPanel';
 import AdminPanel from './components/AdminPanel';
 import MobileLayout from './components/MobileLayout';
-import { writeOwnScreens, loadSessionOnce, subscribeToSession, getClientId } from './services/session';
+import { writeOwnScreens, loadSessionOnce, subscribeToSession, getClientId, registerPresence } from './services/session';
 import { isFirebaseConfigured } from './services/firebase';
 
 const SESSION_STORAGE_KEY = 'maquetapp-session-code';
@@ -57,6 +57,12 @@ function AppInner() {
     });
     return unsub;
   }, [sessionCode, dispatch]);
+
+  // Presence: mark this client online; auto-remove on disconnect
+  useEffect(() => {
+    if (!sessionCode || !isFirebaseConfigured) return;
+    return registerPresence(sessionCode);
+  }, [sessionCode]);
 
   const joinSession = useCallback((code, sessionData, options = {}) => {
     if (sessionData) dispatch({ type: 'LOAD_PROJECT', project: sessionData });

@@ -1,4 +1,4 @@
-import { ref, set, get, push, onValue, query, orderByChild, limitToLast } from 'firebase/database';
+import { ref, set, get, push, onValue, query, orderByChild, limitToLast, onDisconnect, remove } from 'firebase/database';
 import { db } from './firebase';
 
 const CLIENT_ID_KEY = 'maquettage_client_id';
@@ -134,4 +134,15 @@ export async function loadSessionOnce(code) {
     console.error('[Session] Load error:', err);
     return null;
   }
+}
+
+export function registerPresence(code) {
+  if (!db || !code) return () => {};
+  const presenceRef = ref(db, `sessions/${code}/presence/${getClientId()}`);
+  set(presenceRef, { nickname: getClientNickname() || 'Anonyme', connectedAt: Date.now() })
+    .catch(err => console.error('[Presence] Write error:', err));
+  onDisconnect(presenceRef).remove();
+  return () => {
+    remove(presenceRef).catch(() => {});
+  };
 }
