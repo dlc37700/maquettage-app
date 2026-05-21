@@ -91,6 +91,74 @@ function CalendarRenderer({ props: p, pos }) {
   );
 }
 
+function TableRenderer({ comp }) {
+  const { state, dispatch } = useProject();
+  const isSelected = state.selectedComponentId === comp.id;
+  const [editingCell, setEditingCell] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const p = comp.props;
+  const data = Array.isArray(p.data) ? p.data : [];
+
+  const cellBg = (ri) => {
+    if (ri === 0 && p.headerRow) return p.headerBgColor || '#6C63FF';
+    return ri % 2 === 1 ? (p.altRowColor || '#F3F4F6') : (p.cellBgColor || '#FFFFFF');
+  };
+  const cellTxt = (ri) => ri === 0 && p.headerRow ? (p.headerTextColor || '#FFFFFF') : (p.textColor || '#1F2937');
+  const cellFw = (ri) => ri === 0 && p.headerRow ? 700 : 400;
+  const border = `1px solid ${p.borderColor || '#E5E7EB'}`;
+
+  const startEdit = (e, ri, ci) => {
+    if (!isSelected) return;
+    e.stopPropagation();
+    setEditValue((data[ri] || [])[ci] || '');
+    setEditingCell({ ri, ci });
+  };
+
+  const commitEdit = () => {
+    if (!editingCell) return;
+    const { ri, ci } = editingCell;
+    const newData = data.map((row, r) => r === ri ? row.map((c, col) => col === ci ? editValue : c) : row);
+    dispatch({ type: 'UPDATE_COMPONENT_PROPS', id: comp.id, props: { data: newData } });
+    setEditingCell(null);
+  };
+
+  const fs = p.fontSize || 13;
+  const ff = `${p.fontFamily || 'Nunito'}, sans-serif`;
+
+  return (
+    <div style={{ width: '100%', height: '100%', borderRadius: p.borderRadius || 8, overflow: 'hidden', border, display: 'flex', flexDirection: 'column', fontSize: fs, fontFamily: ff }}>
+      {data.map((row, ri) => (
+        <div key={ri} style={{ display: 'flex', flex: 1, borderBottom: ri < data.length - 1 ? border : 'none', minHeight: 0 }}>
+          {row.map((cell, ci) => {
+            const isEditing = editingCell?.ri === ri && editingCell?.ci === ci;
+            const bg = cellBg(ri);
+            const tc = cellTxt(ri);
+            return (
+              <div key={ci} onClick={(e) => startEdit(e, ri, ci)}
+                style={{ flex: 1, backgroundColor: bg, borderRight: ci < row.length - 1 ? border : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 4px', minWidth: 0, cursor: isSelected ? 'text' : 'default', position: 'relative' }}>
+                {isEditing ? (
+                  <input
+                    autoFocus
+                    value={editValue}
+                    onChange={e => setEditValue(e.target.value)}
+                    onBlur={commitEdit}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') commitEdit(); e.stopPropagation(); }}
+                    onMouseDown={e => e.stopPropagation()}
+                    onTouchStart={e => e.stopPropagation()}
+                    style={{ width: '100%', height: '100%', border: 'none', outline: '2px solid #6C63FF', borderRadius: 2, background: bg, color: tc, fontSize: fs, fontFamily: ff, fontWeight: cellFw(ri), textAlign: 'center', padding: '0 2px', boxSizing: 'border-box' }}
+                  />
+                ) : (
+                  <span style={{ color: tc, fontWeight: cellFw(ri), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center' }}>{cell}</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ComponentRenderer({ comp }) {
   const { type, props, position: pos } = comp;
   const iconSize = Math.min(pos.width, pos.height) * 0.55;
@@ -300,6 +368,9 @@ function ComponentRenderer({ comp }) {
 
     case 'calendar':
       return <CalendarRenderer props={props} pos={pos} />;
+
+    case 'table':
+      return <TableRenderer comp={comp} />;
 
     default:
       return <div style={{ width: '100%', height: '100%', backgroundColor: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#6B7280', fontFamily: 'Nunito, sans-serif' }}>{type}</div>;

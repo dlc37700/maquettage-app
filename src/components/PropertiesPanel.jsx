@@ -187,6 +187,48 @@ function ComponentProperties({ comp }) {
         </Field>
       )}
 
+      {/* Table specific */}
+      {comp.type === 'table' && (() => {
+        const data = p.data || [];
+        const rows = p.rows || data.length || 3;
+        const cols = p.cols || data[0]?.length || 3;
+        const setRows = (n) => {
+          n = Math.max(1, Math.min(20, n));
+          let d = data.map(r => [...r]);
+          if (n > d.length) for (let i = d.length; i < n; i++) d.push(Array(cols).fill(''));
+          else d = d.slice(0, n);
+          update({ rows: n, data: d });
+        };
+        const setCols = (n) => {
+          n = Math.max(1, Math.min(10, n));
+          const d = data.map(r => n > r.length ? [...r, ...Array(n - r.length).fill('')] : r.slice(0, n));
+          update({ cols: n, data: d });
+        };
+        const Counter = ({ label, value, onSet }) => (
+          <Field label={label}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button onClick={() => onSet(value - 1)} style={{ width: 28, height: 28, borderRadius: 6, border: '1.5px solid #E5E7EB', backgroundColor: '#F9FAFB', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>−</button>
+              <span style={{ flex: 1, textAlign: 'center', fontWeight: 700, fontSize: 15, fontFamily: 'Nunito, sans-serif', color: '#1F2937' }}>{value}</span>
+              <button onClick={() => onSet(value + 1)} style={{ width: 28, height: 28, borderRadius: 6, border: '1.5px solid #E5E7EB', backgroundColor: '#F9FAFB', fontSize: 16, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>+</button>
+            </div>
+          </Field>
+        );
+        return (
+          <>
+            <Counter label="Lignes" value={rows} onSet={setRows} />
+            <Counter label="Colonnes" value={cols} onSet={setCols} />
+            <Field label="Ligne d'en-tête"><Toggle value={!!p.headerRow} onChange={v => update({ headerRow: v })} /></Field>
+            {p.headerRow && <>
+              <Field label="Fond en-tête"><ColorInput value={p.headerBgColor || '#6C63FF'} onChange={v => update({ headerBgColor: v })} /></Field>
+              <Field label="Texte en-tête"><ColorInput value={p.headerTextColor || '#FFFFFF'} onChange={v => update({ headerTextColor: v })} /></Field>
+            </>}
+            <Field label="Fond cellule paire"><ColorInput value={p.cellBgColor || '#FFFFFF'} onChange={v => update({ cellBgColor: v })} /></Field>
+            <Field label="Fond cellule impaire"><ColorInput value={p.altRowColor || '#F3F4F6'} onChange={v => update({ altRowColor: v })} /></Field>
+            <Field label="Couleur bordure"><ColorInput value={p.borderColor || '#E5E7EB'} onChange={v => update({ borderColor: v })} /></Field>
+          </>
+        );
+      })()}
+
       {/* Keyboard specific */}
       {comp.type === 'keyboard' && (
         <>

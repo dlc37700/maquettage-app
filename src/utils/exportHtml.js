@@ -161,6 +161,26 @@ function compToHtml(comp) {
       return `<div style="${base}background:${calBg};border-radius:${br}px;overflow:hidden;font-family:Nunito,sans-serif"><div style="background:${hBg};padding:8px 12px;display:flex;align-items:center;justify-content:space-between"><span style="color:white;font-weight:800;font-size:13px">Calendrier</span></div><div style="padding:8px;color:${props.textColor||'#1F2937'};font-size:11px;text-align:center">Lun – Dim</div></div>`;
     }
 
+    case 'table': {
+      const data = Array.isArray(props.data) ? props.data : [];
+      const borderColor = props.borderColor || '#E5E7EB';
+      const br = props.borderRadius ?? 8;
+      const fs = props.fontSize || 13;
+      const ff = props.fontFamily || 'Nunito';
+      const rowsHtml = data.map((row, ri) => {
+        const isHeader = ri === 0 && props.headerRow;
+        const rowBg = isHeader ? (props.headerBgColor || '#6C63FF') : ri % 2 === 1 ? (props.altRowColor || '#F3F4F6') : (props.cellBgColor || '#FFFFFF');
+        const rowTxt = isHeader ? (props.headerTextColor || '#FFFFFF') : (props.textColor || '#1F2937');
+        const fw = isHeader ? 700 : 400;
+        const cellsHtml = row.map((cell, ci) => {
+          const borderRight = ci < row.length - 1 ? `border-right:1px solid ${borderColor};` : '';
+          return `<td style="flex:1;padding:4px 6px;background:${rowBg};color:${rowTxt};font-weight:${fw};font-size:${fs}px;font-family:${ff},sans-serif;text-align:center;${borderRight}border-bottom:1px solid ${borderColor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(cell)}</td>`;
+        }).join('');
+        return `<tr>${cellsHtml}</tr>`;
+      }).join('');
+      return `<table style="${base}border-collapse:collapse;border-radius:${br}px;overflow:hidden;border:1px solid ${borderColor};font-family:${ff},sans-serif">${rowsHtml}</table>`;
+    }
+
     default:
       return '';
   }
