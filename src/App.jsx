@@ -168,6 +168,7 @@ function AppInner() {
         sessionCode={sessionCode}
         isCreator={isCreator}
         onCollabClick={() => setShowCollabModal(true)}
+        onAdminClick={() => setShowAdmin(true)}
       />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
         <div style={{ display: 'flex', height: '100%', flexShrink: 0 }}>
@@ -207,20 +208,6 @@ function AppInner() {
         <PropertiesPanel />
       </div>
       <ChatPanel sessionCode={sessionCode} />
-      {isFirebaseConfigured && (
-        <button
-          onClick={() => setShowAdmin(true)}
-          title="Espace enseignant"
-          style={{
-            position: 'fixed', bottom: 8, left: 8, zIndex: 100,
-            background: 'none', border: 'none', cursor: 'pointer',
-            fontSize: 18, opacity: 0.35, padding: 4, borderRadius: 6,
-            transition: 'opacity 0.15s',
-          }}
-          onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
-          onMouseLeave={e => e.currentTarget.style.opacity = '0.35'}
-        >👨‍🏫</button>
-      )}
       {modals}
     </div>
   );

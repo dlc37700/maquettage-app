@@ -4,7 +4,7 @@ import { exportProjectAsJson, importProjectFromJson } from '../utils/exportJson'
 import { exportScreenAsPng } from '../utils/exportPng';
 import { exportProjectAsHtml } from '../utils/exportHtml';
 
-export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessionCode, isCreator, onCollabClick }) {
+export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessionCode, isCreator, onCollabClick, onAdminClick }) {
   const { state, dispatch } = useProject();
   const projectNameLocked = !!(sessionCode && !isCreator);
   const screen = useActiveScreen();
@@ -211,6 +211,17 @@ export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessi
         label="Aide"
         color="#FCD34D"
       />
+
+      {/* Admin */}
+      {onAdminClick && (
+        <ToolBtn
+          onClick={onAdminClick}
+          title="Espace enseignant"
+          emoji="👨‍🏫"
+          label="Enseignant"
+          color="rgba(255,255,255,0.4)"
+        />
+      )}
     </div>
   );
 }
