@@ -64,6 +64,70 @@ const btn = (extra = {}) => ({
   fontWeight: 700, fontSize: 12, padding: '5px 10px', ...extra,
 });
 
+const SCHOOL_ORDER = ['Collège Montaigne', 'Collège P. de Commynes', 'Autre'];
+const SCHOOL_COLORS = {
+  'Collège Montaigne':     { bg: '#EDE9FE', border: '#7C3AED', text: '#5B21B6', dot: '#7C3AED' },
+  'Collège P. de Commynes': { bg: '#DBEAFE', border: '#2563EB', text: '#1D4ED8', dot: '#3B82F6' },
+  'Autre':                  { bg: '#F3F4F6', border: '#9CA3AF', text: '#6B7280', dot: '#9CA3AF' },
+};
+
+function SessionCard({ session, onSelect, onBlock, onCopy }) {
+  return (
+    <div style={{ backgroundColor: 'white', borderRadius: 12, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: `1px solid ${session.blocked ? '#FCA5A5' : '#E5E7EB'}` }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+        <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 22, color: session.blocked ? '#EF4444' : session.isActive ? '#7C3AED' : '#9CA3AF', letterSpacing: 3 }}>{session.code}</span>
+        <StatusBadge session={session} />
+        {session.className && <span style={{ backgroundColor: '#EDE9FE', color: '#6D28D9', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 800 }}>🏫 {session.className}</span>}
+      </div>
+      <p style={{ color: '#6B7280', fontSize: 12, margin: '0 0 4px' }}>Créée le {formatDate(session.createdAt)} par <strong>{session.createdBy}</strong></p>
+      <p style={{ color: '#9CA3AF', fontSize: 12, margin: '0 0 8px' }}>Dernière activité : {timeAgo(session.lastActivity)}</p>
+      {session.members.length > 0 && (
+        <p style={{ color: '#4B5563', fontSize: 12, margin: '0 0 12px' }}>
+          👤 {session.members.map(m => m.nickname).join(', ')}
+        </p>
+      )}
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <button onClick={() => onSelect(session)} style={{ ...btn({ backgroundColor: 'rgba(108,99,255,0.1)', color: '#6C63FF' }) }}>👁️ Détails</button>
+        <button onClick={(e) => onCopy(session.code, e)} style={{ ...btn({ backgroundColor: '#F3F4F6', color: '#374151' }) }}>📋 Copier code</button>
+        <button onClick={(e) => onBlock(session, e)} style={{ ...btn({ backgroundColor: session.blocked ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: session.blocked ? '#10B981' : '#EF4444' }) }}>
+          {session.blocked ? '🔓 Débloquer' : '🔒 Bloquer'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function SessionsBySchool({ sessions, onSelect, onBlock, onCopy }) {
+  const groups = {};
+  for (const s of sessions) {
+    const key = s.schoolName && SCHOOL_ORDER.includes(s.schoolName) ? s.schoolName : 'Autre';
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(s);
+  }
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+      {SCHOOL_ORDER.filter(k => groups[k]).map(school => {
+        const c = SCHOOL_COLORS[school];
+        return (
+          <div key={school}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+              <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: c.dot, flexShrink: 0 }} />
+              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 900, color: c.text, fontFamily: 'Nunito, sans-serif' }}>{school}</h2>
+              <span style={{ backgroundColor: c.bg, color: c.text, borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 700 }}>{groups[school].length} session{groups[school].length > 1 ? 's' : ''}</span>
+              <div style={{ flex: 1, height: 1, backgroundColor: c.border, opacity: 0.25 }} />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
+              {groups[school].map(session => (
+                <SessionCard key={session.code} session={session} onSelect={onSelect} onBlock={onBlock} onCopy={onCopy} />
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function AdminPanel({ onClose }) {
   const [authed, setAuthed] = useState(() => sessionStorage.getItem('maquetapp-admin') === ADMIN_PWD);
   const [pwdInput, setPwdInput] = useState('');
@@ -220,36 +284,7 @@ export default function AdminPanel({ onClose }) {
         ) : sessions.length === 0 ? (
           <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 14, marginTop: 40 }}>Aucune session trouvée.</div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
-            {sessions.map(session => (
-              <div key={session.code} style={{ backgroundColor: 'white', borderRadius: 12, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: `1px solid ${session.blocked ? '#FCA5A5' : '#E5E7EB'}` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                  <span style={{ fontFamily: 'monospace', fontWeight: 900, fontSize: 22, color: session.blocked ? '#EF4444' : session.isActive ? '#7C3AED' : '#9CA3AF', letterSpacing: 3 }}>{session.code}</span>
-                  <StatusBadge session={session} />
-                </div>
-                {(session.className || session.schoolName) && (
-                  <div style={{ display: 'flex', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
-                    {session.className && <span style={{ backgroundColor: '#EDE9FE', color: '#6D28D9', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 800 }}>🏫 {session.className}</span>}
-                    {session.schoolName && <span style={{ backgroundColor: '#F3F4F6', color: '#374151', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 600 }}>{session.schoolName}</span>}
-                  </div>
-                )}
-                <p style={{ color: '#6B7280', fontSize: 12, margin: '0 0 4px' }}>Créée le {formatDate(session.createdAt)} par <strong>{session.createdBy}</strong></p>
-                <p style={{ color: '#9CA3AF', fontSize: 12, margin: '0 0 8px' }}>Dernière activité : {timeAgo(session.lastActivity)}</p>
-                {session.members.length > 0 && (
-                  <p style={{ color: '#4B5563', fontSize: 12, margin: '0 0 12px' }}>
-                    👤 {session.members.map(m => m.nickname).join(', ')}
-                  </p>
-                )}
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  <button onClick={() => setSelected(session)} style={{ ...btn({ backgroundColor: 'rgba(108,99,255,0.1)', color: '#6C63FF' }) }}>👁️ Détails</button>
-                  <button onClick={(e) => copyCode(session.code, e)} style={{ ...btn({ backgroundColor: '#F3F4F6', color: '#374151' }) }}>📋 Copier code</button>
-                  <button onClick={(e) => handleBlock(session, e)} style={{ ...btn({ backgroundColor: session.blocked ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: session.blocked ? '#10B981' : '#EF4444' }) }}>
-                    {session.blocked ? '🔓 Débloquer' : '🔒 Bloquer'}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+          <SessionsBySchool sessions={sessions} onSelect={setSelected} onBlock={handleBlock} onCopy={copyCode} />
         )}
       </div>
     </div>

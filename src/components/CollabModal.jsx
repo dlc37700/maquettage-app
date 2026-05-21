@@ -277,13 +277,15 @@ function StartSession({ nickname, setNickname, projectName, setProjectName, clas
         {/* School name */}
         <div style={{ marginBottom: 14 }}>
           <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.8 }}>🏛️ Établissement *</div>
-          <input
+          <select
             value={schoolName}
             onChange={e => { setSchoolName(e.target.value); setError(''); }}
-            placeholder="Ex : Collège Montaigne, Lycée Hugo…"
-            maxLength={60}
-            style={fieldStyle(error && !schoolName.trim())}
-          />
+            style={{ ...fieldStyle(error && !schoolName), appearance: 'none', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'8\' viewBox=\'0 0 12 8\'%3E%3Cpath fill=\'%23A78BFA\' d=\'M1 1l5 5 5-5\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', paddingRight: 32, cursor: 'pointer' }}
+          >
+            <option value="" disabled style={{ backgroundColor: '#1e1b2e' }}>— Choisir un établissement —</option>
+            <option value="Collège Montaigne" style={{ backgroundColor: '#1e1b2e' }}>Collège Montaigne</option>
+            <option value="Collège P. de Commynes" style={{ backgroundColor: '#1e1b2e' }}>Collège P. de Commynes</option>
+          </select>
         </div>
 
         <button
