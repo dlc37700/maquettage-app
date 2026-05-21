@@ -630,7 +630,7 @@ export default function Canvas({ canvasRef }) {
             className={isRemote ? undefined : 'canvas-component'}
             onMouseDown={isRemote ? undefined : (e) => handleComponentMouseDown(e, comp.id)}
             onTouchStart={isRemote ? undefined : (e) => handleComponentTouchStart(e, comp.id)}
-            style={{ left: x, top: y, width, height, opacity: comp.props.opacity ?? 1, zIndex: comp.zIndex || 1, outline: isSelected ? '2px solid #6C63FF' : undefined, outlineOffset: isSelected ? '1px' : undefined }}>
+            style={{ position: 'absolute', left: x, top: y, width, height, opacity: comp.props.opacity ?? 1, zIndex: comp.zIndex || 1, outline: isSelected ? '2px solid #6C63FF' : undefined, outlineOffset: isSelected ? '1px' : undefined }}>
             <div className="component-outline" style={{ width: '100%', height: '100%' }}>
               <ComponentRenderer comp={comp} />
             </div>
