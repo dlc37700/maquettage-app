@@ -178,6 +178,24 @@ export const COMPONENT_DEFINITIONS = [
     defaultSize: { width: 390, height: 8 },
     tooltip: 'Une ligne de séparation horizontale',
   },
+  {
+    type: 'keyboard',
+    label: 'Clavier',
+    icon: '⌨️',
+    category: 'Contrôles',
+    defaultProps: { bgColor: '#D1D5DB', keyColor: '#FFFFFF', keyTextColor: '#1F2937', accentColor: '#6C63FF', borderRadius: 0, opacity: 1 },
+    defaultSize: { width: 390, height: 220 },
+    tooltip: 'Un clavier AZERTY mobile',
+  },
+  {
+    type: 'calendar',
+    label: 'Calendrier',
+    icon: '📅',
+    category: 'Données',
+    defaultProps: { bgColor: '#FFFFFF', accentColor: '#6C63FF', textColor: '#1F2937', headerBgColor: '#6C63FF', borderRadius: 12, fontFamily: 'Nunito', opacity: 1 },
+    defaultSize: { width: 320, height: 340 },
+    tooltip: 'Un calendrier mensuel navigable',
+  },
 ];
 
 export const BUTTON_PRESETS = [

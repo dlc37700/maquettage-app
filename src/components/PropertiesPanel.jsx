@@ -187,6 +187,19 @@ function ComponentProperties({ comp }) {
         </Field>
       )}
 
+      {/* Keyboard specific */}
+      {comp.type === 'keyboard' && (
+        <>
+          <Field label="Couleur des touches"><ColorInput value={p.keyColor || '#FFFFFF'} onChange={v => update({ keyColor: v })} /></Field>
+          <Field label="Texte des touches"><ColorInput value={p.keyTextColor || '#1F2937'} onChange={v => update({ keyTextColor: v })} /></Field>
+        </>
+      )}
+
+      {/* Calendar specific */}
+      {comp.type === 'calendar' && (
+        <Field label="Fond en-tête"><ColorInput value={p.headerBgColor || '#6C63FF'} onChange={v => update({ headerBgColor: v })} /></Field>
+      )}
+
       {/* Button icon options */}
       {comp.type === 'button' && (
         <>

@@ -138,6 +138,29 @@ function compToHtml(comp) {
     case 'separator':
       return `<hr style="${base}border:none;border-top:1px solid ${props.color || '#E5E7EB'};margin:0">`;
 
+    case 'keyboard': {
+      const rows = [['A','Z','E','R','T','Y','U','I','O','P'],['Q','S','D','F','G','H','J','K','L','M'],['⇧','W','X','C','V','B','N','⌫'],['123','espace','↵']];
+      const kbBg = props.bgColor || '#D1D5DB';
+      const keyBg = props.keyColor || '#FFFFFF';
+      const keyTxt = props.keyTextColor || '#1F2937';
+      const accent = props.accentColor || '#6C63FF';
+      const rowsHtml = rows.map(row => {
+        const keysHtml = row.map(k => {
+          const isSpace = k === 'espace'; const isWide = k==='⇧'||k==='⌫'||k==='123'||k==='↵'; const isAcc = isSpace||k==='↵';
+          return `<div style="flex:${isSpace?4:isWide?1.6:1};background:${isAcc?accent:keyBg};border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:${isAcc?'#fff':keyTxt};box-shadow:0 1px 0 rgba(0,0,0,0.18)">${escHtml(k)}</div>`;
+        }).join('');
+        return `<div style="display:flex;flex:1;gap:3px">${keysHtml}</div>`;
+      }).join('');
+      return `<div style="${base}background:${kbBg};border-radius:${props.borderRadius||0}px;display:flex;flex-direction:column;gap:3px;padding:4px 6px;box-sizing:border-box">${rowsHtml}</div>`;
+    }
+    case 'calendar': {
+      const accent = props.accentColor || '#6C63FF';
+      const hBg = props.headerBgColor || accent;
+      const calBg = props.bgColor || '#FFFFFF';
+      const br = props.borderRadius ?? 12;
+      return `<div style="${base}background:${calBg};border-radius:${br}px;overflow:hidden;font-family:Nunito,sans-serif"><div style="background:${hBg};padding:8px 12px;display:flex;align-items:center;justify-content:space-between"><span style="color:white;font-weight:800;font-size:13px">Calendrier</span></div><div style="padding:8px;color:${props.textColor||'#1F2937'};font-size:11px;text-align:center">Lun – Dim</div></div>`;
+    }
+
     default:
       return '';
   }
