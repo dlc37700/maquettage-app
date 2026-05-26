@@ -1,14 +1,16 @@
 import { ref, get, set, update, remove, push } from 'firebase/database';
 import { db } from './firebase';
 
-export async function initSessionMeta(code, nickname, className, schoolName) {
+export async function initSessionMeta(code, nickname, className, schoolName, teacherCode, school) {
   if (!db || !code) return;
   try {
     await set(ref(db, `sessions/${code}/meta`), {
       createdAt: Date.now(),
       createdBy: nickname,
       className: className || '',
-      schoolName: schoolName || '',
+      schoolName: schoolName || school || '',
+      teacherCode: teacherCode || 'SUPERADMIN',
+      school: school || schoolName || '',
       blocked: false,
     });
   } catch (err) {
@@ -16,14 +18,14 @@ export async function initSessionMeta(code, nickname, className, schoolName) {
   }
 }
 
-export async function getAllSessions() {
+export async function getAllSessions(teacherCode = null) {
   if (!db) return [];
   try {
     const snapshot = await get(ref(db, 'sessions/'));
     const val = snapshot.val();
     if (!val || typeof val !== 'object') return [];
 
-    const sessions = Object.entries(val).map(([code, data]) => {
+    let sessions = Object.entries(val).map(([code, data]) => {
       const meta = data.meta || {};
       const clients = data.clients || {};
       const presence = data.presence || {};
@@ -59,12 +61,21 @@ export async function getAllSessions() {
         createdBy: meta.createdBy || '?',
         className: meta.className || '',
         schoolName: meta.schoolName || '',
+        teacherCode: meta.teacherCode || null,
+        school: meta.school || '',
         blocked: meta.blocked || false,
         members,
         lastActivity,
         isActive,
       };
     });
+
+    if (teacherCode && teacherCode !== 'SUPERADMIN') {
+      sessions = sessions.filter(s => s.teacherCode === teacherCode);
+    } else if (teacherCode === 'SUPERADMIN') {
+      sessions = sessions.filter(s => !s.teacherCode || s.teacherCode === 'SUPERADMIN');
+    }
+    // teacherCode === null → super-admin global, voit tout
 
     sessions.sort((a, b) => b.createdAt - a.createdAt);
     return sessions;
