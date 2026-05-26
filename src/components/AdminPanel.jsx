@@ -241,6 +241,7 @@ export default function AdminPanel({ onClose }) {
                 <span style={{ fontWeight: 900, fontSize: 15, color: '#1F2937' }}>👤 {member.nickname}</span>
                 <span style={{ color: '#9CA3AF', fontSize: 12 }}>{timeAgo(member.updatedAt)}</span>
                 <span style={{ color: '#6B7280', fontSize: 12, marginLeft: 4 }}>{member.screens.length} écran{member.screens.length !== 1 ? 's' : ''}</span>
+                {member.pin && <span style={{ color: '#6B7280', fontSize: 12, marginLeft: 4 }}>🔑 PIN: <code style={{backgroundColor:'rgba(167,139,250,0.15)', color:'#A78BFA', borderRadius:4, padding:'1px 6px', fontSize:11, fontFamily:'monospace', fontWeight:900, letterSpacing:2}}>{member.pin}</code></span>}
                 <div style={{ flex: 1 }} />
                 <button onClick={() => exportMemberAsJson(member)} style={{ ...btn({ backgroundColor: 'rgba(108,99,255,0.1)', color: '#6C63FF' }) }}>📥 Télécharger</button>
                 <button onClick={() => handleRemoveMember(session.code, member.clientId)} style={{ ...btn({ backgroundColor: 'rgba(239,68,68,0.1)', color: '#EF4444' }) }}>🚫 Retirer de la session</button>
