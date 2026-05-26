@@ -75,7 +75,7 @@ export default function IconPicker({ value, iconSet = 'lucide', onChange, onSetC
           <div style={{ display: 'flex', borderBottom: '1px solid #F3F4F6', padding: '8px 8px 0' }}>
             {['lucide', 'tabler'].map(t => (
               <button key={t} onClick={() => setTab(t)} style={{ flex: 1, padding: '6px 4px', border: 'none', cursor: 'pointer', fontSize: 11, fontFamily: 'Nunito, sans-serif', fontWeight: 700, borderRadius: '6px 6px 0 0', backgroundColor: tab === t ? '#6C63FF' : 'transparent', color: tab === t ? 'white' : '#6B7280' }}>
-                {t === 'lucide' ? '🔷 Lucide (250+)' : '🔶 Tabler (150+)'}
+                {t === 'lucide' ? '🔷 Lucide (600+)' : '🔶 Tabler (200+)'}
               </button>
             ))}
           </div>
