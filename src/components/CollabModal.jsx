@@ -50,7 +50,10 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
     writeOwnScreens(code, ownScreens, trimmedName);
     initSessionMeta(code, nickname.trim(), className.trim(), schoolName.trim());
     await saveMemberRecord(code, getClientId(), nickname.trim());
-    onJoin(code, null, { projectName: trimmedName, isCreator: true });
+    const pin = getOrCreateClientPin();
+    setAssignedPin(pin);
+    setPendingJoin({ code, nickname: nickname.trim(), projectName: trimmedName, isCreator: true, isNew: false });
+    setJoinStep('show_pin');
     setLoading(false);
   };
 
@@ -125,9 +128,15 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
   const handleFinalizeJoin = async () => {
     if (!pendingJoin) return;
     setLoading(true);
-    if (pendingJoin.isNew) {
-      // New member: no client data in Firebase yet, start fresh so own screens aren't read-only
-      onJoin(pendingJoin.code, null, { isCreator: false });
+    if (pendingJoin.isCreator) {
+      // Creator: their screens are already in local state, just open the session
+      onJoin(pendingJoin.code, null, { projectName: pendingJoin.projectName, isCreator: true });
+    } else if (pendingJoin.isNew) {
+      // New member: count existing screens to give a unique name, then start fresh
+      const existingProject = await loadSessionOnce(pendingJoin.code);
+      const screenCount = existingProject?.screens?.length || 0;
+      const initialScreenName = screenCount > 0 ? `Écran ${screenCount + 1}` : 'Accueil';
+      onJoin(pendingJoin.code, null, { isCreator: false, initialScreenName });
     } else {
       // Returning member (claim or PIN verify): restore existing screens from Firebase
       const project = await loadSessionOnce(pendingJoin.code);
@@ -198,6 +207,7 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
             pin={assignedPin}
             nickname={pendingJoin?.nickname || ''}
             loading={loading}
+            isCreator={pendingJoin?.isCreator || false}
             onContinue={handleFinalizeJoin}
           />
          ) :
@@ -472,7 +482,7 @@ function ClaimNoPinStep({ member, loading, onClaim, onBack, onNew }) {
   );
 }
 
-function ShowPinStep({ pin, nickname, loading, onContinue }) {
+function ShowPinStep({ pin, nickname, loading, isCreator, onContinue }) {
   const [copied, setCopied] = React.useState(false);
   const copy = () => {
     navigator.clipboard.writeText(pin).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
@@ -496,7 +506,7 @@ function ShowPinStep({ pin, nickname, loading, onContinue }) {
       </div>
       <button onClick={onContinue} disabled={loading}
         style={{ width: '100%', padding: '12px', borderRadius: 10, border: 'none', cursor: loading ? 'wait' : 'pointer', background: 'linear-gradient(135deg, #10B981, #059669)', color: 'white', fontSize: 14, fontWeight: 800, fontFamily: 'Nunito, sans-serif' }}>
-        {loading ? '⏳ Connexion…' : '🚀 Rejoindre la session →'}
+        {loading ? '⏳ Connexion…' : isCreator ? '🚀 Lancer la session →' : '🚀 Rejoindre la session →'}
       </button>
     </div>
   );

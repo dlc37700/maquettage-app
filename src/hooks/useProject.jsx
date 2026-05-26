@@ -4,19 +4,16 @@ import { COMPONENT_DEFINITIONS } from '../data/componentDefinitions';
 
 const ProjectContext = createContext(null);
 
-const INITIAL_SCREEN = {
-  id: 'screen-1',
-  name: 'Accueil',
-  backgroundColor: '#FFFFFF',
-  components: [],
-};
+// Each browser session gets a unique initial screen ID — prevents ID collisions
+// when multiple users join the same session (all started with a default screen).
+const INITIAL_ID = `screen-${uuidv4()}`;
 
 const INITIAL_STATE = {
   past: [],
   future: [],
   projectName: 'Mon Projet',
-  screens: [INITIAL_SCREEN],
-  activeScreenId: 'screen-1',
+  screens: [{ id: INITIAL_ID, name: 'Accueil', backgroundColor: '#FFFFFF', components: [] }],
+  activeScreenId: INITIAL_ID,
   selectedComponentId: null,
 };
 
@@ -255,23 +252,36 @@ function reducer(state, action) {
       if (!action.project) return state;
       const screens = (Array.isArray(action.project.screens) && action.project.screens.length > 0)
         ? action.project.screens
-        : [INITIAL_SCREEN];
-      // Prefer own screens (no _remote flag) for the active screen
+        : [{ id: `screen-${uuidv4()}`, name: 'Accueil', backgroundColor: '#FFFFFF', components: [] }];
       const firstOwn = screens.find(s => !s._remote);
       return {
         ...INITIAL_STATE,
         projectName: action.project.projectName || 'Mon Projet',
         screens,
-        activeScreenId: (firstOwn || screens[0])?.id || 'screen-1',
+        activeScreenId: (firstOwn || screens[0])?.id,
       };
     }
 
-    // Real-time collaboration sync — replaces all remote screens, own screens untouched
+    // Rename the first own (non-remote) screen — used when a new member joins to avoid
+    // naming their first screen "Accueil" like everyone else.
+    case 'RENAME_FIRST_OWN_SCREEN': {
+      const firstOwn = state.screens.find(s => !s._remote);
+      if (!firstOwn) return state;
+      return {
+        ...state,
+        screens: state.screens.map(s => s.id === firstOwn.id ? { ...s, name: action.name } : s),
+      };
+    }
+
+    // Real-time collaboration sync — replaces all remote screens, own screens untouched.
+    // Deduplicates: if a remote screen shares an ID with an own screen, the own screen wins.
     case 'SYNC_SCREENS': {
       const { remoteScreens = [] } = action;
       const ownScreens = state.screens.filter(s => !s._remote);
-      const merged = [...ownScreens, ...remoteScreens];
-      const screens = merged.length > 0 ? merged : [INITIAL_SCREEN];
+      const ownIds = new Set(ownScreens.map(s => s.id));
+      const filteredRemote = remoteScreens.filter(s => !ownIds.has(s.id));
+      const merged = [...ownScreens, ...filteredRemote];
+      const screens = merged.length > 0 ? merged : [{ id: `screen-${uuidv4()}`, name: 'Accueil', backgroundColor: '#FFFFFF', components: [] }];
       const activeStillExists = screens.some(s => s.id === state.activeScreenId);
       return {
         ...state,

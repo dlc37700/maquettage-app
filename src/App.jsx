@@ -67,6 +67,7 @@ function AppInner() {
   const joinSession = useCallback((code, sessionData, options = {}) => {
     if (sessionData) dispatch({ type: 'LOAD_PROJECT', project: sessionData });
     if (options.projectName) dispatch({ type: 'SET_PROJECT_NAME', name: options.projectName });
+    if (options.initialScreenName) dispatch({ type: 'RENAME_FIRST_OWN_SCREEN', name: options.initialScreenName });
     setIsCreator(options.isCreator || false);
     setSessionCode(code);
     localStorage.setItem(SESSION_STORAGE_KEY, code);

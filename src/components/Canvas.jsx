@@ -29,7 +29,7 @@ function getBg(bgColor, bgGradient) {
   return { backgroundColor: bgColor };
 }
 
-function CalendarRenderer({ comp }) {
+function CalendarRenderer({ comp, isReadOnly }) {
   const { state, dispatch } = useProject();
   const isSelected = state.selectedComponentId === comp.id;
   const p = comp.props;
@@ -75,14 +75,14 @@ function CalendarRenderer({ comp }) {
   };
 
   const startEdit = (e, d) => {
-    if (!d) return;
+    if (!d || isReadOnly) return;
     e.stopPropagation();
     setEditValue(events[dayKey(d)] || '');
     setEditingDay(d);
   };
 
   const commitEdit = () => {
-    if (editingDay === null) return;
+    if (editingDay === null || isReadOnly) return;
     const key = dayKey(editingDay);
     const newEvents = { ...events };
     if (editValue.trim()) newEvents[key] = editValue.trim();
@@ -140,7 +140,7 @@ function CalendarRenderer({ comp }) {
   );
 }
 
-function TableRenderer({ comp }) {
+function TableRenderer({ comp, isReadOnly }) {
   const { state, dispatch } = useProject();
   const isSelected = state.selectedComponentId === comp.id;
   const [editingCell, setEditingCell] = useState(null);
@@ -157,13 +157,14 @@ function TableRenderer({ comp }) {
   const border = `1px solid ${p.borderColor || '#E5E7EB'}`;
 
   const startEdit = (e, ri, ci) => {
+    if (isReadOnly) return;
     e.stopPropagation();
     setEditValue((data[ri] || [])[ci] || '');
     setEditingCell({ ri, ci });
   };
 
   const commitEdit = () => {
-    if (!editingCell) return;
+    if (!editingCell || isReadOnly) return;
     const { ri, ci } = editingCell;
     const newData = data.map((row, r) => r === ri ? row.map((c, col) => col === ci ? editValue : c) : row);
     dispatch({ type: 'UPDATE_COMPONENT_PROPS', id: comp.id, props: { data: newData } });
@@ -207,7 +208,7 @@ function TableRenderer({ comp }) {
   );
 }
 
-function ComponentRenderer({ comp }) {
+function ComponentRenderer({ comp, isReadOnly }) {
   const { type, props, position: pos } = comp;
   const iconSize = Math.min(pos.width, pos.height) * 0.55;
 
@@ -415,10 +416,10 @@ function ComponentRenderer({ comp }) {
     }
 
     case 'calendar':
-      return <CalendarRenderer comp={comp} />;
+      return <CalendarRenderer comp={comp} isReadOnly={isReadOnly} />;
 
     case 'table':
-      return <TableRenderer comp={comp} />;
+      return <TableRenderer comp={comp} isReadOnly={isReadOnly} />;
 
     default:
       return <div style={{ width: '100%', height: '100%', backgroundColor: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#6B7280', fontFamily: 'Nunito, sans-serif' }}>{type}</div>;
@@ -680,7 +681,7 @@ export default function Canvas({ canvasRef }) {
             onTouchStart={isRemote ? undefined : (e) => handleComponentTouchStart(e, comp.id)}
             style={{ position: 'absolute', left: x, top: y, width, height, opacity: comp.props.opacity ?? 1, zIndex: comp.zIndex || 1, outline: isSelected ? '2px solid #6C63FF' : undefined, outlineOffset: isSelected ? '1px' : undefined }}>
             <div className="component-outline" style={{ width: '100%', height: '100%' }}>
-              <ComponentRenderer comp={comp} />
+              <ComponentRenderer comp={comp} isReadOnly={isRemote} />
             </div>
             {!isRemote && comp.props?.navigateTo && (
               <div style={{ position: 'absolute', top: 3, right: 3, width: 16, height: 16, backgroundColor: '#3B82F6', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10 }}>
