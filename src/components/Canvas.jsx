@@ -75,7 +75,7 @@ function CalendarRenderer({ comp }) {
   };
 
   const startEdit = (e, d) => {
-    if (!isSelected || !d) return;
+    if (!d) return;
     e.stopPropagation();
     setEditValue(events[dayKey(d)] || '');
     setEditingDay(d);
@@ -110,7 +110,7 @@ function CalendarRenderer({ comp }) {
           const isEditing = editingDay === d && d !== null;
           return (
             <div key={i} onClick={(e) => startEdit(e, d)}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', aspectRatio: '1', cursor: isSelected && d ? 'text' : 'default', backgroundColor: isToday(d) ? accent : 'transparent', borderRadius: 4, overflow: 'hidden', padding: '1px 0', position: 'relative' }}>
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', aspectRatio: '1', cursor: d ? 'text' : 'default', backgroundColor: isToday(d) ? accent : 'transparent', borderRadius: 4, overflow: 'hidden', padding: '1px 0', position: 'relative' }}>
               {isEditing ? (
                 <input
                   autoFocus
@@ -157,7 +157,6 @@ function TableRenderer({ comp }) {
   const border = `1px solid ${p.borderColor || '#E5E7EB'}`;
 
   const startEdit = (e, ri, ci) => {
-    if (!isSelected) return;
     e.stopPropagation();
     setEditValue((data[ri] || [])[ci] || '');
     setEditingCell({ ri, ci });
@@ -184,7 +183,7 @@ function TableRenderer({ comp }) {
             const tc = cellTxt(ri);
             return (
               <div key={ci} onClick={(e) => startEdit(e, ri, ci)}
-                style={{ flex: 1, backgroundColor: bg, borderRight: ci < row.length - 1 ? border : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 4px', minWidth: 0, cursor: isSelected ? 'text' : 'default', position: 'relative' }}>
+                style={{ flex: 1, backgroundColor: bg, borderRight: ci < row.length - 1 ? border : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 4px', minWidth: 0, cursor: 'text', position: 'relative' }}>
                 {isEditing ? (
                   <input
                     autoFocus
