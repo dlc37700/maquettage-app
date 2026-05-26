@@ -75,7 +75,7 @@ export async function getAllSessions(teacherCode = null) {
     } else if (teacherCode === 'SUPERADMIN') {
       sessions = sessions.filter(s => !s.teacherCode || s.teacherCode === 'SUPERADMIN');
     }
-    // teacherCode === null → super-admin global, voit tout
+    // null = super-admin global, voit tout
 
     sessions.sort((a, b) => b.createdAt - a.createdAt);
     return sessions;

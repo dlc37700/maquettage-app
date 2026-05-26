@@ -7,6 +7,7 @@ import {
   getOrCreateClientPin,
 } from '../services/session';
 import { initSessionMeta } from '../services/admin';
+import { getTeacherBySchoolCode } from '../services/teachers';
 
 export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClose }) {
   // Create form state
@@ -14,13 +15,21 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
   const [projectName, setProjectName] = useState(() => state.projectName || '');
   const [className, setClassName] = useState(() => localStorage.getItem('maquettage_classname') || '');
   const [schoolName, setSchoolName] = useState(() => localStorage.getItem('maquettage_schoolname') || '');
+  // Teacher code step state
+  const [pendingTeacherCode, setPendingTeacherCode] = useState('');
+  const [pendingSchool, setPendingSchool] = useState('');
+  const [teacherCodeInput, setTeacherCodeInput] = useState('');
+  const [teacherSchools, setTeacherSchools] = useState([]);
+  const [teacherCodeError, setTeacherCodeError] = useState('');
+  const [teacherCodeValidated, setTeacherCodeValidated] = useState(false);
   // Join form state
   const [joinInput, setJoinInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   // Multi-step join flow
-  const [joinStep, setJoinStep] = useState('form'); // 'form' | 'pick_member' | 'pin_entry' | 'claim_no_pin' | 'new_member' | 'show_pin'
+  // 'form' | 'teacher_code' | 'pick_member' | 'pin_entry' | 'claim_no_pin' | 'new_member' | 'show_pin'
+  const [joinStep, setJoinStep] = useState('form');
   const [joinCode, setJoinCode] = useState('');
   const [sessionMembers, setSessionMembers] = useState([]);
   const [selectedMember, setSelectedMember] = useState(null);
@@ -35,11 +44,54 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
     if (!sessionCode && joinStep === 'form') setTimeout(() => joinRef.current?.focus(), 100);
   }, [sessionCode, joinStep]);
 
-  const handleCreate = async () => {
+  const handleCreate = () => {
     if (!nickname.trim()) { setError('Entre ton prénom avant de créer une session.'); return; }
     if (!projectName.trim()) { setError('Entre le nom du projet avant de créer une session.'); return; }
     if (!className.trim()) { setError('Entre le nom de ta classe avant de créer une session.'); return; }
     if (!schoolName.trim()) { setError('Entre le nom de ton établissement avant de créer une session.'); return; }
+    setError('');
+    // Go to teacher code step before finalizing creation
+    setTeacherCodeInput('');
+    setPendingTeacherCode('');
+    setPendingSchool('');
+    setTeacherSchools([]);
+    setTeacherCodeError('');
+    setTeacherCodeValidated(false);
+    setJoinStep('teacher_code');
+  };
+
+  const handleValidateTeacherCode = async () => {
+    const code = teacherCodeInput.trim().toUpperCase();
+    if (!code) {
+      // Skip step — no teacher code
+      await handleFinalizeCreate(null, '');
+      return;
+    }
+    setLoading(true);
+    setTeacherCodeError('');
+    const teacher = await getTeacherBySchoolCode(code);
+    setLoading(false);
+    if (!teacher) {
+      setTeacherCodeError('Code invalide. Vérifie le code fourni par ton professeur.');
+      return;
+    }
+    const schools = Array.isArray(teacher.schools) ? teacher.schools : [];
+    setPendingTeacherCode(teacher.schoolCode);
+    setTeacherSchools(schools);
+    setTeacherCodeValidated(true);
+    if (schools.length === 0) {
+      // No schools declared — continue without school selection
+      setPendingSchool('');
+    } else {
+      setPendingSchool(schools[0]);
+    }
+  };
+
+  const handleSkipTeacherCode = async () => {
+    await handleFinalizeCreate(null, '');
+  };
+
+  const handleFinalizeCreate = async (teacherCode, school) => {
     setLoading(true);
     setClientNickname(nickname.trim());
     localStorage.setItem('maquettage_classname', className.trim());
@@ -48,13 +100,17 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
     const trimmedName = projectName.trim();
     const ownScreens = state.screens.filter(s => !s._remote);
     writeOwnScreens(code, ownScreens, trimmedName);
-    initSessionMeta(code, nickname.trim(), className.trim(), schoolName.trim());
+    initSessionMeta(code, nickname.trim(), className.trim(), schoolName.trim(), teacherCode, school || '');
     await saveMemberRecord(code, getClientId(), nickname.trim());
     const pin = getOrCreateClientPin();
     setAssignedPin(pin);
     setPendingJoin({ code, nickname: nickname.trim(), projectName: trimmedName, isCreator: true, isNew: false });
     setJoinStep('show_pin');
     setLoading(false);
+  };
+
+  const handleConfirmTeacherCode = async () => {
+    await handleFinalizeCreate(pendingTeacherCode || null, pendingSchool);
   };
 
   const handleCheckCode = async () => {
@@ -172,6 +228,23 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
 
         {!isFirebaseConfigured ? <NotConfigured /> :
          sessionCode ? <ActiveSession code={sessionCode} onCopy={handleCopy} copied={copied} onLeave={handleLeave} nickname={getClientNickname()} /> :
+         joinStep === 'teacher_code' ? (
+          <TeacherCodeStep
+            teacherCodeInput={teacherCodeInput}
+            setTeacherCodeInput={setTeacherCodeInput}
+            teacherCodeError={teacherCodeError}
+            teacherCodeValidated={teacherCodeValidated}
+            teacherSchools={teacherSchools}
+            pendingTeacherCode={pendingTeacherCode}
+            pendingSchool={pendingSchool}
+            setPendingSchool={setPendingSchool}
+            loading={loading}
+            onValidate={handleValidateTeacherCode}
+            onSkip={handleSkipTeacherCode}
+            onConfirm={handleConfirmTeacherCode}
+            onBack={() => setJoinStep('form')}
+          />
+         ) :
          joinStep === 'pick_member' ? (
           <PickMemberStep
             code={joinCode}
@@ -423,12 +496,7 @@ function StartSession({ nickname, setNickname, projectName, setProjectName, clas
         </div>
         <div style={{ marginBottom: 14 }}>
           <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.8 }}>🏛️ Établissement *</div>
-          <select value={schoolName} onChange={e => { setSchoolName(e.target.value); setError(''); }}
-            style={{ ...fieldStyle(error && !schoolName), appearance: 'none', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'8\' viewBox=\'0 0 12 8\'%3E%3Cpath fill=\'%23A78BFA\' d=\'M1 1l5 5 5-5\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 12px center', paddingRight: 32, cursor: 'pointer' }}>
-            <option value="" disabled style={{ backgroundColor: '#1e1b2e' }}>— Choisir un établissement —</option>
-            <option value="Collège Montaigne" style={{ backgroundColor: '#1e1b2e' }}>Collège Montaigne</option>
-            <option value="Collège P. de Commynes" style={{ backgroundColor: '#1e1b2e' }}>Collège P. de Commynes</option>
-          </select>
+          <input value={schoolName} onChange={e => { setSchoolName(e.target.value); setError(''); }} placeholder="Ex : Collège Montaigne…" maxLength={60} style={fieldStyle(error && !schoolName.trim())} />
         </div>
         <button onClick={onCreate} disabled={loading} style={{ width: '100%', padding: '10px', borderRadius: 8, border: 'none', cursor: loading ? 'wait' : 'pointer', background: 'linear-gradient(135deg, #7C3AED, #6C63FF)', color: 'white', fontSize: 13, fontWeight: 800, fontFamily: 'Nunito, sans-serif', opacity: loading ? 0.7 : 1 }}>
           {loading ? '⏳ Création…' : '🚀 Créer une session'}
@@ -446,6 +514,75 @@ function StartSession({ nickname, setNickname, projectName, setProjectName, clas
           {loading ? '⏳ Connexion…' : '🔗 Rejoindre'}
         </button>
       </div>
+    </div>
+  );
+}
+
+function TeacherCodeStep({ teacherCodeInput, setTeacherCodeInput, teacherCodeError, teacherCodeValidated, teacherSchools, pendingTeacherCode, pendingSchool, setPendingSchool, loading, onValidate, onSkip, onConfirm, onBack }) {
+  return (
+    <div>
+      <button onClick={onBack} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 12, cursor: 'pointer', padding: '0 0 12px', fontFamily: 'Nunito, sans-serif', display: 'flex', alignItems: 'center', gap: 4 }}>
+        ← Retour
+      </button>
+      <div style={{ textAlign: 'center', marginBottom: 18 }}>
+        <div style={{ fontSize: 32, marginBottom: 6 }}>🏫</div>
+        <div style={{ color: 'white', fontSize: 16, fontWeight: 900 }}>Code établissement</div>
+        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>Entrez le code fourni par votre professeur (ex : ENS-A3F7)</div>
+      </div>
+
+      {!teacherCodeValidated ? (
+        <>
+          <div style={{ marginBottom: 12 }}>
+            <input
+              autoFocus
+              value={teacherCodeInput}
+              onChange={e => { setTeacherCodeInput(e.target.value.toUpperCase()); }}
+              onKeyDown={e => { if (e.key === 'Enter') onValidate(); }}
+              placeholder="ENS-XXXX"
+              maxLength={8}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: `1.5px solid ${teacherCodeError ? '#FCA5A5' : 'rgba(167,139,250,0.4)'}`, backgroundColor: 'rgba(167,139,250,0.08)', color: 'white', fontSize: 18, fontWeight: 900, fontFamily: 'monospace', letterSpacing: 4, textAlign: 'center', outline: 'none', boxSizing: 'border-box' }}
+            />
+            {teacherCodeError && <p style={{ color: '#FCA5A5', fontSize: 12, margin: '6px 0 0', fontFamily: 'Nunito, sans-serif', textAlign: 'center' }}>{teacherCodeError}</p>}
+          </div>
+          <button onClick={onValidate} disabled={loading}
+            style={{ width: '100%', padding: '11px', borderRadius: 10, border: 'none', cursor: loading ? 'wait' : 'pointer', background: 'linear-gradient(135deg, #7C3AED, #6C63FF)', color: 'white', fontSize: 14, fontWeight: 800, fontFamily: 'Nunito, sans-serif', marginBottom: 10 }}>
+            {loading ? '⏳ Vérification…' : '✅ Valider le code'}
+          </button>
+          <div style={{ textAlign: 'center' }}>
+            <button onClick={onSkip} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)', fontSize: 11, fontFamily: 'Nunito, sans-serif', textDecoration: 'underline', padding: '4px 8px' }}>
+              Passer cette étape
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div style={{ backgroundColor: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.3)', borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
+            <p style={{ color: '#34D399', fontSize: 13, fontWeight: 700, margin: 0 }}>✅ Code valide : <span style={{ fontFamily: 'monospace', letterSpacing: 2 }}>{pendingTeacherCode}</span></p>
+          </div>
+          {teacherSchools.length === 0 ? (
+            <div style={{ backgroundColor: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
+              <p style={{ color: '#FCD34D', fontSize: 12, margin: 0 }}>ℹ️ Ce professeur n'a déclaré aucun établissement. Vous pouvez continuer.</p>
+            </div>
+          ) : (
+            <div style={{ marginBottom: 14 }}>
+              <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}>🏛️ Votre établissement</div>
+              <select
+                value={pendingSchool}
+                onChange={e => setPendingSchool(e.target.value)}
+                style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid rgba(167,139,250,0.3)', backgroundColor: 'rgba(255,255,255,0.06)', color: 'white', fontSize: 13, fontWeight: 700, fontFamily: 'Nunito, sans-serif', outline: 'none', boxSizing: 'border-box', appearance: 'none', cursor: 'pointer' }}
+              >
+                {teacherSchools.map(s => (
+                  <option key={s} value={s} style={{ backgroundColor: '#1e1b2e' }}>{s}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <button onClick={onConfirm} disabled={loading}
+            style={{ width: '100%', padding: '11px', borderRadius: 10, border: 'none', cursor: loading ? 'wait' : 'pointer', background: 'linear-gradient(135deg, #10B981, #059669)', color: 'white', fontSize: 14, fontWeight: 800, fontFamily: 'Nunito, sans-serif' }}>
+            {loading ? '⏳ Création…' : '🚀 Créer la session'}
+          </button>
+        </>
+      )}
     </div>
   );
 }
