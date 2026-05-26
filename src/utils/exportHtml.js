@@ -157,8 +157,30 @@ function compToHtml(comp) {
       const accent = props.accentColor || '#6C63FF';
       const hBg = props.headerBgColor || accent;
       const calBg = props.bgColor || '#FFFFFF';
+      const tc = props.textColor || '#1F2937';
       const br = props.borderRadius ?? 12;
-      return `<div style="${base}background:${calBg};border-radius:${br}px;overflow:hidden;font-family:Nunito,sans-serif"><div style="background:${hBg};padding:8px 12px;display:flex;align-items:center;justify-content:space-between"><span style="color:white;font-weight:800;font-size:13px">Calendrier</span></div><div style="padding:8px;color:${props.textColor||'#1F2937'};font-size:11px;text-align:center">Lun – Dim</div></div>`;
+      const events = props.events || {};
+      const now = new Date();
+      const month = now.getMonth();
+      const year = now.getFullYear();
+      const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+      const DAYS_FR = ['Lu','Ma','Me','Je','Ve','Sa','Di'];
+      const daysInMonth = new Date(year, month + 1, 0).getDate();
+      let firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
+      const cells = [];
+      for (let i = 0; i < firstDay; i++) cells.push(null);
+      for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+      while (cells.length % 7 !== 0) cells.push(null);
+      const dayLabels = DAYS_FR.map(d => `<div style="text-align:center;font-size:9px;font-weight:700;color:#9CA3AF">${d}</div>`).join('');
+      const dayCells = cells.map(d => {
+        const ev = d ? events[`${year}-${month}-${d}`] : null;
+        const isToday = d === now.getDate();
+        const bg = isToday ? accent : 'transparent';
+        const color = isToday ? 'white' : d ? tc : 'transparent';
+        const evHtml = ev ? `<div style="width:90%;background:${accent}33;border-radius:2px;font-size:7px;color:${accent};font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center">${escHtml(ev)}</div>` : '';
+        return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;aspect-ratio:1;background:${bg};border-radius:4px;overflow:hidden"><span style="font-size:10px;font-weight:${isToday?800:400};color:${color};line-height:1.1">${d||''}</span>${evHtml}</div>`;
+      }).join('');
+      return `<div style="${base}background:${calBg};border-radius:${br}px;overflow:hidden;font-family:Nunito,sans-serif;display:flex;flex-direction:column"><div style="background:${hBg};padding:6px 10px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="color:white;font-weight:800;font-size:13px">${MONTHS_FR[month]} ${year}</span></div><div style="display:grid;grid-template-columns:repeat(7,1fr);padding:4px 6px 2px;flex-shrink:0">${dayLabels}</div><div style="flex:1;display:grid;grid-template-columns:repeat(7,1fr);padding:0 6px 4px;align-content:start;gap:1px">${dayCells}</div></div>`;
     }
 
     case 'table': {

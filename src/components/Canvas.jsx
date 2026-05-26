@@ -29,22 +29,30 @@ function getBg(bgColor, bgGradient) {
   return { backgroundColor: bgColor };
 }
 
-function CalendarRenderer({ props: p, pos }) {
+function CalendarRenderer({ comp }) {
+  const { state, dispatch } = useProject();
+  const isSelected = state.selectedComponentId === comp.id;
+  const p = comp.props;
+  const events = p.events || {};
+
   const today = new Date();
   const [month, setMonth] = React.useState(today.getMonth());
   const [year, setYear] = React.useState(today.getFullYear());
+  const [editingDay, setEditingDay] = useState(null);
+  const [editValue, setEditValue] = useState('');
 
   const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   const DAYS_FR = ['Lu','Ma','Me','Je','Ve','Sa','Di'];
 
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  let firstDay = (new Date(year, month, 1).getDay() + 6) % 7; // Monday=0
+  let firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
   const cells = [];
   for (let i = 0; i < firstDay; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
   while (cells.length % 7 !== 0) cells.push(null);
 
   const isToday = (d) => d && year === today.getFullYear() && month === today.getMonth() && d === today.getDate();
+  const dayKey = (d) => `${year}-${month}-${d}`;
 
   const accent = p.accentColor || '#6C63FF';
   const headerBg = p.headerBgColor || accent;
@@ -52,9 +60,10 @@ function CalendarRenderer({ props: p, pos }) {
   const textColor = p.textColor || '#1F2937';
   const br = p.borderRadius ?? 12;
   const fontFamily = `${p.fontFamily || 'Nunito'}, sans-serif`;
-  const headerFs = Math.max(10, Math.min(14, pos.height * 0.042));
-  const dayLabelFs = Math.max(7, Math.min(11, pos.width / 50));
-  const dayNumFs = Math.max(8, Math.min(13, pos.width / 40));
+  const headerFs = Math.max(10, Math.min(14, comp.position.height * 0.042));
+  const dayLabelFs = Math.max(7, Math.min(11, comp.position.width / 50));
+  const dayNumFs = Math.max(8, Math.min(13, comp.position.width / 40));
+  const eventFs = Math.max(6, Math.min(9, comp.position.width / 52));
 
   const prevMonth = (e) => {
     e.stopPropagation();
@@ -65,27 +74,67 @@ function CalendarRenderer({ props: p, pos }) {
     if (month === 11) { setYear(y => y + 1); setMonth(0); } else setMonth(m => m + 1);
   };
 
+  const startEdit = (e, d) => {
+    if (!isSelected || !d) return;
+    e.stopPropagation();
+    setEditValue(events[dayKey(d)] || '');
+    setEditingDay(d);
+  };
+
+  const commitEdit = () => {
+    if (editingDay === null) return;
+    const key = dayKey(editingDay);
+    const newEvents = { ...events };
+    if (editValue.trim()) newEvents[key] = editValue.trim();
+    else delete newEvents[key];
+    dispatch({ type: 'UPDATE_COMPONENT_PROPS', id: comp.id, props: { events: newEvents } });
+    setEditingDay(null);
+  };
+
   return (
     <div style={{ width: '100%', height: '100%', backgroundColor: calBg, borderRadius: br, overflow: 'hidden', display: 'flex', flexDirection: 'column', fontFamily }}>
-      {/* Header */}
       <div style={{ backgroundColor: headerBg, padding: '6px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <button onClick={prevMonth} style={{ background: 'none', border: 'none', color: 'white', fontSize: headerFs + 4, cursor: 'pointer', padding: '0 6px', lineHeight: 1, fontFamily }}>‹</button>
         <span style={{ color: 'white', fontWeight: 800, fontSize: headerFs }}>{MONTHS_FR[month]} {year}</span>
         <button onClick={nextMonth} style={{ background: 'none', border: 'none', color: 'white', fontSize: headerFs + 4, cursor: 'pointer', padding: '0 6px', lineHeight: 1, fontFamily }}>›</button>
       </div>
-      {/* Day labels */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', padding: '4px 6px 2px', flexShrink: 0 }}>
         {DAYS_FR.map(d => (
           <div key={d} style={{ textAlign: 'center', fontSize: dayLabelFs, fontWeight: 700, color: '#9CA3AF' }}>{d}</div>
         ))}
       </div>
-      {/* Cells */}
       <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', padding: '0 6px 4px', alignContent: 'start', gap: 1 }}>
-        {cells.map((d, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', aspectRatio: '1', fontSize: dayNumFs, fontWeight: isToday(d) ? 800 : 400, color: isToday(d) ? 'white' : d ? textColor : 'transparent', backgroundColor: isToday(d) ? accent : 'transparent', borderRadius: '50%' }}>
-            {d || ''}
-          </div>
-        ))}
+        {cells.map((d, i) => {
+          const key = d ? dayKey(d) : null;
+          const eventText = key ? events[key] : null;
+          const isEditing = editingDay === d && d !== null;
+          return (
+            <div key={i} onClick={(e) => startEdit(e, d)}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', aspectRatio: '1', cursor: isSelected && d ? 'text' : 'default', backgroundColor: isToday(d) ? accent : 'transparent', borderRadius: 4, overflow: 'hidden', padding: '1px 0', position: 'relative' }}>
+              {isEditing ? (
+                <input
+                  autoFocus
+                  value={editValue}
+                  onChange={e => setEditValue(e.target.value)}
+                  onBlur={commitEdit}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') commitEdit(); e.stopPropagation(); }}
+                  onMouseDown={e => e.stopPropagation()}
+                  onTouchStart={e => e.stopPropagation()}
+                  style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', outline: `2px solid ${accent}`, borderRadius: 4, background: calBg, color: textColor, fontSize: eventFs, fontFamily, textAlign: 'center', padding: 0, boxSizing: 'border-box', zIndex: 10 }}
+                />
+              ) : (
+                <>
+                  <span style={{ fontSize: dayNumFs, fontWeight: isToday(d) ? 800 : 400, color: isToday(d) ? 'white' : d ? textColor : 'transparent', lineHeight: 1.1 }}>{d || ''}</span>
+                  {eventText && (
+                    <div style={{ width: '90%', backgroundColor: accent + '33', borderRadius: 2, padding: '0 1px', marginTop: 1 }}>
+                      <span style={{ fontSize: eventFs, color: accent, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', textAlign: 'center', lineHeight: 1.2 }}>{eventText}</span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -367,7 +416,7 @@ function ComponentRenderer({ comp }) {
     }
 
     case 'calendar':
-      return <CalendarRenderer props={props} pos={pos} />;
+      return <CalendarRenderer comp={comp} />;
 
     case 'table':
       return <TableRenderer comp={comp} />;
