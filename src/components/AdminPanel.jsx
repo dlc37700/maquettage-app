@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { isFirebaseConfigured } from '../services/firebase';
-import { getAllSessions, setSessionBlocked, removeMember, exportSessionAsJson, exportMemberAsJson } from '../services/admin';
+import { getAllSessions, setSessionBlocked, removeMember, deleteSession, getSessionMessages, exportSessionAsJson, exportMemberAsJson } from '../services/admin';
 
 const ADMIN_PWD = import.meta.env.VITE_ADMIN_PASSWORD || 'prof';
 
@@ -71,7 +71,7 @@ const SCHOOL_COLORS = {
   'Autre':                  { bg: '#F3F4F6', border: '#9CA3AF', text: '#6B7280', dot: '#9CA3AF' },
 };
 
-function SessionCard({ session, onSelect, onBlock, onCopy }) {
+function SessionCard({ session, onSelect, onBlock, onCopy, onDelete }) {
   return (
     <div style={{ backgroundColor: 'white', borderRadius: 12, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: `1px solid ${session.blocked ? '#FCA5A5' : '#E5E7EB'}` }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
@@ -92,12 +92,13 @@ function SessionCard({ session, onSelect, onBlock, onCopy }) {
         <button onClick={(e) => onBlock(session, e)} style={{ ...btn({ backgroundColor: session.blocked ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: session.blocked ? '#10B981' : '#EF4444' }) }}>
           {session.blocked ? '🔓 Débloquer' : '🔒 Bloquer'}
         </button>
+        <button onClick={(e) => onDelete(session, e)} style={{ ...btn({ backgroundColor: 'rgba(239,68,68,0.08)', color: '#DC2626', border: '1px solid rgba(239,68,68,0.2)' }) }}>🗑️ Supprimer</button>
       </div>
     </div>
   );
 }
 
-function SessionsBySchool({ sessions, onSelect, onBlock, onCopy }) {
+function SessionsBySchool({ sessions, onSelect, onBlock, onCopy, onDelete }) {
   const groups = {};
   for (const s of sessions) {
     const key = s.schoolName && SCHOOL_ORDER.includes(s.schoolName) ? s.schoolName : 'Autre';
@@ -118,7 +119,7 @@ function SessionsBySchool({ sessions, onSelect, onBlock, onCopy }) {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
               {groups[school].map(session => (
-                <SessionCard key={session.code} session={session} onSelect={onSelect} onBlock={onBlock} onCopy={onCopy} />
+                <SessionCard key={session.code} session={session} onSelect={onSelect} onBlock={onBlock} onCopy={onCopy} onDelete={onDelete} />
               ))}
             </div>
           </div>
@@ -136,6 +137,9 @@ export default function AdminPanel({ onClose }) {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [detailTab, setDetailTab] = useState('members'); // 'members' | 'chat'
+  const [messages, setMessages] = useState([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
 
   const loadSessions = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -177,6 +181,28 @@ export default function AdminPanel({ onClose }) {
     setSelected(refreshed || null);
   };
 
+  const handleDeleteSession = async (session, e) => {
+    e?.stopPropagation();
+    if (!window.confirm(`Supprimer définitivement la session ${session.code} et toutes ses données ?`)) return;
+    await deleteSession(session.code);
+    const updated = await getAllSessions();
+    setSessions(updated);
+    if (selected?.code === session.code) setSelected(null);
+  };
+
+  const handleSelectSession = async (session) => {
+    setSelected(session);
+    setDetailTab('members');
+    setMessages([]);
+  };
+
+  const handleLoadMessages = async (code) => {
+    setMessagesLoading(true);
+    const msgs = await getSessionMessages(code);
+    setMessages(msgs);
+    setMessagesLoading(false);
+  };
+
   const copyCode = (code, e) => {
     e?.stopPropagation();
     navigator.clipboard.writeText(code).catch(() => {});
@@ -214,7 +240,7 @@ export default function AdminPanel({ onClose }) {
     return (
       <div style={{ position: 'fixed', inset: 0, backgroundColor: 'white', zIndex: 9500, fontFamily: 'Nunito, sans-serif', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {/* Header */}
-        <div style={{ backgroundColor: '#1e1b2e', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+        <div style={{ backgroundColor: '#1e1b2e', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, flexWrap: 'wrap' }}>
           <button onClick={() => setSelected(null)} style={{ ...btn({ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', fontSize: 13 }) }}>← Retour</button>
           <span style={{ color: 'white', fontWeight: 900, fontSize: 18, fontFamily: 'monospace', letterSpacing: 4 }}>{session.code}</span>
           <StatusBadge session={session} />
@@ -226,36 +252,81 @@ export default function AdminPanel({ onClose }) {
           </button>
           <button onClick={() => exportSessionAsJson(session)} style={{ ...btn({ backgroundColor: 'rgba(108,99,255,0.2)', color: '#6C63FF' }) }}>📥 Tout télécharger</button>
           <button onClick={() => copyCode(session.code)} style={{ ...btn({ backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }) }}>📋 Copier code</button>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 20, cursor: 'pointer', marginLeft: 8 }}>✕</button>
+          <button onClick={(e) => handleDeleteSession(session, e)} style={{ ...btn({ backgroundColor: 'rgba(239,68,68,0.25)', color: '#FCA5A5' }) }}>🗑️ Supprimer</button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 20, cursor: 'pointer', marginLeft: 4 }}>✕</button>
         </div>
 
-        {/* Members */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 20, backgroundColor: '#F9FAFB' }}>
-          {session.members.length === 0 && (
-            <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 14, marginTop: 40 }}>Aucun membre dans cette session.</div>
-          )}
-          {session.members.map(member => (
-            <div key={member.clientId} style={{ backgroundColor: 'white', borderRadius: 12, padding: 16, marginBottom: 14, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #E5E7EB' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: member.online ? '#10B981' : '#D1D5DB', flexShrink: 0 }} title={member.online ? 'En ligne' : 'Hors ligne'} />
-                <span style={{ fontWeight: 900, fontSize: 15, color: '#1F2937' }}>👤 {member.nickname}</span>
-                <span style={{ color: '#9CA3AF', fontSize: 12 }}>{timeAgo(member.updatedAt)}</span>
-                <span style={{ color: '#6B7280', fontSize: 12, marginLeft: 4 }}>{member.screens.length} écran{member.screens.length !== 1 ? 's' : ''}</span>
-                {member.pin && <span style={{ color: '#6B7280', fontSize: 12, marginLeft: 4 }}>🔑 PIN: <code style={{backgroundColor:'rgba(167,139,250,0.15)', color:'#A78BFA', borderRadius:4, padding:'1px 6px', fontSize:11, fontFamily:'monospace', fontWeight:900, letterSpacing:2}}>{member.pin}</code></span>}
-                <div style={{ flex: 1 }} />
-                <button onClick={() => exportMemberAsJson(member)} style={{ ...btn({ backgroundColor: 'rgba(108,99,255,0.1)', color: '#6C63FF' }) }}>📥 Télécharger</button>
-                <button onClick={() => handleRemoveMember(session.code, member.clientId)} style={{ ...btn({ backgroundColor: 'rgba(239,68,68,0.1)', color: '#EF4444' }) }}>🚫 Retirer de la session</button>
-              </div>
-              {member.screens.length > 0 && (
-                <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-                  {member.screens.map((screen, i) => (
-                    <MiniScreen key={screen.id || i} screen={screen} />
-                  ))}
-                </div>
-              )}
-            </div>
+        {/* Tabs */}
+        <div style={{ backgroundColor: '#F9FAFB', borderBottom: '1px solid #E5E7EB', display: 'flex', gap: 0, flexShrink: 0 }}>
+          {[
+            { id: 'members', label: `👤 Membres (${session.members.length})` },
+            { id: 'chat', label: '💬 Messagerie' },
+          ].map(tab => (
+            <button key={tab.id} onClick={() => {
+              setDetailTab(tab.id);
+              if (tab.id === 'chat' && messages.length === 0) handleLoadMessages(session.code);
+            }} style={{ padding: '10px 20px', border: 'none', borderBottom: `3px solid ${detailTab === tab.id ? '#7C3AED' : 'transparent'}`, backgroundColor: 'transparent', color: detailTab === tab.id ? '#7C3AED' : '#6B7280', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'Nunito, sans-serif', transition: 'all 0.15s' }}>
+              {tab.label}
+            </button>
           ))}
         </div>
+
+        {/* Members tab */}
+        {detailTab === 'members' && (
+          <div style={{ flex: 1, overflowY: 'auto', padding: 20, backgroundColor: '#F9FAFB' }}>
+            {session.members.length === 0 && (
+              <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 14, marginTop: 40 }}>Aucun membre dans cette session.</div>
+            )}
+            {session.members.map(member => (
+              <div key={member.clientId} style={{ backgroundColor: 'white', borderRadius: 12, padding: 16, marginBottom: 14, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #E5E7EB' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: member.online ? '#10B981' : '#D1D5DB', flexShrink: 0 }} title={member.online ? 'En ligne' : 'Hors ligne'} />
+                  <span style={{ fontWeight: 900, fontSize: 15, color: '#1F2937' }}>👤 {member.nickname}</span>
+                  <span style={{ color: '#9CA3AF', fontSize: 12 }}>{timeAgo(member.updatedAt)}</span>
+                  <span style={{ color: '#6B7280', fontSize: 12, marginLeft: 4 }}>{member.screens.length} écran{member.screens.length !== 1 ? 's' : ''}</span>
+                  {member.pin && <span style={{ color: '#6B7280', fontSize: 12, marginLeft: 4 }}>🔑 PIN: <code style={{backgroundColor:'rgba(167,139,250,0.15)', color:'#A78BFA', borderRadius:4, padding:'1px 6px', fontSize:11, fontFamily:'monospace', fontWeight:900, letterSpacing:2}}>{member.pin}</code></span>}
+                  <div style={{ flex: 1 }} />
+                  <button onClick={() => exportMemberAsJson(member)} style={{ ...btn({ backgroundColor: 'rgba(108,99,255,0.1)', color: '#6C63FF' }) }}>📥 Télécharger</button>
+                  <button onClick={() => handleRemoveMember(session.code, member.clientId)} style={{ ...btn({ backgroundColor: 'rgba(239,68,68,0.1)', color: '#EF4444' }) }}>🚫 Retirer</button>
+                </div>
+                {member.screens.length > 0 && (
+                  <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                    {member.screens.map((screen, i) => (
+                      <MiniScreen key={screen.id || i} screen={screen} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Chat tab */}
+        {detailTab === 'chat' && (
+          <div style={{ flex: 1, overflowY: 'auto', padding: 20, backgroundColor: '#F9FAFB' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <span style={{ color: '#374151', fontSize: 13, fontWeight: 700 }}>Historique de la messagerie</span>
+              <button onClick={() => handleLoadMessages(session.code)} style={{ ...btn({ backgroundColor: '#F3F4F6', color: '#6B7280' }) }}>🔄 Actualiser</button>
+            </div>
+            {messagesLoading ? (
+              <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 14, marginTop: 40 }}>⏳ Chargement…</div>
+            ) : messages.length === 0 ? (
+              <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 14, marginTop: 40 }}>Aucun message dans cette session.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {messages.map(msg => (
+                  <div key={msg.id} style={{ backgroundColor: 'white', borderRadius: 10, padding: '10px 14px', boxShadow: '0 1px 4px rgba(0,0,0,0.05)', border: '1px solid #E5E7EB' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+                      <span style={{ fontWeight: 800, fontSize: 13, color: '#7C3AED' }}>{msg.nickname || 'Anonyme'}</span>
+                      <span style={{ color: '#9CA3AF', fontSize: 11 }}>{formatDate(msg.at)}</span>
+                    </div>
+                    <p style={{ margin: 0, fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{msg.text}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }
@@ -286,7 +357,7 @@ export default function AdminPanel({ onClose }) {
         ) : sessions.length === 0 ? (
           <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 14, marginTop: 40 }}>Aucune session trouvée.</div>
         ) : (
-          <SessionsBySchool sessions={sessions} onSelect={setSelected} onBlock={handleBlock} onCopy={copyCode} />
+          <SessionsBySchool sessions={sessions} onSelect={handleSelectSession} onBlock={handleBlock} onCopy={copyCode} onDelete={handleDeleteSession} />
         )}
       </div>
     </div>

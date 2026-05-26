@@ -92,6 +92,30 @@ export async function removeMember(code, clientId) {
   }
 }
 
+export async function deleteSession(code) {
+  if (!db || !code) return;
+  try {
+    await remove(ref(db, `sessions/${code}`));
+  } catch (err) {
+    console.error('[Admin] deleteSession error:', err);
+  }
+}
+
+export async function getSessionMessages(code) {
+  if (!db || !code) return [];
+  try {
+    const snap = await get(ref(db, `sessions/${code}/messages`));
+    const val = snap.val();
+    if (!val) return [];
+    return Object.entries(val)
+      .map(([id, m]) => ({ id, ...m }))
+      .sort((a, b) => a.at - b.at);
+  } catch (err) {
+    console.error('[Admin] getSessionMessages error:', err);
+    return [];
+  }
+}
+
 export function exportSessionAsJson(session) {
   const allScreens = session.members.flatMap(m =>
     m.screens.map(s => ({ ...s, _member: m.nickname }))
