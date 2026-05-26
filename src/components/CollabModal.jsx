@@ -3,7 +3,8 @@ import { isFirebaseConfigured } from '../services/firebase';
 import {
   generateSessionCode, writeOwnScreens, loadSessionOnce,
   setClientNickname, getClientNickname, getClientId,
-  saveMemberRecord, prepareJoin, verifyAndRestoreMember,
+  saveMemberRecord, prepareJoin, verifyAndRestoreMember, claimMemberIdentity,
+  getOrCreateClientPin,
 } from '../services/session';
 import { initSessionMeta } from '../services/admin';
 
@@ -19,13 +20,15 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   // Multi-step join flow
-  const [joinStep, setJoinStep] = useState('form'); // 'form' | 'pick_member' | 'pin_entry' | 'new_member'
+  const [joinStep, setJoinStep] = useState('form'); // 'form' | 'pick_member' | 'pin_entry' | 'claim_no_pin' | 'new_member' | 'show_pin'
   const [joinCode, setJoinCode] = useState('');
   const [sessionMembers, setSessionMembers] = useState([]);
   const [selectedMember, setSelectedMember] = useState(null);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState('');
   const [newNickname, setNewNickname] = useState(() => getClientNickname());
+  const [assignedPin, setAssignedPin] = useState('');
+  const [pendingJoin, setPendingJoin] = useState(null); // {code, nickname} to finalize after showing pin
   const joinRef = useRef(null);
 
   useEffect(() => {
@@ -76,14 +79,10 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
   };
 
   const handleSelectMember = (member) => {
-    if (!member.hasPin) {
-      setJoinStep('new_member');
-      return;
-    }
     setSelectedMember(member);
     setPinInput('');
     setPinError('');
-    setJoinStep('pin_entry');
+    setJoinStep(member.hasPin ? 'pin_entry' : 'claim_no_pin');
   };
 
   const handleVerifyPin = async () => {
@@ -100,14 +99,34 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
     }
   };
 
+  const handleClaimIdentity = async () => {
+    setLoading(true);
+    const pin = await claimMemberIdentity(joinCode, selectedMember.clientId, selectedMember.nickname);
+    setClientNickname(selectedMember.nickname);
+    setAssignedPin(pin);
+    setPendingJoin({ code: joinCode, nickname: selectedMember.nickname });
+    setJoinStep('show_pin');
+    setLoading(false);
+  };
+
   const handleJoinAsNew = async () => {
     const name = newNickname.trim();
     if (!name) { setError('Entre ton prénom avant de rejoindre.'); return; }
     setLoading(true); setError('');
     setClientNickname(name);
     await saveMemberRecord(joinCode, getClientId(), name);
-    const project = await loadSessionOnce(joinCode);
-    onJoin(joinCode, project, { isCreator: false });
+    const pin = getOrCreateClientPin();
+    setAssignedPin(pin);
+    setPendingJoin({ code: joinCode, nickname: name });
+    setJoinStep('show_pin');
+    setLoading(false);
+  };
+
+  const handleFinalizeJoin = async () => {
+    if (!pendingJoin) return;
+    setLoading(true);
+    const project = await loadSessionOnce(pendingJoin.code);
+    onJoin(pendingJoin.code, project, { isCreator: false });
     setLoading(false);
   };
 
@@ -157,6 +176,23 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
             onVerify={handleVerifyPin}
             onBack={() => setJoinStep('pick_member')}
             onNew={() => setJoinStep('new_member')}
+          />
+         ) :
+         joinStep === 'claim_no_pin' ? (
+          <ClaimNoPinStep
+            member={selectedMember}
+            loading={loading}
+            onClaim={handleClaimIdentity}
+            onBack={() => setJoinStep('pick_member')}
+            onNew={() => setJoinStep('new_member')}
+          />
+         ) :
+         joinStep === 'show_pin' ? (
+          <ShowPinStep
+            pin={assignedPin}
+            nickname={pendingJoin?.nickname || ''}
+            loading={loading}
+            onContinue={handleFinalizeJoin}
           />
          ) :
          joinStep === 'new_member' ? (
@@ -394,6 +430,66 @@ function StartSession({ nickname, setNickname, projectName, setProjectName, clas
           {loading ? '⏳ Connexion…' : '🔗 Rejoindre'}
         </button>
       </div>
+    </div>
+  );
+}
+
+function ClaimNoPinStep({ member, loading, onClaim, onBack, onNew }) {
+  return (
+    <div>
+      <button onClick={onBack} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 12, cursor: 'pointer', padding: '0 0 12px', fontFamily: 'Nunito, sans-serif' }}>
+        ← Retour
+      </button>
+      <div style={{ textAlign: 'center', marginBottom: 20 }}>
+        <div style={{ width: 56, height: 56, borderRadius: '50%', backgroundColor: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 900, color: 'white', margin: '0 auto 10px' }}>
+          {member?.nickname[0]?.toUpperCase() || '?'}
+        </div>
+        <div style={{ color: 'white', fontSize: 16, fontWeight: 900 }}>Tu es {member?.nickname} ?</div>
+      </div>
+      <div style={{ backgroundColor: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', borderRadius: 10, padding: 14, marginBottom: 16 }}>
+        <p style={{ color: '#FCD34D', fontSize: 12, margin: 0, lineHeight: 1.7 }}>
+          ⚠️ Ce membre n'a pas encore de code PIN.<br />
+          Si tu es bien <strong>{member?.nickname}</strong>, clique sur <strong>"C'est moi"</strong> pour récupérer tes écrans.<br />
+          Un code PIN te sera attribué — <strong>note-le bien !</strong>
+        </p>
+      </div>
+      <button onClick={onClaim} disabled={loading}
+        style={{ width: '100%', padding: '11px', borderRadius: 10, border: 'none', cursor: loading ? 'wait' : 'pointer', background: 'linear-gradient(135deg, #F59E0B, #D97706)', color: 'white', fontSize: 14, fontWeight: 800, fontFamily: 'Nunito, sans-serif', marginBottom: 10 }}>
+        {loading ? '⏳ En cours…' : "✅ C'est moi, récupérer mes écrans"}
+      </button>
+      <button onClick={onNew} style={{ width: '100%', padding: '8px', borderRadius: 8, border: 'none', cursor: 'pointer', backgroundColor: 'transparent', color: 'rgba(255,255,255,0.4)', fontSize: 12, fontFamily: 'Nunito, sans-serif' }}>
+        Ce n'est pas moi → rejoindre comme nouveau membre
+      </button>
+    </div>
+  );
+}
+
+function ShowPinStep({ pin, nickname, loading, onContinue }) {
+  const [copied, setCopied] = React.useState(false);
+  const copy = () => {
+    navigator.clipboard.writeText(pin).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  };
+  return (
+    <div style={{ textAlign: 'center' }}>
+      <div style={{ fontSize: 40, marginBottom: 8 }}>🔑</div>
+      <div style={{ color: 'white', fontSize: 18, fontWeight: 900, marginBottom: 4 }}>Ton code PIN</div>
+      <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginBottom: 20 }}>Note-le bien, tu en auras besoin pour te reconnecter !</div>
+      <div style={{ backgroundColor: 'rgba(109,40,217,0.25)', border: '2px solid #7C3AED', borderRadius: 16, padding: '20px 24px', marginBottom: 8, width: '100%', boxSizing: 'border-box' }}>
+        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>{nickname}</div>
+        <div style={{ color: '#A78BFA', fontSize: 52, fontWeight: 900, fontFamily: 'monospace', letterSpacing: 16 }}>{pin}</div>
+      </div>
+      <button onClick={copy} style={{ width: '100%', padding: '8px', borderRadius: 8, border: 'none', cursor: 'pointer', backgroundColor: copied ? 'rgba(52,211,153,0.15)' : 'rgba(167,139,250,0.1)', color: copied ? '#34D399' : '#A78BFA', fontSize: 12, fontWeight: 700, fontFamily: 'Nunito, sans-serif', marginBottom: 16 }}>
+        {copied ? '✅ Copié !' : '📋 Copier le code'}
+      </button>
+      <div style={{ backgroundColor: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', borderRadius: 8, padding: 10, marginBottom: 16, textAlign: 'left' }}>
+        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 11, margin: 0, lineHeight: 1.6 }}>
+          💡 La prochaine fois que tu rejoindras cette session depuis un autre ordinateur, clique sur ton prénom et entre ce code à 4 chiffres.
+        </p>
+      </div>
+      <button onClick={onContinue} disabled={loading}
+        style={{ width: '100%', padding: '12px', borderRadius: 10, border: 'none', cursor: loading ? 'wait' : 'pointer', background: 'linear-gradient(135deg, #10B981, #059669)', color: 'white', fontSize: 14, fontWeight: 800, fontFamily: 'Nunito, sans-serif' }}>
+        {loading ? '⏳ Connexion…' : '🚀 Rejoindre la session →'}
+      </button>
     </div>
   );
 }

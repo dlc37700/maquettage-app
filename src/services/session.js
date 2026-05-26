@@ -92,6 +92,19 @@ export async function verifyAndRestoreMember(code, clientId, pin) {
   }
 }
 
+export async function claimMemberIdentity(code, clientId, nickname) {
+  // Restore this clientId and assign a brand-new PIN (old sessions have no PIN)
+  const pin = String(Math.floor(1000 + Math.random() * 9000));
+  localStorage.setItem(CLIENT_ID_KEY, clientId);
+  localStorage.setItem(PIN_KEY, pin);
+  try {
+    await set(ref(db, `sessions/${code}/members/${clientId}`), { nickname, pin, joinedAt: Date.now() });
+  } catch (err) {
+    console.error('[Session] claimMemberIdentity error:', err);
+  }
+  return pin;
+}
+
 export function writeOwnScreens(code, ownScreens, projectName) {
   if (!db || !code) return;
   set(ref(db, `sessions/${code}/clients/${getClientId()}`), {
