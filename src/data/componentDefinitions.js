@@ -84,7 +84,7 @@ export const COMPONENT_DEFINITIONS = [
     label: 'Icône',
     icon: '⭐',
     category: 'Médias',
-    defaultProps: { iconName: 'Star', iconSet: 'lucide', color: '#6C63FF', opacity: 1, navigateTo: '' },
+    defaultProps: { iconName: 'Star', iconSet: 'lucide', color: '#FFFFFF', bgColor: '#6C63FF', bgGradient: null, borderRadius: 100, opacity: 1, navigateTo: '' },
     defaultSize: { width: 48, height: 48 },
     tooltip: 'Une icône vectorielle',
   },

@@ -85,6 +85,14 @@ function MiniComp({ comp }) {
       );
     case 'badge':
       return <div style={{ ...base, ...getBg(props.bgColor, props.bgGradient), borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: props.textColor, fontSize: Math.min(pos.width, pos.height) * 0.38, fontWeight: 700, fontFamily: props.fontFamily || 'Nunito' }}>{props.count}</div>;
+    case 'icon': {
+      const hasBg = 'bgColor' in props;
+      return (
+        <div style={{ ...base, display: 'flex', alignItems: 'center', justifyContent: 'center', ...(hasBg ? { ...getBg(props.bgColor, props.bgGradient), borderRadius: props.borderRadius ?? 100 } : {}) }}>
+          <div style={{ width: Math.min(pos.width, pos.height) * 0.55, height: Math.min(pos.width, pos.height) * 0.55, backgroundColor: props.color || '#6C63FF', borderRadius: 2 }} />
+        </div>
+      );
+    }
     case 'separator':
       return <div style={{ ...base, borderTop: `1px solid ${props.color || '#E5E7EB'}` }} />;
     default:

@@ -306,8 +306,18 @@ function ComponentRenderer({ comp, isReadOnly }) {
       }
       return <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}><LucideIcons.User size={Math.min(pos.width, pos.height) * 0.55} color="white" /></div>;
 
-    case 'icon':
-      return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><AnyIcon name={props.iconName} iconSet={props.iconSet || 'lucide'} color={props.color} size={Math.max(16, iconSize)} /></div>;
+    case 'icon': {
+      const hasBg = 'bgColor' in props;
+      return (
+        <div style={{
+          width: '100%', height: '100%',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          ...(hasBg ? { ...getBg(props.bgColor, props.bgGradient), borderRadius: props.borderRadius ?? 100 } : {}),
+        }}>
+          <AnyIcon name={props.iconName} iconSet={props.iconSet || 'lucide'} color={props.color} size={Math.max(16, iconSize)} />
+        </div>
+      );
+    }
 
     case 'navbar':
       return (

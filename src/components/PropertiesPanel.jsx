@@ -268,7 +268,7 @@ function ComponentProperties({ comp }) {
       {'label' in p && comp.type !== 'switch' && <Field label="Texte"><TextInput value={p.label} onChange={v => update({ label: v })} /></Field>}
       {'title' in p && <Field label="Titre"><TextInput value={p.title} onChange={v => update({ title: v })} /></Field>}
       {'placeholder' in p && <Field label="Placeholder"><TextInput value={p.placeholder} onChange={v => update({ placeholder: v })} /></Field>}
-      {comp.type === 'button' && (
+      {(comp.type === 'button' || comp.type === 'icon') && 'bgColor' in p && (
         <Field label="Fond transparent">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Toggle value={p.bgColor === 'transparent'} onChange={v => update({ bgColor: v ? 'transparent' : '#6C63FF', bgGradient: null })} />
@@ -353,7 +353,7 @@ function ComponentProperties({ comp }) {
           </div>
         </Field>
       )}
-      {'borderRadius' in p && <Field label={`Arrondi (${p.borderRadius}px)`}><RangeInput value={p.borderRadius} onChange={v => update({ borderRadius: v })} max={60} /></Field>}
+      {'borderRadius' in p && <Field label={`Arrondi (${p.borderRadius}px)`}><RangeInput value={Math.min(p.borderRadius, comp.type === 'icon' ? 100 : 60)} onChange={v => update({ borderRadius: v })} max={comp.type === 'icon' ? 100 : 60} /></Field>}
       {'checked' in p && <Field label="Coché"><Toggle value={p.checked} onChange={v => update({ checked: v })} /></Field>}
       {'showBack' in p && <Field label="Bouton retour"><Toggle value={p.showBack} onChange={v => update({ showBack: v })} /></Field>}
       {('value' in p) && comp.type === 'slider' && <Field label={`Valeur (${p.value}%)`}><RangeInput value={p.value} onChange={v => update({ value: v })} /></Field>}
