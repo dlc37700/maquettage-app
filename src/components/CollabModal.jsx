@@ -117,7 +117,7 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
     await saveMemberRecord(joinCode, getClientId(), name);
     const pin = getOrCreateClientPin();
     setAssignedPin(pin);
-    setPendingJoin({ code: joinCode, nickname: name });
+    setPendingJoin({ code: joinCode, nickname: name, isNew: true });
     setJoinStep('show_pin');
     setLoading(false);
   };
@@ -125,8 +125,14 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
   const handleFinalizeJoin = async () => {
     if (!pendingJoin) return;
     setLoading(true);
-    const project = await loadSessionOnce(pendingJoin.code);
-    onJoin(pendingJoin.code, project, { isCreator: false });
+    if (pendingJoin.isNew) {
+      // New member: no client data in Firebase yet, start fresh so own screens aren't read-only
+      onJoin(pendingJoin.code, null, { isCreator: false });
+    } else {
+      // Returning member (claim or PIN verify): restore existing screens from Firebase
+      const project = await loadSessionOnce(pendingJoin.code);
+      onJoin(pendingJoin.code, project, { isCreator: false });
+    }
     setLoading(false);
   };
 
@@ -457,9 +463,11 @@ function ClaimNoPinStep({ member, loading, onClaim, onBack, onNew }) {
         style={{ width: '100%', padding: '11px', borderRadius: 10, border: 'none', cursor: loading ? 'wait' : 'pointer', background: 'linear-gradient(135deg, #F59E0B, #D97706)', color: 'white', fontSize: 14, fontWeight: 800, fontFamily: 'Nunito, sans-serif', marginBottom: 10 }}>
         {loading ? '⏳ En cours…' : "✅ C'est moi, récupérer mes écrans"}
       </button>
-      <button onClick={onNew} style={{ width: '100%', padding: '8px', borderRadius: 8, border: 'none', cursor: 'pointer', backgroundColor: 'transparent', color: 'rgba(255,255,255,0.4)', fontSize: 12, fontFamily: 'Nunito, sans-serif' }}>
-        Ce n'est pas moi → rejoindre comme nouveau membre
-      </button>
+      <div style={{ textAlign: 'center', marginTop: 4 }}>
+        <button onClick={onNew} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.25)', fontSize: 11, fontFamily: 'Nunito, sans-serif', textDecoration: 'underline', padding: '4px 8px' }}>
+          Ce n'est pas moi
+        </button>
+      </div>
     </div>
   );
 }
