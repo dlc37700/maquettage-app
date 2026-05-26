@@ -27,7 +27,7 @@ export default function IconPicker({ value, iconSet = 'lucide', onChange, onSetC
     : tablerCategories;
 
   const select = (name, set) => {
-    onChange(name);
+    onChange(name, set); // 2nd arg = set, lets callers do one combined update
     onSetChange(set);
     setOpen(false);
     setSearch('');

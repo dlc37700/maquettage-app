@@ -158,16 +158,18 @@ function NavbarProperties({ comp }) {
   const p = comp.props;
 
   const DEFAULT_ITEMS = [
-    { iconName: 'Home', iconSet: 'lucide', label: 'Accueil', navigateTo: '' },
-    { iconName: 'Search', iconSet: 'lucide', label: 'Recherche', navigateTo: '' },
-    { iconName: 'Heart', iconSet: 'lucide', label: 'Favoris', navigateTo: '' },
-    { iconName: 'User', iconSet: 'lucide', label: 'Profil', navigateTo: '' },
+    { iconName: 'Home', iconSet: 'lucide', label: 'Accueil', navigateTo: '', color: null },
+    { iconName: 'Search', iconSet: 'lucide', label: 'Recherche', navigateTo: '', color: null },
+    { iconName: 'Heart', iconSet: 'lucide', label: 'Favoris', navigateTo: '', color: null },
+    { iconName: 'User', iconSet: 'lucide', label: 'Profil', navigateTo: '', color: null },
   ];
   const items = Array.isArray(p.items) ? p.items : DEFAULT_ITEMS;
-  const selectedIdx = p.selectedItemIndex ?? null;
+  const selectedIdx = state.selectedNavbarItemIndex ?? null;
 
+  // Always reads from comp.props directly to avoid stale closure on rapid updates
   const updateItem = (i, patch) => {
-    const newItems = items.map((it, idx) => idx === i ? { ...it, ...patch } : it);
+    const currentItems = Array.isArray(comp.props.items) ? comp.props.items : DEFAULT_ITEMS;
+    const newItems = currentItems.map((it, idx) => idx === i ? { ...it, ...patch } : it);
     update({ items: newItems });
   };
 
@@ -175,11 +177,11 @@ function NavbarProperties({ comp }) {
     n = Math.max(2, Math.min(6, n));
     let newItems = [...items];
     while (newItems.length < n) {
-      newItems.push({ iconName: 'Plus', iconSet: 'lucide', label: `Onglet ${newItems.length + 1}`, navigateTo: '' });
+      newItems.push({ iconName: 'Plus', iconSet: 'lucide', label: `Onglet ${newItems.length + 1}`, navigateTo: '', color: null });
     }
     if (newItems.length > n) newItems = newItems.slice(0, n);
-    const newSel = selectedIdx !== null && selectedIdx < n ? selectedIdx : null;
-    update({ items: newItems, selectedItemIndex: newSel, activeIndex: Math.min(p.activeIndex ?? 0, n - 1) });
+    dispatch({ type: 'SET_NAVBAR_ITEM', index: null });
+    update({ items: newItems, activeIndex: Math.min(p.activeIndex ?? 0, n - 1) });
   };
 
   const pos = comp.position;
@@ -191,8 +193,8 @@ function NavbarProperties({ comp }) {
     return (
       <div>
         <button
-          onClick={() => update({ selectedItemIndex: null })}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: '#6C63FF', fontSize: 12, fontFamily: 'Nunito, sans-serif', fontWeight: 700, padding: '0 0 12px', marginBottom: 4 }}>
+          onClick={() => dispatch({ type: 'SET_NAVBAR_ITEM', index: null })}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(109,40,217,0.08)', border: '1.5px solid #DDD6FE', borderRadius: 8, cursor: 'pointer', color: '#6C63FF', fontSize: 12, fontFamily: 'Nunito, sans-serif', fontWeight: 800, padding: '7px 12px', marginBottom: 12, width: '100%' }}>
           ← Barre de navigation
         </button>
 
@@ -202,9 +204,26 @@ function NavbarProperties({ comp }) {
           <IconPicker
             value={item.iconName || ''}
             iconSet={item.iconSet || 'lucide'}
-            onChange={v => updateItem(selectedIdx, { iconName: v })}
-            onSetChange={s => updateItem(selectedIdx, { iconSet: s })}
+            onChange={(name, set) => updateItem(selectedIdx, { iconName: name, iconSet: set || item.iconSet || 'lucide' })}
+            onSetChange={() => {}}
           />
+        </Field>
+
+        <Field label="Couleur de l'icône">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Toggle
+              value={item.color !== null && item.color !== undefined}
+              onChange={v => updateItem(selectedIdx, { color: v ? (p.activeColor || '#6C63FF') : null })}
+            />
+            <span style={{ fontSize: 11, color: '#6B7280', fontFamily: 'Nunito, sans-serif' }}>
+              {item.color ? 'Couleur personnalisée' : 'Couleur globale (actif/inactif)'}
+            </span>
+          </div>
+          {item.color !== null && item.color !== undefined && (
+            <div style={{ marginTop: 8 }}>
+              <ColorInput value={item.color} onChange={v => updateItem(selectedIdx, { color: v })} />
+            </div>
+          )}
         </Field>
 
         <Field label="Label">

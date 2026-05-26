@@ -220,17 +220,13 @@ function NavbarRenderer({ comp, isReadOnly }) {
     { iconName: 'User', iconSet: 'lucide', label: 'Profil', navigateTo: '' },
   ];
   const items = Array.isArray(p.items) ? p.items : DEFAULT_ITEMS;
-  const selectedItemIdx = p.selectedItemIndex ?? null;
+  const selectedItemIdx = isSelected ? (state.selectedNavbarItemIndex ?? null) : null;
   const activeIndex = p.activeIndex ?? 0;
 
   const handleItemMouseDown = (e, i) => {
     if (!isSelected || isReadOnly) return;
     e.stopPropagation();
-    dispatch({
-      type: 'UPDATE_COMPONENT_PROPS',
-      id: comp.id,
-      props: { selectedItemIndex: selectedItemIdx === i ? null : i },
-    });
+    dispatch({ type: 'SET_NAVBAR_ITEM', index: selectedItemIdx === i ? null : i });
   };
 
   return (
@@ -244,7 +240,8 @@ function NavbarRenderer({ comp, isReadOnly }) {
       {items.map((item, i) => {
         const isActive = i === activeIndex;
         const isItemSel = isSelected && selectedItemIdx === i;
-        const color = isActive ? (p.activeColor || '#6C63FF') : (p.inactiveColor || '#9CA3AF');
+        const globalColor = isActive ? (p.activeColor || '#6C63FF') : (p.inactiveColor || '#9CA3AF');
+        const color = item.color || globalColor;
         const iconSize = Math.min(
           (comp.position.width / items.length) * 0.45,
           comp.position.height * 0.4

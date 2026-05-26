@@ -15,6 +15,7 @@ const INITIAL_STATE = {
   screens: [{ id: INITIAL_ID, name: 'Accueil', backgroundColor: '#FFFFFF', components: [] }],
   activeScreenId: INITIAL_ID,
   selectedComponentId: null,
+  selectedNavbarItemIndex: null,
 };
 
 function takeSnapshot(state) {
@@ -103,10 +104,13 @@ function reducer(state, action) {
     }
 
     case 'SET_ACTIVE_SCREEN':
-      return { ...state, activeScreenId: action.id, selectedComponentId: null };
+      return { ...state, activeScreenId: action.id, selectedComponentId: null, selectedNavbarItemIndex: null };
 
     case 'SET_SELECTED_COMPONENT':
-      return { ...state, selectedComponentId: action.id };
+      return { ...state, selectedComponentId: action.id, selectedNavbarItemIndex: null };
+
+    case 'SET_NAVBAR_ITEM':
+      return { ...state, selectedNavbarItemIndex: action.index };
 
     case 'ADD_COMPONENT': {
       const def = COMPONENT_DEFINITIONS.find(d => d.type === action.componentType);
