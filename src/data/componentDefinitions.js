@@ -261,6 +261,7 @@ export const BUTTON_PRESETS = [
   { label: 'Payer',       category: 'Commerce',       iconName: 'DollarSign',    bgColor: '#22C55E', emoji: '💰' },
   { label: 'Signet',      category: 'Commerce',       iconName: 'Bookmark',      bgColor: '#8B5CF6', emoji: '🔖' },
   // Médias
+  { label: 'Galerie',     category: 'Médias',         iconName: 'Images',        bgColor: '#0EA5E9', emoji: '🖼️' },
   { label: 'Musique',     category: 'Médias',         iconName: 'Music',         bgColor: '#8B5CF6', emoji: '🎵' },
   { label: 'Photo',       category: 'Médias',         iconName: 'Camera',        bgColor: '#374151', emoji: '📷' },
   { label: 'Film',        category: 'Médias',         iconName: 'Film',          bgColor: '#374151', emoji: '🎬' },
@@ -292,7 +293,7 @@ export const ICON_OPTIONS = [
   'Mail', 'MessageCircle', 'Phone', 'PhoneCall', 'Send', 'Camera', 'Map', 'Menu',
   'Plus', 'Check', 'X', 'ArrowLeft', 'ArrowRight', 'Share2', 'Download', 'Trash2',
   'Edit2', 'Save', 'Copy', 'RefreshCw', 'ShoppingCart', 'CreditCard', 'DollarSign', 'ThumbsDown', 'Flame',
-  'Music', 'Video', 'Film', 'Globe', 'Lock', 'Unlock', 'Bookmark', 'Tag', 'Gift',
+  'Music', 'Video', 'Film', 'Globe', 'Lock', 'Unlock', 'Bookmark', 'Tag', 'Gift', 'Images', 'Image',
   'Zap', 'Compass', 'Clock', 'Calendar', 'Cloud', 'BookOpen', 'Coffee', 'Smile',
   'Sun', 'Moon', 'ChevronRight', 'ThumbsUp', 'Map', 'Layers', 'Layout', 'List',
 ];
