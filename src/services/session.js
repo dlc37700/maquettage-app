@@ -3,6 +3,7 @@ import { db } from './firebase';
 
 const CLIENT_ID_KEY = 'maquettage_client_id';
 const NICKNAME_KEY = 'maquettage_nickname';
+const PIN_KEY = 'maquettage_pin';
 
 export function getClientId() {
   let id = localStorage.getItem(CLIENT_ID_KEY);
@@ -26,6 +27,69 @@ export function generateSessionCode() {
   return Array.from({ length: 6 }, () =>
     CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]
   ).join('');
+}
+
+export function getOrCreateClientPin() {
+  let pin = localStorage.getItem(PIN_KEY);
+  if (!pin) {
+    pin = String(Math.floor(1000 + Math.random() * 9000));
+    localStorage.setItem(PIN_KEY, pin);
+  }
+  return pin;
+}
+
+export async function saveMemberRecord(code, clientId, nickname) {
+  if (!db || !code) return;
+  const pin = getOrCreateClientPin();
+  try {
+    await set(ref(db, `sessions/${code}/members/${clientId}`), { nickname, pin, joinedAt: Date.now() });
+  } catch (err) {
+    console.error('[Session] saveMemberRecord error:', err);
+  }
+}
+
+export async function prepareJoin(code) {
+  if (!db || !code) return { error: 'offline' };
+  try {
+    const [metaSnap, clientsSnap, membersSnap] = await Promise.all([
+      get(ref(db, `sessions/${code}/meta`)),
+      get(ref(db, `sessions/${code}/clients`)),
+      get(ref(db, `sessions/${code}/members`)),
+    ]);
+    const meta = metaSnap.val();
+    if (!meta) return { error: 'not_found' };
+    if (meta.blocked) return { error: 'blocked' };
+    const clients = clientsSnap.val() || {};
+    const memberPins = membersSnap.val() || {};
+    const myId = getClientId();
+    if (clients[myId]) {
+      return { alreadyMember: true, myNickname: clients[myId].nickname || 'Anonyme' };
+    }
+    const members = Object.entries(clients).map(([cid, data]) => ({
+      clientId: cid,
+      nickname: data.nickname || 'Anonyme',
+      hasPin: !!(memberPins[cid]?.pin),
+    }));
+    return { members };
+  } catch (err) {
+    console.error('[Session] prepareJoin error:', err);
+    return { error: 'network' };
+  }
+}
+
+export async function verifyAndRestoreMember(code, clientId, pin) {
+  if (!db || !code) return false;
+  try {
+    const snap = await get(ref(db, `sessions/${code}/members/${clientId}/pin`));
+    const storedPin = snap.val();
+    if (storedPin && storedPin === pin.trim()) {
+      localStorage.setItem(CLIENT_ID_KEY, clientId);
+      return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 export function writeOwnScreens(code, ownScreens, projectName) {
@@ -95,19 +159,6 @@ export async function loadSessionOnce(code) {
     if (!allClients || typeof allClients !== 'object') return null;
 
     let myId = getClientId();
-    const myNickname = getClientNickname();
-
-    // If our clientId has no data in Firebase but another client has the same nickname,
-    // reclaim it (handles browser storage wipes, device changes, etc.)
-    if (!allClients[myId] && myNickname) {
-      const match = Object.entries(allClients)
-        .filter(([, data]) => data.nickname === myNickname)
-        .sort(([, a], [, b]) => (b.updatedAt || 0) - (a.updatedAt || 0))[0];
-      if (match) {
-        myId = match[0];
-        localStorage.setItem(CLIENT_ID_KEY, myId);
-      }
-    }
 
     let ownScreens = [];
     let remoteScreens = [];

@@ -27,6 +27,7 @@ export async function getAllSessions() {
       const meta = data.meta || {};
       const clients = data.clients || {};
       const presence = data.presence || {};
+      const membersPins = data.members || {};
 
       const members = Object.entries(clients).map(([clientId, clientData]) => {
         let screens = [];
@@ -41,6 +42,7 @@ export async function getAllSessions() {
           online: !!presence[clientId],
           screens,
           projectName: clientData.projectName || null,
+          pin: membersPins[clientId]?.pin || null,
         };
       });
 
