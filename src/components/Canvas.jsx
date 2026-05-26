@@ -208,6 +208,80 @@ function TableRenderer({ comp, isReadOnly }) {
   );
 }
 
+function NavbarRenderer({ comp, isReadOnly }) {
+  const { state, dispatch } = useProject();
+  const isSelected = state.selectedComponentId === comp.id;
+  const p = comp.props;
+
+  const DEFAULT_ITEMS = [
+    { iconName: 'Home', iconSet: 'lucide', label: 'Accueil', navigateTo: '' },
+    { iconName: 'Search', iconSet: 'lucide', label: 'Recherche', navigateTo: '' },
+    { iconName: 'Heart', iconSet: 'lucide', label: 'Favoris', navigateTo: '' },
+    { iconName: 'User', iconSet: 'lucide', label: 'Profil', navigateTo: '' },
+  ];
+  const items = Array.isArray(p.items) ? p.items : DEFAULT_ITEMS;
+  const selectedItemIdx = p.selectedItemIndex ?? null;
+  const activeIndex = p.activeIndex ?? 0;
+
+  const handleItemMouseDown = (e, i) => {
+    if (!isSelected || isReadOnly) return;
+    e.stopPropagation();
+    dispatch({
+      type: 'UPDATE_COMPONENT_PROPS',
+      id: comp.id,
+      props: { selectedItemIndex: selectedItemIdx === i ? null : i },
+    });
+  };
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      ...getBg(p.bgColor, p.bgGradient),
+      borderTop: `1px solid ${p.borderTopColor || '#E5E7EB'}`,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-around',
+      padding: '0 4px',
+    }}>
+      {items.map((item, i) => {
+        const isActive = i === activeIndex;
+        const isItemSel = isSelected && selectedItemIdx === i;
+        const color = isActive ? (p.activeColor || '#6C63FF') : (p.inactiveColor || '#9CA3AF');
+        const iconSize = Math.min(
+          (comp.position.width / items.length) * 0.45,
+          comp.position.height * 0.4
+        );
+        return (
+          <div key={i}
+            onMouseDown={(e) => handleItemMouseDown(e, i)}
+            style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              justifyContent: 'center', gap: 2, flex: 1, height: '100%',
+              backgroundColor: isItemSel ? 'rgba(108,99,255,0.1)' : 'transparent',
+              borderRadius: 6,
+              outline: isItemSel ? '2px solid #6C63FF' : 'none',
+              outlineOffset: '-2px',
+              cursor: isSelected && !isReadOnly ? 'pointer' : 'default',
+            }}>
+            <AnyIcon name={item.iconName} iconSet={item.iconSet || 'lucide'} color={color} size={Math.max(14, iconSize)} />
+            {p.showLabels !== false && (
+              <span style={{
+                fontSize: Math.max(8, comp.position.height * 0.13),
+                color, fontFamily: 'Nunito, sans-serif',
+                fontWeight: isActive ? 700 : 400,
+                lineHeight: 1,
+              }}>
+                {item.label || ''}
+              </span>
+            )}
+            {isActive && !p.showLabels && (
+              <div style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: p.activeColor || '#6C63FF' }} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function ComponentRenderer({ comp, isReadOnly }) {
   const { type, props, position: pos } = comp;
   const iconSize = Math.min(pos.width, pos.height) * 0.55;
@@ -320,16 +394,7 @@ function ComponentRenderer({ comp, isReadOnly }) {
     }
 
     case 'navbar':
-      return (
-        <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), borderTop: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '0 8px' }}>
-          {['Home', 'Search', 'Heart', 'User'].map((ic, i) => (
-            <div key={ic} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-              <LucideIcon name={ic} color={i === 0 ? props.activeColor : '#9CA3AF'} size={22} />
-              {i === 0 && <div style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: props.activeColor }} />}
-            </div>
-          ))}
-        </div>
-      );
+      return <NavbarRenderer comp={comp} isReadOnly={isReadOnly} />;
 
     case 'header':
       return (

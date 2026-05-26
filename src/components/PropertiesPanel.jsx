@@ -150,10 +150,155 @@ function BgPicker({ bgColor, bgGradient, backgroundImage, onColorChange, onGradi
   );
 }
 
+function NavbarProperties({ comp }) {
+  const { dispatch, state } = useProject();
+  const screen = useActiveScreen();
+  if (!comp || !screen) return null;
+  const update = (props) => dispatch({ type: 'UPDATE_COMPONENT_PROPS', id: comp.id, props });
+  const p = comp.props;
+
+  const DEFAULT_ITEMS = [
+    { iconName: 'Home', iconSet: 'lucide', label: 'Accueil', navigateTo: '' },
+    { iconName: 'Search', iconSet: 'lucide', label: 'Recherche', navigateTo: '' },
+    { iconName: 'Heart', iconSet: 'lucide', label: 'Favoris', navigateTo: '' },
+    { iconName: 'User', iconSet: 'lucide', label: 'Profil', navigateTo: '' },
+  ];
+  const items = Array.isArray(p.items) ? p.items : DEFAULT_ITEMS;
+  const selectedIdx = p.selectedItemIndex ?? null;
+
+  const updateItem = (i, patch) => {
+    const newItems = items.map((it, idx) => idx === i ? { ...it, ...patch } : it);
+    update({ items: newItems });
+  };
+
+  const setItemCount = (n) => {
+    n = Math.max(2, Math.min(6, n));
+    let newItems = [...items];
+    while (newItems.length < n) {
+      newItems.push({ iconName: 'Plus', iconSet: 'lucide', label: `Onglet ${newItems.length + 1}`, navigateTo: '' });
+    }
+    if (newItems.length > n) newItems = newItems.slice(0, n);
+    const newSel = selectedIdx !== null && selectedIdx < n ? selectedIdx : null;
+    update({ items: newItems, selectedItemIndex: newSel, activeIndex: Math.min(p.activeIndex ?? 0, n - 1) });
+  };
+
+  const pos = comp.position;
+  const maxZ = Math.max(1, ...screen.components.map(c => c.zIndex || 1));
+
+  // ── ITEM EDIT MODE ──
+  if (selectedIdx !== null && items[selectedIdx]) {
+    const item = items[selectedIdx];
+    return (
+      <div>
+        <button
+          onClick={() => update({ selectedItemIndex: null })}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: '#6C63FF', fontSize: 12, fontFamily: 'Nunito, sans-serif', fontWeight: 700, padding: '0 0 12px', marginBottom: 4 }}>
+          ← Barre de navigation
+        </button>
+
+        <SectionTitle>Icône {selectedIdx + 1} / {items.length}</SectionTitle>
+
+        <Field label="Icône">
+          <IconPicker
+            value={item.iconName || ''}
+            iconSet={item.iconSet || 'lucide'}
+            onChange={v => updateItem(selectedIdx, { iconName: v })}
+            onSetChange={s => updateItem(selectedIdx, { iconSet: s })}
+          />
+        </Field>
+
+        <Field label="Label">
+          <TextInput value={item.label || ''} onChange={v => updateItem(selectedIdx, { label: v })} placeholder="Accueil, Profil…" />
+        </Field>
+
+        <Field label="Lien vers écran">
+          <select
+            value={item.navigateTo || ''}
+            onChange={e => updateItem(selectedIdx, { navigateTo: e.target.value })}
+            style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1.5px solid #E5E7EB', fontSize: 13, fontFamily: 'Nunito, sans-serif', outline: 'none', color: '#1F2937', backgroundColor: '#F9FAFB', cursor: 'pointer' }}
+          >
+            <option value="">— Aucune navigation —</option>
+            {state.screens.map(s => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </Field>
+
+        <Field label="Onglet actif">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Toggle
+              value={(p.activeIndex ?? 0) === selectedIdx}
+              onChange={v => update({ activeIndex: v ? selectedIdx : 0 })}
+            />
+            <span style={{ fontSize: 12, color: '#6B7280', fontFamily: 'Nunito, sans-serif' }}>
+              {(p.activeIndex ?? 0) === selectedIdx ? 'Actif (surligné)' : 'Inactif'}
+            </span>
+          </div>
+        </Field>
+      </div>
+    );
+  }
+
+  // ── GLOBAL NAVBAR MODE ──
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        <button onClick={() => dispatch({ type: 'DUPLICATE_COMPONENT', id: comp.id })} style={aBtnStyle('#EDE9FE', '#6C63FF')}>📋 Dupliquer</button>
+        <button onClick={() => dispatch({ type: 'DELETE_COMPONENT', id: comp.id })} style={aBtnStyle('#FEE2E2', '#DC2626')}>🗑️ Supprimer</button>
+      </div>
+
+      <SectionTitle>Position & Taille</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+        <Field label="X (px)"><NumberInput value={Math.round(pos.x)} onChange={v => dispatch({ type: 'COMMIT_MOVE', id: comp.id, x: v, y: pos.y })} max={390} /></Field>
+        <Field label="Y (px)"><NumberInput value={Math.round(pos.y)} onChange={v => dispatch({ type: 'COMMIT_MOVE', id: comp.id, x: pos.x, y: v })} max={844} /></Field>
+        <Field label="Largeur"><NumberInput value={Math.round(pos.width)} onChange={v => dispatch({ type: 'COMMIT_RESIZE', id: comp.id, x: pos.x, y: pos.y, width: v, height: pos.height })} min={10} max={390} /></Field>
+        <Field label="Hauteur"><NumberInput value={Math.round(pos.height)} onChange={v => dispatch({ type: 'COMMIT_RESIZE', id: comp.id, x: pos.x, y: pos.y, width: pos.width, height: v })} min={10} max={844} /></Field>
+      </div>
+
+      <SectionTitle>Icônes</SectionTitle>
+      <Field label="Nombre d'icônes">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={() => setItemCount(items.length - 1)} style={{ width: 32, height: 32, borderRadius: 8, border: '1.5px solid #E5E7EB', backgroundColor: '#F9FAFB', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>−</button>
+          <span style={{ flex: 1, textAlign: 'center', fontWeight: 900, fontSize: 18, fontFamily: 'Nunito, sans-serif', color: '#1F2937' }}>{items.length}</span>
+          <button onClick={() => setItemCount(items.length + 1)} style={{ width: 32, height: 32, borderRadius: 8, border: '1.5px solid #E5E7EB', backgroundColor: '#F9FAFB', fontSize: 18, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>+</button>
+        </div>
+      </Field>
+
+      <div style={{ backgroundColor: '#F5F3FF', borderRadius: 8, padding: '8px 10px', marginBottom: 12, fontSize: 11, color: '#6C63FF', fontFamily: 'Nunito, sans-serif', fontWeight: 700 }}>
+        💡 Clique sur une icône dans le canvas pour la modifier
+      </div>
+
+      <SectionTitle>Apparence</SectionTitle>
+      <Field label="Fond">
+        <BgPicker
+          bgColor={p.bgColor || '#FFFFFF'}
+          bgGradient={p.bgGradient || null}
+          onColorChange={v => update({ bgColor: v, bgGradient: null })}
+          onGradientChange={g => update({ bgGradient: g })}
+        />
+      </Field>
+      <Field label="Couleur active"><ColorInput value={p.activeColor || '#6C63FF'} onChange={v => update({ activeColor: v })} /></Field>
+      <Field label="Couleur inactive"><ColorInput value={p.inactiveColor || '#9CA3AF'} onChange={v => update({ inactiveColor: v })} /></Field>
+      <Field label="Couleur bordure haut"><ColorInput value={p.borderTopColor || '#E5E7EB'} onChange={v => update({ borderTopColor: v })} /></Field>
+      <Field label="Afficher les labels">
+        <Toggle value={p.showLabels !== false} onChange={v => update({ showLabels: v })} />
+      </Field>
+      <Field label={`Opacité (${Math.round((p.opacity ?? 1) * 100)}%)`}><RangeInput value={Math.round((p.opacity ?? 1) * 100)} onChange={v => update({ opacity: v / 100 })} /></Field>
+
+      <SectionTitle>Ordre</SectionTitle>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <button onClick={() => dispatch({ type: 'SET_Z_INDEX', id: comp.id, zIndex: maxZ + 1 })} style={aBtnStyle('#EDE9FE', '#6C63FF')}>⬆️ Devant</button>
+        <button onClick={() => dispatch({ type: 'SET_Z_INDEX', id: comp.id, zIndex: Math.max(0, (comp.zIndex || 1) - 1) })} style={aBtnStyle('#F3F4F6', '#374151')}>⬇️ Derrière</button>
+      </div>
+    </div>
+  );
+}
+
 function ComponentProperties({ comp }) {
   const { dispatch, state } = useProject();
   const screen = useActiveScreen();
   if (!comp || !screen) return null;
+  if (comp.type === 'navbar') return <NavbarProperties comp={comp} />;
   const update = (props) => dispatch({ type: 'UPDATE_COMPONENT_PROPS', id: comp.id, props });
   const p = comp.props, pos = comp.position;
   const maxZ = Math.max(1, ...screen.components.map(c => c.zIndex || 1));
@@ -377,19 +522,23 @@ function ComponentProperties({ comp }) {
         <button onClick={() => dispatch({ type: 'SET_Z_INDEX', id: comp.id, zIndex: Math.max(0, (comp.zIndex || 1) - 1) })} style={aBtnStyle('#F3F4F6', '#374151')}>⬇️ Derrière</button>
       </div>
 
-      <SectionTitle>Navigation</SectionTitle>
-      <Field label="Lien vers écran">
-        <select
-          value={p.navigateTo || ''}
-          onChange={e => update({ navigateTo: e.target.value })}
-          style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1.5px solid #E5E7EB', fontSize: 13, fontFamily: 'Nunito, sans-serif', outline: 'none', color: '#1F2937', backgroundColor: '#F9FAFB', cursor: 'pointer' }}
-        >
-          <option value="">— Aucune navigation —</option>
-          {screen.components && state.screens.map(s => (
-            <option key={s.id} value={s.id}>{s.name}</option>
-          ))}
-        </select>
-      </Field>
+      {comp.type !== 'navbar' && (
+        <>
+          <SectionTitle>Navigation</SectionTitle>
+          <Field label="Lien vers écran">
+            <select
+              value={p.navigateTo || ''}
+              onChange={e => update({ navigateTo: e.target.value })}
+              style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1.5px solid #E5E7EB', fontSize: 13, fontFamily: 'Nunito, sans-serif', outline: 'none', color: '#1F2937', backgroundColor: '#F9FAFB', cursor: 'pointer' }}
+            >
+              <option value="">— Aucune navigation —</option>
+              {screen.components && state.screens.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </Field>
+        </>
+      )}
     </div>
   );
 }
