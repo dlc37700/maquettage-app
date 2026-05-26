@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { isFirebaseConfigured } from '../services/firebase';
-import { getAllSessions, setSessionBlocked, removeMember, deleteSession, getSessionMessages, exportSessionAsJson, exportMemberAsJson } from '../services/admin';
+import { getAllSessions, setSessionBlocked, removeMember, deleteSession, getSessionMessages, sendAdminMessage, exportSessionAsJson, exportMemberAsJson } from '../services/admin';
 
 const ADMIN_PWD = import.meta.env.VITE_ADMIN_PASSWORD || 'prof';
 
@@ -140,6 +140,8 @@ export default function AdminPanel({ onClose }) {
   const [detailTab, setDetailTab] = useState('members'); // 'members' | 'chat'
   const [messages, setMessages] = useState([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [adminMsgText, setAdminMsgText] = useState('');
+  const [sendingMsg, setSendingMsg] = useState(false);
 
   const loadSessions = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
@@ -201,6 +203,16 @@ export default function AdminPanel({ onClose }) {
     const msgs = await getSessionMessages(code);
     setMessages(msgs);
     setMessagesLoading(false);
+  };
+
+  const handleSendAdminMessage = async (code) => {
+    if (!adminMsgText.trim()) return;
+    setSendingMsg(true);
+    await sendAdminMessage(code, adminMsgText);
+    setAdminMsgText('');
+    const msgs = await getSessionMessages(code);
+    setMessages(msgs);
+    setSendingMsg(false);
   };
 
   const copyCode = (code, e) => {
@@ -303,28 +315,53 @@ export default function AdminPanel({ onClose }) {
 
         {/* Chat tab */}
         {detailTab === 'chat' && (
-          <div style={{ flex: 1, overflowY: 'auto', padding: 20, backgroundColor: '#F9FAFB' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <span style={{ color: '#374151', fontSize: 13, fontWeight: 700 }}>Historique de la messagerie</span>
-              <button onClick={() => handleLoadMessages(session.code)} style={{ ...btn({ backgroundColor: '#F3F4F6', color: '#6B7280' }) }}>🔄 Actualiser</button>
-            </div>
-            {messagesLoading ? (
-              <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 14, marginTop: 40 }}>⏳ Chargement…</div>
-            ) : messages.length === 0 ? (
-              <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 14, marginTop: 40 }}>Aucun message dans cette session.</div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {messages.map(msg => (
-                  <div key={msg.id} style={{ backgroundColor: 'white', borderRadius: 10, padding: '10px 14px', boxShadow: '0 1px 4px rgba(0,0,0,0.05)', border: '1px solid #E5E7EB' }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
-                      <span style={{ fontWeight: 800, fontSize: 13, color: '#7C3AED' }}>{msg.nickname || 'Anonyme'}</span>
-                      <span style={{ color: '#9CA3AF', fontSize: 11 }}>{formatDate(msg.at)}</span>
-                    </div>
-                    <p style={{ margin: 0, fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{msg.text}</p>
-                  </div>
-                ))}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', backgroundColor: '#F9FAFB' }}>
+            {/* Admin message composer */}
+            <div style={{ padding: '14px 20px 10px', borderBottom: '1px solid #E5E7EB', backgroundColor: 'white', flexShrink: 0 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: '#7C3AED', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 8 }}>Message du professeur</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  value={adminMsgText}
+                  onChange={e => setAdminMsgText(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSendAdminMessage(session.code)}
+                  placeholder="Écrivez un message visible de tous les élèves…"
+                  disabled={sendingMsg}
+                  style={{ flex: 1, padding: '9px 12px', borderRadius: 8, border: '1.5px solid #DDD6FE', fontSize: 13, fontFamily: 'Nunito, sans-serif', outline: 'none', color: '#1F2937', backgroundColor: '#FAFAFA' }}
+                />
+                <button
+                  onClick={() => handleSendAdminMessage(session.code)}
+                  disabled={sendingMsg || !adminMsgText.trim()}
+                  style={{ ...btn({ backgroundColor: sendingMsg || !adminMsgText.trim() ? '#E5E7EB' : '#7C3AED', color: sendingMsg || !adminMsgText.trim() ? '#9CA3AF' : 'white', padding: '9px 16px' }), flexShrink: 0 }}
+                >
+                  {sendingMsg ? '⏳' : '📨 Envoyer'}
+                </button>
               </div>
-            )}
+            </div>
+            {/* Messages list */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <span style={{ color: '#374151', fontSize: 13, fontWeight: 700 }}>Historique de la messagerie</span>
+                <button onClick={() => handleLoadMessages(session.code)} style={{ ...btn({ backgroundColor: '#F3F4F6', color: '#6B7280' }) }}>🔄 Actualiser</button>
+              </div>
+              {messagesLoading ? (
+                <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 14, marginTop: 40 }}>⏳ Chargement…</div>
+              ) : messages.length === 0 ? (
+                <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 14, marginTop: 40 }}>Aucun message dans cette session.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {messages.map(msg => (
+                    <div key={msg.id} style={{ backgroundColor: msg.isAdmin ? '#EDE9FE' : 'white', borderRadius: 10, padding: '10px 14px', boxShadow: '0 1px 4px rgba(0,0,0,0.05)', border: `1px solid ${msg.isAdmin ? '#C4B5FD' : '#E5E7EB'}` }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+                        <span style={{ fontWeight: 800, fontSize: 13, color: msg.isAdmin ? '#7C3AED' : '#374151' }}>{msg.nickname || 'Anonyme'}</span>
+                        {msg.isAdmin && <span style={{ fontSize: 10, backgroundColor: '#7C3AED', color: 'white', borderRadius: 4, padding: '1px 5px', fontWeight: 700 }}>PROF</span>}
+                        <span style={{ color: '#9CA3AF', fontSize: 11 }}>{formatDate(msg.at)}</span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{msg.text}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

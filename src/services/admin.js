@@ -1,4 +1,4 @@
-import { ref, get, set, update, remove } from 'firebase/database';
+import { ref, get, set, update, remove, push } from 'firebase/database';
 import { db } from './firebase';
 
 export async function initSessionMeta(code, nickname, className, schoolName) {
@@ -98,6 +98,20 @@ export async function deleteSession(code) {
     await remove(ref(db, `sessions/${code}`));
   } catch (err) {
     console.error('[Admin] deleteSession error:', err);
+  }
+}
+
+export async function sendAdminMessage(code, text) {
+  if (!db || !code || !text.trim()) return;
+  try {
+    await push(ref(db, `sessions/${code}/messages`), {
+      nickname: '👨‍🏫 Professeur',
+      text: text.trim(),
+      at: Date.now(),
+      isAdmin: true,
+    });
+  } catch (err) {
+    console.error('[Admin] sendAdminMessage error:', err);
   }
 }
 
