@@ -229,6 +229,37 @@ export const COMPONENT_DEFINITIONS = [
     defaultSize: { width: 320, height: 340 },
     tooltip: 'Un calendrier mensuel navigable',
   },
+  {
+    type: 'weekcalendar',
+    label: 'Semaine',
+    icon: '🗓️',
+    category: 'Données',
+    defaultProps: {
+      bgColor: '#FFFFFF',
+      headerBgColor: '#6C63FF',
+      headerTextColor: '#FFFFFF',
+      rowLabelBgColor: '#F5F3FF',
+      rowLabelTextColor: '#4C1D95',
+      cellBgColor: '#FFFFFF',
+      cellTextColor: '#1F2937',
+      borderColor: '#E5E7EB',
+      fontSize: 11,
+      fontFamily: 'Nunito',
+      borderRadius: 8,
+      opacity: 1,
+      slots: {
+        lundi: { matin: '', apresmidi: '' },
+        mardi: { matin: '', apresmidi: '' },
+        mercredi: { matin: '', apresmidi: '' },
+        jeudi: { matin: '', apresmidi: '' },
+        vendredi: { matin: '', apresmidi: '' },
+        samedi: { matin: '', apresmidi: '' },
+        dimanche: { matin: '', apresmidi: '' },
+      },
+    },
+    defaultSize: { width: 380, height: 160 },
+    tooltip: 'Un calendrier semaine avec cases Matin / Après-midi',
+  },
 ];
 
 export const BUTTON_PRESETS = [

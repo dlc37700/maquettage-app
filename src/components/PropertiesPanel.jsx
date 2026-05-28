@@ -406,6 +406,19 @@ function ComponentProperties({ comp }) {
         <Field label="Fond en-tête"><ColorInput value={p.headerBgColor || '#6C63FF'} onChange={v => update({ headerBgColor: v })} /></Field>
       )}
 
+      {/* Weekly calendar specific */}
+      {comp.type === 'weekcalendar' && (
+        <>
+          <Field label="Fond en-tête"><ColorInput value={p.headerBgColor || '#6C63FF'} onChange={v => update({ headerBgColor: v })} /></Field>
+          <Field label="Texte en-tête"><ColorInput value={p.headerTextColor || '#FFFFFF'} onChange={v => update({ headerTextColor: v })} /></Field>
+          <Field label="Fond libellé ligne"><ColorInput value={p.rowLabelBgColor || '#F5F3FF'} onChange={v => update({ rowLabelBgColor: v })} /></Field>
+          <Field label="Texte libellé ligne"><ColorInput value={p.rowLabelTextColor || '#4C1D95'} onChange={v => update({ rowLabelTextColor: v })} /></Field>
+          <Field label="Fond cellule"><ColorInput value={p.cellBgColor || '#FFFFFF'} onChange={v => update({ cellBgColor: v })} /></Field>
+          <Field label="Texte cellule"><ColorInput value={p.cellTextColor || '#1F2937'} onChange={v => update({ cellTextColor: v })} /></Field>
+          <Field label="Couleur bordure"><ColorInput value={p.borderColor || '#E5E7EB'} onChange={v => update({ borderColor: v })} /></Field>
+        </>
+      )}
+
       {/* Button icon options */}
       {comp.type === 'button' && (
         <>
