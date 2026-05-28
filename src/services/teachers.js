@@ -1,11 +1,34 @@
 import { ref, get, push, set, update, remove } from 'firebase/database';
 import { db } from './firebase';
 
+const SUPERADMIN_NODE = 'superadmin';
+
 function generateSchoolCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let code = 'ENS-';
   for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
   return code;
+}
+
+export async function getOrCreateSuperAdminProfile() {
+  if (!db) return null;
+  const snap = await get(ref(db, `teachers/${SUPERADMIN_NODE}`));
+  if (snap.exists()) {
+    return { id: SUPERADMIN_NODE, ...snap.val() };
+  }
+  const allSnap = await get(ref(db, 'teachers'));
+  const existing = allSnap.val() || {};
+  let schoolCode;
+  do { schoolCode = generateSchoolCode(); }
+  while (Object.values(existing).find(t => t.schoolCode === schoolCode));
+  const profile = { login: 'prof', displayName: 'Super Admin', schoolCode, schools: [], createdAt: Date.now(), isSuperAdmin: true };
+  await set(ref(db, `teachers/${SUPERADMIN_NODE}`), profile);
+  return { id: SUPERADMIN_NODE, ...profile };
+}
+
+export async function updateSuperAdminSchools(schools) {
+  if (!db) return;
+  await update(ref(db, `teachers/${SUPERADMIN_NODE}`), { schools });
 }
 
 export async function createTeacher({ login, password, displayName }) {

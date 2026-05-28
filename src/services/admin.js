@@ -18,7 +18,7 @@ export async function initSessionMeta(code, nickname, className, schoolName, tea
   }
 }
 
-export async function getAllSessions(teacherCode = null) {
+export async function getAllSessions(teacherCode = null, includeOrphans = false) {
   if (!db) return [];
   try {
     const snapshot = await get(ref(db, 'sessions/'));
@@ -71,7 +71,11 @@ export async function getAllSessions(teacherCode = null) {
     });
 
     if (teacherCode && teacherCode !== 'SUPERADMIN') {
-      sessions = sessions.filter(s => s.teacherCode === teacherCode);
+      if (includeOrphans) {
+        sessions = sessions.filter(s => s.teacherCode === teacherCode || !s.teacherCode || s.teacherCode === 'SUPERADMIN');
+      } else {
+        sessions = sessions.filter(s => s.teacherCode === teacherCode);
+      }
     } else if (teacherCode === 'SUPERADMIN') {
       sessions = sessions.filter(s => !s.teacherCode || s.teacherCode === 'SUPERADMIN');
     }

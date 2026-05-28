@@ -6,7 +6,7 @@ import {
 } from '../services/admin';
 import {
   loginTeacher, createTeacher, getAllTeachers, deleteTeacher,
-  updateTeacherSchools, updateTeacherPassword,
+  updateTeacherSchools, updateTeacherPassword, getOrCreateSuperAdminProfile,
 } from '../services/teachers';
 
 const SUPERADMIN_LOGIN = 'prof';
@@ -288,7 +288,7 @@ function SessionDetail({ session, sessions, onBack, onClose, onRefreshSessions }
 // Sessions Dashboard (shared logic)
 // ──────────────────────────────────────
 
-function SessionsDashboard({ teacherCode, onClose }) {
+function SessionsDashboard({ teacherCode, includeOrphans = false, onClose }) {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -297,7 +297,7 @@ function SessionsDashboard({ teacherCode, onClose }) {
   const loadSessions = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
-    const data = await getAllSessions(teacherCode);
+    const data = await getAllSessions(teacherCode, includeOrphans);
     setSessions(data);
     if (isRefresh) setRefreshing(false);
     else setLoading(false);
@@ -317,7 +317,7 @@ function SessionsDashboard({ teacherCode, onClose }) {
     e?.stopPropagation();
     if (!window.confirm(`Supprimer définitivement la session ${session.code} et toutes ses données ?`)) return;
     await deleteSession(session.code);
-    const updated = await getAllSessions(teacherCode);
+    const updated = await getAllSessions(teacherCode, includeOrphans);
     setSessions(updated);
     if (selected?.code === session.code) setSelected(null);
   };
@@ -489,7 +489,7 @@ function TeachersManagement({ onClose }) {
 // Teacher: My School tab
 // ──────────────────────────────────────
 
-function MySchoolTab({ teacherSession, onSessionUpdate }) {
+function MySchoolTab({ teacherSession, onSessionUpdate, hidePasswordChange = false }) {
   const [schools, setSchools] = useState(() => Array.isArray(teacherSession.schools) ? teacherSession.schools : []);
   const [newSchool, setNewSchool] = useState('');
   const [saving, setSaving] = useState(false);
@@ -598,19 +598,21 @@ function MySchoolTab({ teacherSession, onSessionUpdate }) {
       </div>
 
       {/* Change password */}
-      <div style={{ backgroundColor: 'white', borderRadius: 12, padding: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #E5E7EB' }}>
-        <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 800, color: '#374151' }}>🔒 Changer mon mot de passe</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <input type="password" value={oldPwd} onChange={e => setOldPwd(e.target.value)} placeholder="Ancien mot de passe" style={inputStyle} />
-          <input type="password" value={newPwd} onChange={e => setNewPwd(e.target.value)} placeholder="Nouveau mot de passe" style={inputStyle} />
-          {pwdError && <p style={{ color: '#EF4444', fontSize: 12, margin: 0 }}>{pwdError}</p>}
-          {pwdSuccess && <p style={{ color: '#10B981', fontSize: 12, margin: 0, fontWeight: 700 }}>✅ {pwdSuccess}</p>}
-          <button onClick={handleChangePassword} disabled={savingPwd}
-            style={{ ...btn({ backgroundColor: '#7C3AED', color: 'white', fontSize: 13, padding: '9px 0', width: '100%', borderRadius: 8 }) }}>
-            {savingPwd ? '⏳ Enregistrement…' : '💾 Changer le mot de passe'}
-          </button>
+      {!hidePasswordChange && (
+        <div style={{ backgroundColor: 'white', borderRadius: 12, padding: 20, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: '1px solid #E5E7EB' }}>
+          <h3 style={{ margin: '0 0 12px', fontSize: 14, fontWeight: 800, color: '#374151' }}>🔒 Changer mon mot de passe</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <input type="password" value={oldPwd} onChange={e => setOldPwd(e.target.value)} placeholder="Ancien mot de passe" style={inputStyle} />
+            <input type="password" value={newPwd} onChange={e => setNewPwd(e.target.value)} placeholder="Nouveau mot de passe" style={inputStyle} />
+            {pwdError && <p style={{ color: '#EF4444', fontSize: 12, margin: 0 }}>{pwdError}</p>}
+            {pwdSuccess && <p style={{ color: '#10B981', fontSize: 12, margin: 0, fontWeight: 700 }}>✅ {pwdSuccess}</p>}
+            <button onClick={handleChangePassword} disabled={savingPwd}
+              style={{ ...btn({ backgroundColor: '#7C3AED', color: 'white', fontSize: 13, padding: '9px 0', width: '100%', borderRadius: 8 }) }}>
+              {savingPwd ? '⏳ Enregistrement…' : '💾 Changer le mot de passe'}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -662,7 +664,15 @@ export default function AdminPanel({ onClose }) {
     setLoginError('');
     setLoggingIn(true);
     if (loginInput.trim() === SUPERADMIN_LOGIN && passwordInput === SUPERADMIN_PASSWORD) {
-      const sess = { role: 'superadmin', teacherId: null, schoolCode: 'SUPERADMIN', login: SUPERADMIN_LOGIN, displayName: 'Super Admin' };
+      const profile = await getOrCreateSuperAdminProfile();
+      const sess = {
+        role: 'superadmin',
+        teacherId: 'superadmin',
+        schoolCode: profile?.schoolCode || 'ENS-PROF',
+        login: SUPERADMIN_LOGIN,
+        displayName: 'Super Admin',
+        schools: profile?.schools || [],
+      };
       sessionStorage.setItem(SESSION_KEY, JSON.stringify(sess));
       setAuthSession(sess);
       setActiveTab('sessions');
@@ -819,6 +829,7 @@ export default function AdminPanel({ onClose }) {
   if (isSuperAdmin) {
     const tabs = [
       { id: 'sessions', label: '📋 Mes sessions' },
+      { id: 'school', label: '🏫 Mon établissement' },
       { id: 'admin', label: '👑 Gestion Admin' },
     ];
 
@@ -828,6 +839,11 @@ export default function AdminPanel({ onClose }) {
         <div style={{ backgroundColor: '#1e1b2e', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 20 }}>👑</span>
           <span style={{ color: 'white', fontWeight: 900, fontSize: 18 }}>Espace Super-Admin</span>
+          <div style={{ backgroundColor: 'rgba(124,58,237,0.3)', border: '1px solid rgba(167,139,250,0.4)', borderRadius: 8, padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: '#C4B5FD', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1 }}>Code :</span>
+            <span style={{ fontFamily: 'monospace', color: '#A78BFA', fontWeight: 900, fontSize: 14, letterSpacing: 2 }}>{authSession.schoolCode}</span>
+            <button onClick={() => navigator.clipboard.writeText(authSession.schoolCode).catch(() => {})} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#A78BFA', fontSize: 12, padding: 0, lineHeight: 1 }}>📋</button>
+          </div>
           <div style={{ flex: 1 }} />
           <button onClick={handleLogout} style={{ ...btn({ backgroundColor: 'rgba(239,68,68,0.2)', color: '#FCA5A5', fontSize: 12 }) }}>🚪 Déconnexion</button>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 20, cursor: 'pointer', padding: '4px 8px' }}>✕</button>
@@ -850,7 +866,19 @@ export default function AdminPanel({ onClose }) {
         )}
 
         <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-          {activeTab === 'sessions' && <SessionsDashboard teacherCode={null} onClose={onClose} />}
+          {activeTab === 'sessions' && <SessionsDashboard teacherCode={authSession.schoolCode} includeOrphans={true} onClose={onClose} />}
+          {activeTab === 'school' && (
+            <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#F9FAFB' }}>
+              <MySchoolTab
+                teacherSession={authSession}
+                hidePasswordChange={true}
+                onSessionUpdate={(updated) => {
+                  setAuthSession(updated);
+                  sessionStorage.setItem(SESSION_KEY, JSON.stringify(updated));
+                }}
+              />
+            </div>
+          )}
           {activeTab === 'admin' && (
             <div style={{ flex: 1, overflowY: 'auto', backgroundColor: '#F9FAFB' }}>
               <TeachersManagement onClose={onClose} />
