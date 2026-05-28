@@ -48,7 +48,6 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
     if (!nickname.trim()) { setError('Entre ton prénom avant de créer une session.'); return; }
     if (!projectName.trim()) { setError('Entre le nom du projet avant de créer une session.'); return; }
     if (!className.trim()) { setError('Entre le nom de ta classe avant de créer une session.'); return; }
-    if (!schoolName.trim()) { setError('Entre le nom de ton établissement avant de créer une session.'); return; }
     setError('');
     // Go to teacher code step before finalizing creation
     setTeacherCodeInput('');
@@ -95,12 +94,11 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
     setLoading(true);
     setClientNickname(nickname.trim());
     localStorage.setItem('maquettage_classname', className.trim());
-    localStorage.setItem('maquettage_schoolname', schoolName.trim());
     const code = generateSessionCode();
     const trimmedName = projectName.trim();
     const ownScreens = state.screens.filter(s => !s._remote);
     writeOwnScreens(code, ownScreens, trimmedName);
-    initSessionMeta(code, nickname.trim(), className.trim(), schoolName.trim(), teacherCode, school || '');
+    initSessionMeta(code, nickname.trim(), className.trim(), school || '', teacherCode, school || '');
     await saveMemberRecord(code, getClientId(), nickname.trim());
     const pin = getOrCreateClientPin();
     setAssignedPin(pin);
@@ -298,7 +296,6 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
             nickname={nickname} setNickname={setNickname}
             projectName={projectName} setProjectName={setProjectName}
             className={className} setClassName={setClassName}
-            schoolName={schoolName} setSchoolName={setSchoolName}
             joinInput={joinInput} setJoinInput={setJoinInput}
             onCheckCode={handleCheckCode}
             onCreate={handleCreate}
@@ -470,7 +467,7 @@ function NewMemberStep({ nickname, setNickname, error, loading, onJoin, onBack }
   );
 }
 
-function StartSession({ nickname, setNickname, projectName, setProjectName, className, setClassName, schoolName, setSchoolName, joinInput, setJoinInput, onCheckCode, onCreate, loading, error, setError, joinRef, fieldStyle }) {
+function StartSession({ nickname, setNickname, projectName, setProjectName, className, setClassName, joinInput, setJoinInput, onCheckCode, onCreate, loading, error, setError, joinRef, fieldStyle }) {
   return (
     <div>
       {/* Nickname input for create */}
@@ -493,10 +490,6 @@ function StartSession({ nickname, setNickname, projectName, setProjectName, clas
         <div style={{ marginBottom: 10 }}>
           <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.8 }}>🏫 Classe *</div>
           <input value={className} onChange={e => { setClassName(e.target.value); setError(''); }} placeholder="Ex : 4C, 3B, 5ème 2…" maxLength={20} style={fieldStyle(error && !className.trim())} />
-        </div>
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.8 }}>🏛️ Établissement *</div>
-          <input value={schoolName} onChange={e => { setSchoolName(e.target.value); setError(''); }} placeholder="Ex : Collège Montaigne…" maxLength={60} style={fieldStyle(error && !schoolName.trim())} />
         </div>
         <button onClick={onCreate} disabled={loading} style={{ width: '100%', padding: '10px', borderRadius: 8, border: 'none', cursor: loading ? 'wait' : 'pointer', background: 'linear-gradient(135deg, #7C3AED, #6C63FF)', color: 'white', fontSize: 13, fontWeight: 800, fontFamily: 'Nunito, sans-serif', opacity: loading ? 0.7 : 1 }}>
           {loading ? '⏳ Création…' : '🚀 Créer une session'}
