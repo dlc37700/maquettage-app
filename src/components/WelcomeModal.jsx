@@ -65,6 +65,27 @@ export default function WelcomeModal({ onClose }) {
           <div style={{ fontSize: 11, color: '#9CA3AF', fontFamily: 'Nunito, sans-serif' }}>
             Raccourcis : <strong>Ctrl+Z</strong> Annuler · <strong>Ctrl+Y</strong> Refaire · <strong>Ctrl+D</strong> Dupliquer · <strong>Suppr</strong> Effacer
           </div>
+          <a
+            href="/tutoriel-enseignant.html"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: 'block',
+              padding: '10px 32px',
+              backgroundColor: '#F5F3FF',
+              color: '#6C63FF',
+              border: '2px solid #DDD6FE',
+              borderRadius: 12,
+              fontSize: 13,
+              fontFamily: 'Nunito, sans-serif',
+              fontWeight: 800,
+              cursor: 'pointer',
+              textDecoration: 'none',
+              textAlign: 'center',
+            }}
+          >
+            📄 Tutoriel enseignant (PDF)
+          </a>
           <button
             onClick={onClose}
             style={{

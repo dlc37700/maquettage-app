@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MaquetApp — Tutoriel enseignant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      color: #1F2937;
+      background: #f8f7ff;
+      padding: 40px 24px 60px;
+    }
+
+    .container {
+      max-width: 820px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      padding: 48px 56px;
+      box-shadow: 0 4px 32px rgba(108,99,255,0.10);
+    }
+
+    /* Print button — hidden in print */
+    .print-bar {
+      max-width: 820px;
+      margin: 0 auto 20px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+    .btn-print {
+      background: #6C63FF;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 22px;
+      font-family: 'Nunito', sans-serif;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(108,99,255,0.35);
+    }
+    .btn-print:hover { background: #5B52E8; }
+
+    /* Header */
+    .doc-header {
+      text-align: center;
+      padding-bottom: 32px;
+      border-bottom: 2px solid #EDE9FE;
+      margin-bottom: 36px;
+    }
+    .doc-header .logo { font-size: 48px; margin-bottom: 10px; }
+    .doc-header h1 { font-size: 28px; font-weight: 900; color: #1e1b4b; margin-bottom: 6px; }
+    .doc-header h1 span { color: #6C63FF; }
+    .doc-header .subtitle { font-size: 14px; color: #6B7280; line-height: 1.6; }
+
+    /* TOC */
+    .toc {
+      background: #F5F3FF;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 36px;
+    }
+    .toc h2 { font-size: 13px; font-weight: 900; color: #7C3AED; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+    .toc ol { padding-left: 18px; }
+    .toc li { font-size: 13px; color: #4B5563; line-height: 1.8; font-weight: 600; }
+
+    /* Sections */
+    h2.section-title {
+      font-size: 18px;
+      font-weight: 900;
+      color: #1e1b4b;
+      margin: 36px 0 14px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #EDE9FE;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h2.section-title .num {
+      background: #6C63FF;
+      color: white;
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      font-size: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    h3 { font-size: 14px; font-weight: 800; color: #4C1D95; margin: 18px 0 8px; }
+
+    p { font-size: 13.5px; line-height: 1.7; color: #374151; margin-bottom: 10px; }
+
+    ul, ol { padding-left: 20px; margin-bottom: 12px; }
+    li { font-size: 13.5px; line-height: 1.7; color: #374151; margin-bottom: 3px; }
+
+    strong { color: #1F2937; font-weight: 800; }
+    code {
+      background: #EDE9FE;
+      color: #6D28D9;
+      padding: 2px 7px;
+      border-radius: 5px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    /* Callout boxes */
+    .callout {
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin: 14px 0;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+    .callout.info { background: #EFF6FF; border-left: 4px solid #3B82F6; color: #1E40AF; }
+    .callout.warn { background: #FFFBEB; border-left: 4px solid #F59E0B; color: #92400E; }
+    .callout.success { background: #ECFDF5; border-left: 4px solid #10B981; color: #065F46; }
+    .callout.tip { background: #F5F3FF; border-left: 4px solid #7C3AED; color: #4C1D95; }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13px; }
+    thead tr { background: #6C63FF; color: white; }
+    th { padding: 10px 14px; text-align: left; font-weight: 800; }
+    td { padding: 9px 14px; border-bottom: 1px solid #E5E7EB; }
+    tr:nth-child(even) td { background: #F9FAFB; }
+
+    /* Layout grid for tips */
+    .tips-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 14px 0;
+    }
+    .tip-card {
+      background: #F5F3FF;
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      gap: 10px;
+    }
+    .tip-card .icon { font-size: 20px; flex-shrink: 0; }
+    .tip-card .title { font-size: 12px; font-weight: 800; color: #4C1D95; }
+    .tip-card .desc { font-size: 11px; color: #6B7280; line-height: 1.4; margin-top: 2px; }
+
+    /* Steps */
+    .steps { counter-reset: step; padding: 0; list-style: none; margin: 12px 0; }
+    .steps li {
+      counter-increment: step;
+      display: flex;
+      gap: 12px;
+      margin-bottom: 10px;
+      align-items: flex-start;
+    }
+    .steps li::before {
+      content: counter(step);
+      background: #7C3AED;
+      color: white;
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      font-size: 11px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .steps li p { margin: 0; font-size: 13.5px; }
+
+    /* Footer */
+    .doc-footer {
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 2px solid #EDE9FE;
+      text-align: center;
+      font-size: 12px;
+      color: #9CA3AF;
+    }
+
+    /* Print styles */
+    @media print {
+      body { background: white; padding: 0; }
+      .container { box-shadow: none; border-radius: 0; padding: 24px 32px; max-width: 100%; }
+      .print-bar { display: none; }
+      h2.section-title { page-break-after: avoid; }
+      table, .callout, .tip-card { page-break-inside: avoid; }
+      @page { margin: 20mm 15mm; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="print-bar">
+  <button class="btn-print" onclick="window.print()">🖨️ Enregistrer en PDF</button>
+</div>
+
+<div class="container">
+
+  <div class="doc-header">
+    <div class="logo">📱</div>
+    <h1>Tutoriel <span>MaquetApp</span></h1>
+    <p class="subtitle">Guide complet pour les enseignants — Création de compte, gestion des sessions et utilisation par les élèves</p>
+  </div>
+
+  <div class="toc">
+    <h2>Sommaire</h2>
+    <ol>
+      <li>Créer votre compte enseignant</li>
+      <li>Découvrir votre espace</li>
+      <li>Déclarer vos établissements</li>
+      <li>Partager votre code établissement</li>
+      <li>Côté élève — Créer une session</li>
+      <li>Côté élève — Rejoindre une session existante</li>
+      <li>Côté élève — Utiliser l'éditeur</li>
+      <li>Côté élève — Collaborer en temps réel</li>
+      <li>Suivre le travail depuis votre espace</li>
+      <li>Gérer les sessions</li>
+      <li>Exporter les projets</li>
+      <li>Questions fréquentes</li>
+    </ol>
+  </div>
+
+  <!-- Section 1 -->
+  <h2 class="section-title"><span class="num">1</span> Créer votre compte enseignant</h2>
+  <ol class="steps">
+    <li><p>Ouvrez l'application dans le navigateur.</p></li>
+    <li><p>Cliquez sur le bouton <strong>👨‍🏫 Espace enseignant</strong> (barre d'outils en haut).</p></li>
+    <li><p>Sur l'écran de connexion, cliquez sur <strong>« Créer un compte enseignant »</strong>.</p></li>
+    <li><p>Remplissez : <strong>Nom affiché</strong> (ex. M. Dupont), <strong>Identifiant</strong> (ex. mdupont), <strong>Mot de passe</strong> + confirmation.</p></li>
+    <li><p>Cliquez sur <strong>« Créer mon compte »</strong>.</p></li>
+  </ol>
+  <div class="callout success">✅ Un <strong>code établissement unique</strong> du type <code>ENS-A3F7</code> est généré automatiquement. <strong>C'est le code à donner à vos élèves.</strong> Notez-le ou copiez-le.</div>
+  <ol class="steps" style="counter-reset: step 5;">
+    <li><p>Cliquez sur <strong>« Continuer vers mon espace »</strong> pour accéder à votre tableau de bord.</p></li>
+  </ol>
+
+  <!-- Section 2 -->
+  <h2 class="section-title"><span class="num">2</span> Découvrir votre espace</h2>
+  <p>Une fois connecté, vous disposez de deux onglets :</p>
+  <table>
+    <thead><tr><th>Onglet</th><th>Contenu</th></tr></thead>
+    <tbody>
+      <tr><td><strong>📋 Mes sessions</strong></td><td>Toutes les sessions de vos élèves, groupées par établissement</td></tr>
+      <tr><td><strong>🏫 Mon établissement</strong></td><td>Votre code ENS, vos établissements déclarés, changement de mot de passe</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Section 3 -->
+  <h2 class="section-title"><span class="num">3</span> Déclarer vos établissements</h2>
+  <ol class="steps">
+    <li><p>Allez dans l'onglet <strong>🏫 Mon établissement</strong>.</p></li>
+    <li><p>Dans <strong>« Mes établissements déclarés »</strong>, saisissez le nom (ex. Collège Montaigne).</p></li>
+    <li><p>Cliquez sur <strong>➕ Ajouter</strong>. Répétez pour chaque établissement.</p></li>
+  </ol>
+  <div class="callout info">Les élèves verront votre liste et sélectionneront le bon lors de la création de session. Vous pouvez ajouter ou supprimer des établissements à tout moment.</div>
+
+  <!-- Section 4 -->
+  <h2 class="section-title"><span class="num">4</span> Partager votre code établissement</h2>
+  <ol class="steps">
+    <li><p>Allez dans l'onglet <strong>🏫 Mon établissement</strong>.</p></li>
+    <li><p>Votre code est affiché en grand — cliquez sur <strong>📋 Copier</strong>.</p></li>
+    <li><p>Communiquez ce code à vos élèves (au tableau, dans l'ENT, par message…).</p></li>
+  </ol>
+  <div class="callout warn">⚠️ Sans ce code, les sessions des élèves n'apparaîtront <strong>pas</strong> dans votre espace. Les élèves peuvent saisir le code avec ou sans le préfixe <code>ENS-</code>.</div>
+
+  <!-- Section 5 -->
+  <h2 class="section-title"><span class="num">5</span> Côté élève — Créer une session</h2>
+  <h3>Étape 1 — Ouvrir la modal de collaboration</h3>
+  <p>Cliquer sur le bouton <strong>👥 Session</strong> dans la barre d'outils en haut.</p>
+  <h3>Étape 2 — Remplir le formulaire</h3>
+  <ul>
+    <li><strong>Ton prénom</strong> : prénom de l'élève (visible sur ses écrans)</li>
+    <li><strong>Nom du projet</strong> : ex. Application météo</li>
+    <li><strong>Classe</strong> : ex. 4C, 3B</li>
+  </ul>
+  <p>Cliquer sur <strong>🚀 Créer une session</strong>.</p>
+  <h3>Étape 3 — Saisir le code établissement</h3>
+  <p>L'application demande le code fourni par le professeur (ex. <code>ENS-A3F7</code>). Saisir le code → Valider → sélectionner l'établissement dans la liste → Confirmer.</p>
+  <h3>Étape 4 — Noter le code PIN</h3>
+  <p>Après validation, l'application affiche :</p>
+  <ul>
+    <li>Un <strong>code de session à 6 caractères</strong> (ex. <code>AB3X7K</code>) → à partager avec les camarades</li>
+    <li>Un <strong>code PIN à 4 chiffres</strong> → indispensable pour retrouver son travail à la séance suivante</li>
+  </ul>
+  <div class="callout warn">🔑 <strong>Important :</strong> Sur les ordinateurs partagés qui effacent les données entre séances, le PIN est la <strong>seule façon de récupérer son travail</strong>. Demandez à chaque élève de noter son <strong>prénom + son PIN</strong>.</div>
+
+  <!-- Section 6 -->
+  <h2 class="section-title"><span class="num">6</span> Côté élève — Rejoindre une session existante</h2>
+  <h3>Première connexion à un projet de groupe</h3>
+  <ol class="steps">
+    <li><p>Cliquer sur <strong>👥 Session</strong> → <strong>« Rejoindre une session »</strong></p></li>
+    <li><p>Saisir le <strong>code à 6 caractères</strong> donné par le créateur du projet</p></li>
+    <li><p>Entrer son <strong>prénom</strong> → cliquer <strong>Rejoindre comme nouveau membre</strong></p></li>
+    <li><p>Noter son <strong>PIN</strong> qui s'affiche</p></li>
+  </ol>
+  <h3>Reconnexion séance suivante</h3>
+  <ol class="steps">
+    <li><p>Cliquer sur <strong>👥 Session</strong> → saisir le <strong>code à 6 caractères</strong></p></li>
+    <li><p>Sélectionner son <strong>prénom</strong> dans la liste → saisir son <strong>PIN</strong></p></li>
+    <li><p>Les écrans et le travail précédent se rechargent automatiquement</p></li>
+  </ol>
+
+  <!-- Section 7 -->
+  <h2 class="section-title"><span class="num">7</span> Côté élève — Utiliser l'éditeur</h2>
+  <div class="tips-grid">
+    <div class="tip-card"><span class="icon">🧩</span><div><div class="title">Ajouter des composants</div><div class="desc">Glisser ou cliquer sur un composant dans la palette (gauche)</div></div></div>
+    <div class="tip-card"><span class="icon">✏️</span><div><div class="title">Modifier</div><div class="desc">Cliquer sur un élément pour le sélectionner et voir ses propriétés (droite)</div></div></div>
+    <div class="tip-card"><span class="icon">🖱️</span><div><div class="title">Déplacer</div><div class="desc">Cliquer-glisser les composants pour les repositionner sur l'écran</div></div></div>
+    <div class="tip-card"><span class="icon">📐</span><div><div class="title">Redimensionner</div><div class="desc">Utiliser les poignées aux coins pour changer la taille</div></div></div>
+    <div class="tip-card"><span class="icon">📱</span><div><div class="title">Multi-écrans</div><div class="desc">Ajouter plusieurs écrans dans le panneau gauche, relier via "Naviguer vers"</div></div></div>
+    <div class="tip-card"><span class="icon">🎨</span><div><div class="title">Arrière-plan</div><div class="desc">Cliquer sur une zone vide du canvas pour modifier le fond (couleur, dégradé, image)</div></div></div>
+  </div>
+  <h3>Composants disponibles</h3>
+  <table>
+    <thead><tr><th>Catégorie</th><th>Composants</th></tr></thead>
+    <tbody>
+      <tr><td>Texte</td><td>Titre, paragraphe, étiquette</td></tr>
+      <tr><td>Boutons</td><td>Bouton simple, bouton icône, bouton emoji</td></tr>
+      <tr><td>Médias</td><td>Image, avatar, icône, galerie</td></tr>
+      <tr><td>Formulaires</td><td>Champ texte, case à cocher, bouton radio, curseur, interrupteur</td></tr>
+      <tr><td>Navigation</td><td>Barre de navigation (navbar), en-tête (header)</td></tr>
+      <tr><td>Mise en page</td><td>Carte, bloc de couleur, séparateur, liste, badge</td></tr>
+      <tr><td>Avancé</td><td>Calendrier, tableau, clavier</td></tr>
+    </tbody>
+  </table>
+  <p style="margin-top:10px"><strong>Raccourcis clavier :</strong> <code>Ctrl+Z</code> Annuler · <code>Ctrl+Y</code> Refaire · <code>Ctrl+D</code> Dupliquer · <code>Suppr</code> Effacer</p>
+
+  <!-- Section 8 -->
+  <h2 class="section-title"><span class="num">8</span> Côté élève — Collaborer en temps réel</h2>
+  <ul>
+    <li>Les écrans des <strong>camarades</strong> apparaissent dans le panneau gauche (étiquette verte avec prénom) — consultation en lecture seule</li>
+    <li>Le <strong>💬 chat</strong> (bas droite) permet d'échanger des messages en temps réel</li>
+    <li>Le professeur peut envoyer des messages depuis son espace (badge <strong>PROF</strong> visible par tous)</li>
+  </ul>
+  <h3>Appliquer un arrière-plan à plusieurs écrans (créateur uniquement)</h3>
+  <ol class="steps">
+    <li><p>Cliquer sur <strong>🎨 Appliquer arrière-plan à…</strong> dans le panneau des écrans</p></li>
+    <li><p>Cocher les écrans souhaités (les siens + ceux des camarades) → <strong>Tout cocher</strong> si besoin</p></li>
+    <li><p>Cliquer <strong>Valider</strong> — les autres membres reçoivent une notification pour accepter ou refuser</p></li>
+  </ol>
+
+  <!-- Section 9 -->
+  <h2 class="section-title"><span class="num">9</span> Suivre le travail depuis votre espace</h2>
+  <p>Les sessions sont groupées par établissement (accordéons). Cliquer sur <strong>👁️ Détails</strong> pour accéder à :</p>
+  <table>
+    <thead><tr><th>Onglet</th><th>Contenu</th></tr></thead>
+    <tbody>
+      <tr><td><strong>👤 Membres</strong></td><td>Aperçu fidèle des écrans, PIN de chaque élève, export HTML individuel, retirer un membre</td></tr>
+      <tr><td><strong>💬 Messagerie</strong></td><td>Historique des messages, envoi d'un message PROF visible par tous les élèves</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Section 10 -->
+  <h2 class="section-title"><span class="num">10</span> Gérer les sessions</h2>
+  <table>
+    <thead><tr><th>Action</th><th>Effet</th></tr></thead>
+    <tbody>
+      <tr><td><strong>🔒 Bloquer</strong></td><td>Empêche tout accès. Réversible avec 🔓 Débloquer.</td></tr>
+      <tr><td><strong>🗑️ Supprimer</strong></td><td>Supprime définitivement la session et toutes ses données. ⚠️ Irréversible.</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Section 11 -->
+  <h2 class="section-title"><span class="num">11</span> Exporter les projets</h2>
+  <table>
+    <thead><tr><th>Bouton</th><th>Résultat</th></tr></thead>
+    <tbody>
+      <tr><td><strong>📥 Tout HTML</strong></td><td>Tous les écrans de tous les membres dans un fichier HTML navigable (shell téléphone)</td></tr>
+      <tr><td><strong>📥 Tout JSON</strong></td><td>Données brutes réimportables dans l'application</td></tr>
+      <tr><td><strong>📥 Télécharger HTML</strong> (par élève)</td><td>Uniquement les écrans de l'élève, avec le nom du projet</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Section 12 -->
+  <h2 class="section-title"><span class="num">12</span> Questions fréquentes</h2>
+  <h3>Un élève ne retrouve plus son travail</h3>
+  <p>Bouton <strong>👥 Session</strong> → entrer le code à 6 caractères → sélectionner son prénom → saisir son PIN. Le PIN est visible dans votre espace (onglet Membres).</p>
+  <h3>La session d'un élève n'apparaît pas dans mon espace</h3>
+  <p>Il n'a pas saisi votre code établissement lors de la création. Vérifiez qu'il utilise bien votre code <code>ENS-XXXX</code>.</p>
+  <h3>Comment travailler à plusieurs sur le même projet ?</h3>
+  <p>Un élève crée la session et partage le <strong>code à 6 caractères</strong>. Les autres cliquent sur <strong>Rejoindre</strong> et entrent ce code.</p>
+  <h3>Puis-je bloquer une session pendant l'évaluation ?</h3>
+  <p>Oui : <strong>🔒 Bloquer</strong> dans le détail de la session. Les élèves ne peuvent plus accéder. Cliquez sur <strong>🔓 Débloquer</strong> pour rouvrir.</p>
+
+  <div class="doc-footer">
+    MaquetApp · Tutoriel enseignant · Bon cours ! 🎨
+  </div>
+
+</div>
+
+<script>
+  // Auto-open print dialog if ?print is in the URL
+  if (window.location.search.includes('print')) window.onload = () => window.print();
+</script>
+</body>
+</html>
