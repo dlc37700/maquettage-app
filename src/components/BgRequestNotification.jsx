@@ -82,14 +82,14 @@ export default function BgRequestNotification({ sessionCode }) {
         {/* Icon + title */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 28 }}>🎨</span>
-          <div style={{ fontSize: 14, fontWeight: 800, color: '#A78BFA' }}>Demande d'arrière-plan</div>
+          <div style={{ fontSize: 14, fontWeight: 800, color: '#A78BFA' }}>Demande d&apos;arrière-plan</div>
         </div>
 
         {/* Message + preview */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
           <div style={previewStyle} />
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 1.5 }}>
-            <strong style={{ color: ‘white’ }}>{fromNickname || ‘Quelqu’un’}</strong> souhaite appliquer son fond d’écran à{‘ ‘}
+            <strong style={{ color: 'white' }}>{fromNickname || 'Quelqu’un'}</strong> souhaite appliquer son fond d&apos;écran à{' '}
             <strong style={{ color: '#A78BFA' }}>{screenIds.length} de tes écrans</strong>
           </div>
         </div>
