@@ -67,8 +67,9 @@ export async function getTeacherBySchoolCode(schoolCode) {
   if (!db || !schoolCode) return null;
   const snap = await get(ref(db, 'teachers'));
   const val = snap.val() || {};
+  const normalized = schoolCode.trim().toUpperCase();
   const entry = Object.entries(val).find(([, t]) =>
-    t.schoolCode === schoolCode.trim().toUpperCase()
+    t.schoolCode === normalized || t.schoolCode === `ENS-${normalized}`
   );
   if (!entry) return null;
   return { id: entry[0], ...entry[1] };
