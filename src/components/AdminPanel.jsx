@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { isFirebaseConfigured } from '../services/firebase';
 import {
   getAllSessions, setSessionBlocked, removeMember, deleteSession,
-  getSessionMessages, sendAdminMessage, exportSessionAsJson, exportMemberAsHtml,
+  getSessionMessages, sendAdminMessage, exportSessionAsHtml, exportMemberAsHtml,
 } from '../services/admin';
 import {
   loginTeacher, createTeacher, getAllTeachers, deleteTeacher,
@@ -137,7 +137,7 @@ const btn = (extra = {}) => ({
   fontWeight: 700, fontSize: 12, padding: '5px 10px', ...extra,
 });
 
-function SessionCard({ session, onSelect, onBlock, onCopy, onDelete }) {
+function SessionCard({ session, onSelect, onBlock, onDelete }) {
   return (
     <div style={{ backgroundColor: 'white', borderRadius: 12, padding: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.06)', border: `1px solid ${session.blocked ? '#FCA5A5' : '#E5E7EB'}` }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
@@ -145,6 +145,7 @@ function SessionCard({ session, onSelect, onBlock, onCopy, onDelete }) {
         <StatusBadge session={session} />
         {session.className && <span style={{ backgroundColor: '#EDE9FE', color: '#6D28D9', borderRadius: 6, padding: '2px 8px', fontSize: 12, fontWeight: 800 }}>🏫 {session.className}</span>}
       </div>
+      {session.projectName && <p style={{ color: '#7C3AED', fontSize: 12, fontWeight: 700, margin: '0 0 4px' }}>📁 {session.projectName}</p>}
       <p style={{ color: '#6B7280', fontSize: 12, margin: '0 0 4px' }}>Créée le {formatDate(session.createdAt)} par <strong>{session.createdBy}</strong></p>
       <p style={{ color: '#9CA3AF', fontSize: 12, margin: '0 0 8px' }}>Dernière activité : {timeAgo(session.lastActivity)}</p>
       {session.members.length > 0 && (
@@ -154,7 +155,6 @@ function SessionCard({ session, onSelect, onBlock, onCopy, onDelete }) {
       )}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
         <button onClick={() => onSelect(session)} style={{ ...btn({ backgroundColor: 'rgba(108,99,255,0.1)', color: '#6C63FF' }) }}>👁️ Détails</button>
-        <button onClick={(e) => onCopy(session.code, e)} style={{ ...btn({ backgroundColor: '#F3F4F6', color: '#374151' }) }}>📋 Copier code</button>
         <button onClick={(e) => onBlock(session, e)} style={{ ...btn({ backgroundColor: session.blocked ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: session.blocked ? '#10B981' : '#EF4444' }) }}>
           {session.blocked ? '🔓 Débloquer' : '🔒 Bloquer'}
         </button>
@@ -164,7 +164,7 @@ function SessionCard({ session, onSelect, onBlock, onCopy, onDelete }) {
   );
 }
 
-function SessionList({ sessions, onSelect, onBlock, onCopy, onDelete }) {
+function SessionList({ sessions, onSelect, onBlock, onDelete }) {
   const [openGroups, setOpenGroups] = useState({});
 
   if (sessions.length === 0) {
@@ -202,7 +202,7 @@ function SessionList({ sessions, onSelect, onBlock, onCopy, onDelete }) {
             {open && (
               <div style={{ padding: 12, backgroundColor: '#FAFAFA', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 10 }}>
                 {groupSessions.map(session => (
-                  <SessionCard key={session.code} session={session} onSelect={onSelect} onBlock={onBlock} onCopy={onCopy} onDelete={onDelete} />
+                  <SessionCard key={session.code} session={session} onSelect={onSelect} onBlock={onBlock} onDelete={onDelete} />
                 ))}
               </div>
             )}
@@ -276,8 +276,7 @@ function SessionDetail({ session, sessions, onBack, onClose, onRefreshSessions }
         <button onClick={handleBlock} style={{ ...btn({ backgroundColor: currentSession.blocked ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)', color: currentSession.blocked ? '#10B981' : '#EF4444' }) }}>
           {currentSession.blocked ? '🔓 Débloquer' : '🔒 Bloquer'}
         </button>
-        <button onClick={() => exportSessionAsJson(currentSession)} style={{ ...btn({ backgroundColor: 'rgba(108,99,255,0.2)', color: '#6C63FF' }) }}>📥 Tout télécharger</button>
-        <button onClick={() => copyCode(currentSession.code)} style={{ ...btn({ backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)' }) }}>📋 Copier code</button>
+        <button onClick={() => exportSessionAsHtml(currentSession)} style={{ ...btn({ backgroundColor: 'rgba(108,99,255,0.2)', color: '#6C63FF' }) }}>📥 Tout télécharger HTML</button>
         <button onClick={handleDeleteSession} style={{ ...btn({ backgroundColor: 'rgba(239,68,68,0.25)', color: '#FCA5A5' }) }}>🗑️ Supprimer</button>
         <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 20, cursor: 'pointer', marginLeft: 4 }}>✕</button>
       </div>
@@ -312,7 +311,7 @@ function SessionDetail({ session, sessions, onBack, onClose, onRefreshSessions }
                 <span style={{ color: '#6B7280', fontSize: 12, marginLeft: 4 }}>{member.screens.length} écran{member.screens.length !== 1 ? 's' : ''}</span>
                 {member.pin && <span style={{ color: '#6B7280', fontSize: 12, marginLeft: 4 }}>🔑 PIN: <code style={{ backgroundColor: 'rgba(167,139,250,0.15)', color: '#A78BFA', borderRadius: 4, padding: '1px 6px', fontSize: 11, fontFamily: 'monospace', fontWeight: 900, letterSpacing: 2 }}>{member.pin}</code></span>}
                 <div style={{ flex: 1 }} />
-                <button onClick={() => exportMemberAsHtml(member)} style={{ ...btn({ backgroundColor: 'rgba(108,99,255,0.1)', color: '#6C63FF' }) }}>📥 Télécharger HTML</button>
+                <button onClick={() => exportMemberAsHtml(member, currentSession.projectName)} style={{ ...btn({ backgroundColor: 'rgba(108,99,255,0.1)', color: '#6C63FF' }) }}>📥 Télécharger HTML</button>
                 <button onClick={() => handleRemoveMember(currentSession.code, member.clientId)} style={{ ...btn({ backgroundColor: 'rgba(239,68,68,0.1)', color: '#EF4444' }) }}>🚫 Retirer</button>
               </div>
               {member.screens.length > 0 && (
@@ -445,7 +444,7 @@ function SessionsDashboard({ teacherCode, includeOrphans = false, onClose }) {
       {loading ? (
         <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 14, marginTop: 40 }}>⏳ Chargement des sessions…</div>
       ) : (
-        <SessionList sessions={sessions} onSelect={setSelected} onBlock={handleBlock} onCopy={copyCode} onDelete={handleDeleteSession} />
+        <SessionList sessions={sessions} onSelect={setSelected} onBlock={handleBlock} onDelete={handleDeleteSession} />
       )}
     </div>
   );
