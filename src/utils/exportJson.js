@@ -21,7 +21,11 @@ export function importProjectFromJson(file) {
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
-        const data = JSON.parse(e.target.result);
+        const parsed = JSON.parse(e.target.result);
+        // Accept both { screens: [...] } and a raw array of screens
+        const data = Array.isArray(parsed)
+          ? { screens: parsed, projectName: 'Projet importé' }
+          : parsed;
         if (!data.screens || !Array.isArray(data.screens)) {
           reject(new Error('Fichier JSON invalide : propriété "screens" manquante.'));
           return;
