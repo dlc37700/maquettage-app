@@ -1,5 +1,6 @@
 import { ref, get, set, update, remove, push } from 'firebase/database';
 import { db } from './firebase';
+import { exportProjectAsHtml } from '../utils/exportHtml';
 
 export async function initSessionMeta(code, nickname, className, schoolName, teacherCode, school) {
   if (!db || !code) return;
@@ -158,12 +159,9 @@ export function exportSessionAsJson(session) {
   URL.revokeObjectURL(url);
 }
 
-export function exportMemberAsJson(member) {
-  const blob = new Blob([JSON.stringify(member.screens, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${member.nickname}-screens.json`;
-  a.click();
-  URL.revokeObjectURL(url);
+export function exportMemberAsHtml(member) {
+  exportProjectAsHtml({
+    screens: member.screens,
+    projectName: member.projectName || `Projet de ${member.nickname}`,
+  });
 }
