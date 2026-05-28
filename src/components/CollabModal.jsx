@@ -98,7 +98,7 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
     const trimmedName = projectName.trim();
     const ownScreens = state.screens.filter(s => !s._remote);
     writeOwnScreens(code, ownScreens, trimmedName);
-    initSessionMeta(code, nickname.trim(), className.trim(), school || '', teacherCode, school || '');
+    initSessionMeta(code, nickname.trim(), className.trim(), school || '', teacherCode, school || '', projectName.trim());
     await saveMemberRecord(code, getClientId(), nickname.trim());
     const pin = getOrCreateClientPin();
     setAssignedPin(pin);

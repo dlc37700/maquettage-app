@@ -2,7 +2,7 @@ import { ref, get, set, update, remove, push } from 'firebase/database';
 import { db } from './firebase';
 import { exportProjectAsHtml } from '../utils/exportHtml';
 
-export async function initSessionMeta(code, nickname, className, schoolName, teacherCode, school) {
+export async function initSessionMeta(code, nickname, className, schoolName, teacherCode, school, projectName) {
   if (!db || !code) return;
   try {
     await set(ref(db, `sessions/${code}/meta`), {
@@ -13,6 +13,7 @@ export async function initSessionMeta(code, nickname, className, schoolName, tea
       teacherCode: teacherCode || 'SUPERADMIN',
       school: school || schoolName || '',
       blocked: false,
+      projectName: projectName || '',
     });
   } catch (err) {
     console.error('[Admin] initSessionMeta error:', err);
@@ -65,6 +66,7 @@ export async function getAllSessions(teacherCode = null, includeOrphans = false)
         teacherCode: meta.teacherCode || null,
         school: meta.school || '',
         blocked: meta.blocked || false,
+        projectName: meta.projectName || '',
         members,
         lastActivity,
         isActive,
@@ -159,9 +161,19 @@ export function exportSessionAsJson(session) {
   URL.revokeObjectURL(url);
 }
 
-export function exportMemberAsHtml(member) {
+export function exportMemberAsHtml(member, sessionProjectName) {
   exportProjectAsHtml({
     screens: member.screens,
-    projectName: member.projectName || `Projet de ${member.nickname}`,
+    projectName: sessionProjectName || member.projectName || `Projet de ${member.nickname}`,
+  });
+}
+
+export function exportSessionAsHtml(session) {
+  const allScreens = session.members.flatMap(m =>
+    m.screens.map(s => ({ ...s, name: `${m.nickname} — ${s.name}` }))
+  );
+  exportProjectAsHtml({
+    screens: allScreens,
+    projectName: session.projectName || session.code,
   });
 }
