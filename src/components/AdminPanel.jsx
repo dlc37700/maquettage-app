@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { isFirebaseConfigured } from '../services/firebase';
 import {
   getAllSessions, setSessionBlocked, removeMember, deleteSession,
-  getSessionMessages, sendAdminMessage, exportSessionAsHtml, exportMemberAsHtml,
+  getSessionMessages, sendAdminMessage, exportSessionAsJson, exportSessionAsHtml, exportMemberAsHtml,
 } from '../services/admin';
 import {
   loginTeacher, createTeacher, getAllTeachers, deleteTeacher,
@@ -276,7 +276,8 @@ function SessionDetail({ session, sessions, onBack, onClose, onRefreshSessions }
         <button onClick={handleBlock} style={{ ...btn({ backgroundColor: currentSession.blocked ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)', color: currentSession.blocked ? '#10B981' : '#EF4444' }) }}>
           {currentSession.blocked ? '🔓 Débloquer' : '🔒 Bloquer'}
         </button>
-        <button onClick={() => exportSessionAsHtml(currentSession)} style={{ ...btn({ backgroundColor: 'rgba(108,99,255,0.2)', color: '#6C63FF' }) }}>📥 Tout télécharger HTML</button>
+        <button onClick={() => exportSessionAsHtml(currentSession)} style={{ ...btn({ backgroundColor: 'rgba(108,99,255,0.2)', color: '#6C63FF' }) }}>📥 Tout HTML</button>
+        <button onClick={() => exportSessionAsJson(currentSession)} style={{ ...btn({ backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)' }) }}>📥 Tout JSON</button>
         <button onClick={handleDeleteSession} style={{ ...btn({ backgroundColor: 'rgba(239,68,68,0.25)', color: '#FCA5A5' }) }}>🗑️ Supprimer</button>
         <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 20, cursor: 'pointer', marginLeft: 4 }}>✕</button>
       </div>
