@@ -10,6 +10,7 @@ import CollabModal from './components/CollabModal';
 import ChatPanel from './components/ChatPanel';
 import AdminPanel from './components/AdminPanel';
 import MobileLayout from './components/MobileLayout';
+import BgRequestNotification from './components/BgRequestNotification';
 import { writeOwnScreens, loadSessionOnce, subscribeToSession, getClientId, registerPresence } from './services/session';
 import { isFirebaseConfigured } from './services/firebase';
 
@@ -179,7 +180,7 @@ function AppInner() {
       />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
         <div style={{ display: 'flex', height: '100%', flexShrink: 0 }}>
-          <ScreenManager />
+          <ScreenManager isCreator={isCreator} sessionCode={sessionCode} />
           <ComponentPalette />
         </div>
 
@@ -216,6 +217,7 @@ function AppInner() {
       </div>
       <ChatPanel sessionCode={sessionCode} />
       {modals}
+      {sessionCode && <BgRequestNotification sessionCode={sessionCode} />}
     </div>
   );
 }

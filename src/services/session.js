@@ -128,7 +128,7 @@ export function subscribeToSession(code, onRemoteScreens) {
         const screens = JSON.parse(data.screensJson || '[]');
         if (!Array.isArray(screens)) return;
         const nickname = data.nickname || 'Anonyme';
-        remoteScreens.push(...screens.map(s => ({ ...s, _remote: true, _nickname: nickname })));
+        remoteScreens.push(...screens.map(s => ({ ...s, _remote: true, _nickname: nickname, _clientId: clientId })));
       } catch { }
     });
     onRemoteScreens(remoteScreens);
@@ -185,7 +185,7 @@ export async function loadSessionOnce(code) {
         if (clientId === myId) {
           ownScreens = screens;
         } else {
-          remoteScreens.push(...screens.map(s => ({ ...s, _remote: true, _nickname: nickname })));
+          remoteScreens.push(...screens.map(s => ({ ...s, _remote: true, _nickname: nickname, _clientId: clientId })));
         }
         if (!projectName && data.projectName) projectName = data.projectName;
       } catch { /* ignore malformed data */ }
@@ -209,4 +209,29 @@ export function registerPresence(code) {
   return () => {
     remove(presenceRef).catch(() => {});
   };
+}
+
+export function sendBgRequest(code, targetClientId, { fromNickname, backgroundColor, backgroundGradient, backgroundImage, screenIds }) {
+  if (!db || !code || !targetClientId) return;
+  set(ref(db, `sessions/${code}/bgRequests/${targetClientId}`), {
+    fromNickname,
+    backgroundColor: backgroundColor || null,
+    backgroundGradient: backgroundGradient || null,
+    backgroundImage: backgroundImage || null,
+    screenIds,
+    requestedAt: Date.now(),
+  }).catch(() => {});
+}
+
+export function listenBgRequests(code, myClientId, callback) {
+  if (!db || !code || !myClientId) return () => {};
+  const unsub = onValue(ref(db, `sessions/${code}/bgRequests/${myClientId}`), (snap) => {
+    callback(snap.exists() ? snap.val() : null);
+  });
+  return unsub;
+}
+
+export function clearBgRequest(code, myClientId) {
+  if (!db || !code || !myClientId) return;
+  remove(ref(db, `sessions/${code}/bgRequests/${myClientId}`)).catch(() => {});
 }
