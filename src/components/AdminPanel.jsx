@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { isFirebaseConfigured } from '../services/firebase';
 import {
   getAllSessions, setSessionBlocked, removeMember, deleteSession,
-  getSessionMessages, sendAdminMessage, exportSessionAsJson, exportMemberAsJson,
+  getSessionMessages, sendAdminMessage, exportSessionAsJson, exportMemberAsHtml,
 } from '../services/admin';
 import {
   loginTeacher, createTeacher, getAllTeachers, deleteTeacher,
@@ -43,22 +43,82 @@ function getBg(bgColor, bgGradient) {
   return { backgroundColor: bgColor || '#FFFFFF' };
 }
 
+function MiniComp({ comp }) {
+  const { type, props = {}, position: pos = {}, zIndex: z = 1 } = comp;
+  const base = { position: 'absolute', left: pos.x ?? 0, top: pos.y ?? 0, width: pos.width ?? 40, height: pos.height ?? 20, opacity: props.opacity ?? 1, zIndex: z, boxSizing: 'border-box', overflow: 'hidden' };
+  const bgStyle = props.bgGradient?.from && props.bgGradient?.to
+    ? { background: `linear-gradient(${props.bgGradient.angle ?? 135}deg,${props.bgGradient.from},${props.bgGradient.to})` }
+    : { backgroundColor: props.bgColor || 'transparent' };
+
+  switch (type) {
+    case 'text': return (
+      <div style={{ ...base, color: props.textColor || '#1F2937', fontSize: props.fontSize || 16, fontWeight: props.fontWeight === 'bold' ? 700 : props.fontWeight === 'semibold' ? 600 : 400, fontStyle: props.fontStyle || 'normal', textAlign: props.textAlign || 'left', display: 'flex', alignItems: props.verticalAlign === 'top' ? 'flex-start' : props.verticalAlign === 'bottom' ? 'flex-end' : 'center', padding: '2px 4px', lineHeight: 1.3, wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+        {props.label || ''}
+      </div>
+    );
+    case 'button': return (
+      <div style={{ ...base, ...bgStyle, color: props.textColor || 'white', fontSize: props.fontSize || 16, fontWeight: 700, borderRadius: props.borderRadius || 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+        {props.iconPosition === 'only' && props.emoji ? props.emoji : (props.label || '')}
+      </div>
+    );
+    case 'image': return props.imageData
+      ? <img src={props.imageData} alt="" style={{ ...base, borderRadius: props.borderRadius || 8, objectFit: props.objectFit || 'cover' }} />
+      : <div style={{ ...base, backgroundColor: '#F3F4F6', border: '2px dashed #D1D5DB', borderRadius: props.borderRadius || 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🖼️</div>;
+    case 'avatar': return props.imageData
+      ? <img src={props.imageData} alt="" style={{ ...base, borderRadius: '50%', objectFit: 'cover' }} />
+      : <div style={{ ...base, ...bgStyle, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(Math.min(pos.width || 40, pos.height || 40) * 0.5) }}>{props.emoji || '👤'}</div>;
+    case 'header': return (
+      <div style={{ ...base, ...bgStyle, display: 'flex', alignItems: 'center', padding: '0 16px' }}>
+        <span style={{ color: props.textColor || '#1F2937', fontSize: props.fontSize || 18, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{props.title || ''}</span>
+      </div>
+    );
+    case 'navbar': {
+      const items = props.items || [];
+      return (
+        <div style={{ ...base, ...bgStyle, borderTop: '1px solid #E5E7EB', display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '0 4px' }}>
+          {items.map((item, i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, flex: 1, overflow: 'hidden' }}>
+              <div style={{ width: 18, height: 18, borderRadius: 3, backgroundColor: i === 0 ? (props.activeColor || '#6C63FF') : 'rgba(0,0,0,0.12)', flexShrink: 0 }} />
+              {item.label && <span style={{ fontSize: 8, color: i === 0 ? (props.activeColor || '#6C63FF') : '#9CA3AF', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', lineHeight: 1 }}>{item.label}</span>}
+            </div>
+          ))}
+        </div>
+      );
+    }
+    case 'card':
+    case 'colorblock': return props.backgroundImage
+      ? <img src={props.backgroundImage} alt="" style={{ ...base, borderRadius: props.borderRadius || (type === 'card' ? 16 : 0), objectFit: 'cover' }} />
+      : <div style={{ ...base, ...bgStyle, borderRadius: props.borderRadius || (type === 'card' ? 16 : 0) }} />;
+    case 'input': return (
+      <div style={{ ...base, backgroundColor: props.bgColor || '#F9FAFB', border: '1.5px solid #E5E7EB', borderRadius: props.borderRadius || 8, display: 'flex', alignItems: 'center', padding: '0 12px' }}>
+        <span style={{ color: '#9CA3AF', fontSize: props.fontSize || 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{props.placeholder || props.label || ''}</span>
+      </div>
+    );
+    case 'listitem': return (
+      <div style={{ ...base, ...bgStyle, borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
+        <div style={{ width: 34, height: 34, backgroundColor: '#EDE9FE', borderRadius: 9, flexShrink: 0 }} />
+        <span style={{ flex: 1, color: props.textColor || '#1F2937', fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{props.label || ''}</span>
+      </div>
+    );
+    case 'badge': return (
+      <div style={{ ...base, ...bgStyle, color: props.textColor || 'white', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(Math.min(pos.width || 20, pos.height || 20) * 0.38), fontWeight: 700 }}>
+        {props.count ?? 0}
+      </div>
+    );
+    case 'separator': return <hr style={{ ...base, border: 'none', borderTop: `1px solid ${props.color || '#E5E7EB'}`, margin: 0 }} />;
+    default: return <div style={{ ...base, ...bgStyle, borderRadius: props.borderRadius || 0 }} />;
+  }
+}
+
 function MiniScreen({ screen }) {
+  const bgStyle = screen.backgroundImage
+    ? { backgroundImage: `url(${screen.backgroundImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : getBg(screen.backgroundColor, screen.backgroundGradient);
   return (
     <div style={{ width: THUMB_W, height: THUMB_H, borderRadius: 6, overflow: 'hidden', position: 'relative', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,0,0,0.2)', border: '1px solid #E5E7EB' }}>
-      <div style={{ position: 'absolute', top: 0, left: 0, width: 390, height: 844, ...getBg(screen.backgroundColor, screen.backgroundGradient), transform: `scale(${SCALE})`, transformOrigin: 'top left', pointerEvents: 'none' }}>
+      <div style={{ position: 'absolute', top: 0, left: 0, width: 390, height: 844, ...bgStyle, transform: `scale(${SCALE})`, transformOrigin: 'top left', pointerEvents: 'none' }}>
         {[...(screen.components || [])].sort((a, b) => (a.zIndex || 1) - (b.zIndex || 1)).map(comp => (
-          <div key={comp.id} style={{
-            position: 'absolute',
-            left: comp.position?.x ?? 0,
-            top: comp.position?.y ?? 0,
-            width: comp.position?.width ?? 40,
-            height: comp.position?.height ?? 20,
-            backgroundColor: comp.props?.bgColor || comp.props?.textColor || '#C4B5FD',
-            borderRadius: comp.props?.borderRadius || 0,
-            opacity: comp.props?.opacity ?? 1,
-            zIndex: comp.zIndex || 1,
-          }} />
+          <MiniComp key={comp.id} comp={comp} />
         ))}
       </div>
       <div style={{ position: 'absolute', bottom: 2, left: 0, right: 0, textAlign: 'center', fontSize: 7, color: 'rgba(0,0,0,0.5)', fontFamily: 'Nunito, sans-serif', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', padding: '0 2px', backgroundColor: 'rgba(255,255,255,0.7)' }}>{screen.name}</div>
@@ -252,7 +312,7 @@ function SessionDetail({ session, sessions, onBack, onClose, onRefreshSessions }
                 <span style={{ color: '#6B7280', fontSize: 12, marginLeft: 4 }}>{member.screens.length} écran{member.screens.length !== 1 ? 's' : ''}</span>
                 {member.pin && <span style={{ color: '#6B7280', fontSize: 12, marginLeft: 4 }}>🔑 PIN: <code style={{ backgroundColor: 'rgba(167,139,250,0.15)', color: '#A78BFA', borderRadius: 4, padding: '1px 6px', fontSize: 11, fontFamily: 'monospace', fontWeight: 900, letterSpacing: 2 }}>{member.pin}</code></span>}
                 <div style={{ flex: 1 }} />
-                <button onClick={() => exportMemberAsJson(member)} style={{ ...btn({ backgroundColor: 'rgba(108,99,255,0.1)', color: '#6C63FF' }) }}>📥 Télécharger</button>
+                <button onClick={() => exportMemberAsHtml(member)} style={{ ...btn({ backgroundColor: 'rgba(108,99,255,0.1)', color: '#6C63FF' }) }}>📥 Télécharger HTML</button>
                 <button onClick={() => handleRemoveMember(currentSession.code, member.clientId)} style={{ ...btn({ backgroundColor: 'rgba(239,68,68,0.1)', color: '#EF4444' }) }}>🚫 Retirer</button>
               </div>
               {member.screens.length > 0 && (
