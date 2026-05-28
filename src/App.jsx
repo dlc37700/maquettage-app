@@ -76,8 +76,8 @@ function AppInner() {
   }, [dispatch]);
 
   const leaveSession = useCallback(() => {
-    setSessionCode(null);
     localStorage.removeItem(SESSION_STORAGE_KEY);
+    window.location.reload();
   }, []);
 
   // On mount: reconnect to saved session if any
