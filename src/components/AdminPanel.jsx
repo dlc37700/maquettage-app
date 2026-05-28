@@ -106,6 +106,28 @@ function MiniComp({ comp }) {
       </div>
     );
     case 'separator': return <hr style={{ ...base, border: 'none', borderTop: `1px solid ${props.color || '#E5E7EB'}`, margin: 0 }} />;
+    case 'weekcalendar': {
+      const hBg = props.headerBgColor || '#6C63FF';
+      const hTxt = props.headerTextColor || '#FFFFFF';
+      const rlBg = props.rowLabelBgColor || '#F5F3FF';
+      const bc = props.borderColor || '#E5E7EB';
+      const fs = Math.min(props.fontSize || 11, 8);
+      const DAY_LABELS = ['Lu','Ma','Me','Je','Ve','Sa','Di'];
+      return (
+        <div style={{ ...base, border: `1px solid ${bc}`, borderRadius: props.borderRadius || 8, overflow: 'hidden', display: 'flex', flexDirection: 'column', backgroundColor: props.bgColor || '#FFFFFF' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '18px repeat(7,1fr)', flexShrink: 0 }}>
+            <div style={{ backgroundColor: hBg, borderRight: `1px solid ${bc}`, borderBottom: `1px solid ${bc}` }} />
+            {DAY_LABELS.map(l => <div key={l} style={{ backgroundColor: hBg, color: hTxt, textAlign: 'center', fontSize: fs - 1, fontWeight: 700, padding: '1px 0', borderRight: `1px solid ${bc}`, borderBottom: `1px solid ${bc}` }}>{l}</div>)}
+          </div>
+          {['Mat.','A-M'].map((rl, ri) => (
+            <div key={ri} style={{ display: 'grid', gridTemplateColumns: '18px repeat(7,1fr)', flex: 1, minHeight: 0 }}>
+              <div style={{ backgroundColor: rlBg, fontSize: fs - 2, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRight: `1px solid ${bc}`, borderBottom: ri === 0 ? `1px solid ${bc}` : 'none' }}>{rl}</div>
+              {DAY_LABELS.map((_, di) => <div key={di} style={{ backgroundColor: props.cellBgColor || '#FFFFFF', borderRight: di < 6 ? `1px solid ${bc}` : 'none', borderBottom: ri === 0 ? `1px solid ${bc}` : 'none' }} />)}
+            </div>
+          ))}
+        </div>
+      );
+    }
     default: return <div style={{ ...base, ...bgStyle, borderRadius: props.borderRadius || 0 }} />;
   }
 }

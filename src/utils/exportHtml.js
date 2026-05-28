@@ -203,6 +203,38 @@ function compToHtml(comp) {
       return `<table style="${base}border-collapse:collapse;border-radius:${br}px;overflow:hidden;border:1px solid ${borderColor};font-family:${ff},sans-serif">${rowsHtml}</table>`;
     }
 
+    case 'weekcalendar': {
+      const slots = props.slots || {};
+      const DAYS = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
+      const DAY_LABELS = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+      const ROWS = ['matin','apresmidi'];
+      const ROW_LABELS = ['Matin','Apr&egrave;s-midi'];
+      const hBg = props.headerBgColor || '#6C63FF';
+      const hTxt = props.headerTextColor || '#FFFFFF';
+      const rlBg = props.rowLabelBgColor || '#F5F3FF';
+      const rlTxt = props.rowLabelTextColor || '#4C1D95';
+      const cBg = props.cellBgColor || '#FFFFFF';
+      const cTxt = props.cellTextColor || '#1F2937';
+      const bc = props.borderColor || '#E5E7EB';
+      const fs = props.fontSize || 11;
+      const ff = props.fontFamily || 'Nunito';
+      const br = props.borderRadius ?? 8;
+      const colW = `calc((100% - 44px) / 7)`;
+      const headerCells = DAY_LABELS.map(l =>
+        `<th style="width:${colW};background:${hBg};color:${hTxt};font-weight:800;text-align:center;padding:4px 2px;border-right:1px solid ${bc};font-size:${fs}px;font-family:${ff},sans-serif">${l}</th>`
+      ).join('');
+      const dataRows = ROWS.map((row, ri) => {
+        const cells = DAYS.map((day, di) => {
+          const val = escHtml(slots[day]?.[row] || '');
+          const borderRight = di < DAYS.length - 1 ? `border-right:1px solid ${bc};` : '';
+          return `<td style="background:${cBg};color:${cTxt};text-align:center;padding:3px 2px;font-size:${fs}px;font-family:${ff},sans-serif;${borderRight}overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${val}</td>`;
+        }).join('');
+        const borderBottom = ri < ROWS.length - 1 ? `border-bottom:1px solid ${bc};` : '';
+        return `<tr style="${borderBottom}"><td style="width:44px;background:${rlBg};color:${rlTxt};font-weight:700;text-align:center;padding:3px 2px;font-size:${fs - 1}px;font-family:${ff},sans-serif;border-right:1px solid ${bc};line-height:1.2">${ROW_LABELS[ri]}</td>${cells}</tr>`;
+      }).join('');
+      return `<table style="${base}border-collapse:collapse;border-radius:${br}px;overflow:hidden;border:1px solid ${bc};font-family:${ff},sans-serif;background:${props.bgColor||'#FFFFFF'}"><thead><tr><th style="width:44px;background:${hBg};border-right:1px solid ${bc};padding:4px 2px"></th>${headerCells}</tr></thead><tbody>${dataRows}</tbody></table>`;
+    }
+
     default:
       return '';
   }

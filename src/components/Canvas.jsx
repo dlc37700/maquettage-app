@@ -140,6 +140,92 @@ function CalendarRenderer({ comp, isReadOnly }) {
   );
 }
 
+function WeeklyCalendarRenderer({ comp, isReadOnly }) {
+  const { dispatch } = useProject();
+  const [editingCell, setEditingCell] = useState(null);
+  const [editValue, setEditValue] = useState('');
+  const p = comp.props;
+  const DAYS = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+  const DAY_LABELS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  const ROWS = ['matin', 'apresmidi'];
+  const ROW_LABELS = ['Matin', 'Après-midi'];
+  const slots = p.slots || {};
+  const border = `1px solid ${p.borderColor || '#E5E7EB'}`;
+  const fs = p.fontSize || 11;
+  const ff = `${p.fontFamily || 'Nunito'}, sans-serif`;
+
+  const startEdit = (e, day, row) => {
+    if (isReadOnly) return;
+    e.stopPropagation();
+    setEditValue(slots[day]?.[row] || '');
+    setEditingCell({ day, row });
+  };
+
+  const commitEdit = () => {
+    if (!editingCell || isReadOnly) return;
+    const { day, row } = editingCell;
+    const newSlots = { ...slots };
+    if (!newSlots[day]) newSlots[day] = { matin: '', apresmidi: '' };
+    newSlots[day] = { ...newSlots[day], [row]: editValue };
+    dispatch({ type: 'UPDATE_COMPONENT_PROPS', id: comp.id, props: { slots: newSlots } });
+    setEditingCell(null);
+  };
+
+  const colCount = DAYS.length + 1;
+  const gridStyle = {
+    display: 'grid',
+    gridTemplateColumns: `44px repeat(${DAYS.length}, 1fr)`,
+    width: '100%',
+    flex: 1,
+    minHeight: 0,
+  };
+
+  return (
+    <div style={{ width: '100%', height: '100%', borderRadius: p.borderRadius ?? 8, overflow: 'hidden', border, display: 'flex', flexDirection: 'column', fontFamily: ff, fontSize: fs, backgroundColor: p.bgColor || '#FFFFFF' }}>
+      {/* Header row */}
+      <div style={{ ...gridStyle, flexShrink: 0 }}>
+        <div style={{ backgroundColor: p.headerBgColor || '#6C63FF', borderRight: border, borderBottom: border }} />
+        {DAY_LABELS.map((label, i) => (
+          <div key={i} style={{ backgroundColor: p.headerBgColor || '#6C63FF', color: p.headerTextColor || '#FFFFFF', fontWeight: 800, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px 2px', borderRight: i < DAYS.length - 1 ? border : 'none', borderBottom: border, fontSize: fs }}>
+            {label}
+          </div>
+        ))}
+      </div>
+      {/* Data rows */}
+      {ROWS.map((row, ri) => (
+        <div key={row} style={{ ...gridStyle, flex: 1, minHeight: 0 }}>
+          <div style={{ backgroundColor: p.rowLabelBgColor || '#F5F3FF', color: p.rowLabelTextColor || '#4C1D95', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 3px', textAlign: 'center', borderRight: border, borderBottom: ri < ROWS.length - 1 ? border : 'none', fontSize: fs - 1, lineHeight: 1.2 }}>
+            {ROW_LABELS[ri]}
+          </div>
+          {DAYS.map((day, di) => {
+            const isEditing = editingCell?.day === day && editingCell?.row === row;
+            const val = slots[day]?.[row] || '';
+            return (
+              <div key={day} onClick={(e) => startEdit(e, day, row)}
+                style={{ backgroundColor: p.cellBgColor || '#FFFFFF', borderRight: di < DAYS.length - 1 ? border : 'none', borderBottom: ri < ROWS.length - 1 ? border : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 3px', cursor: 'text', position: 'relative', minWidth: 0 }}>
+                {isEditing ? (
+                  <input
+                    autoFocus
+                    value={editValue}
+                    onChange={e => setEditValue(e.target.value)}
+                    onBlur={commitEdit}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') commitEdit(); e.stopPropagation(); }}
+                    onMouseDown={e => e.stopPropagation()}
+                    onTouchStart={e => e.stopPropagation()}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', outline: `2px solid ${p.headerBgColor || '#6C63FF'}`, borderRadius: 2, background: p.cellBgColor || '#FFFFFF', color: p.cellTextColor || '#1F2937', fontSize: fs, fontFamily: ff, textAlign: 'center', padding: '0 2px', boxSizing: 'border-box', zIndex: 10 }}
+                  />
+                ) : (
+                  <span style={{ color: p.cellTextColor || '#1F2937', fontSize: fs, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center', lineHeight: 1.2 }}>{val}</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function TableRenderer({ comp, isReadOnly }) {
   const { state, dispatch } = useProject();
   const isSelected = state.selectedComponentId === comp.id;
@@ -489,6 +575,9 @@ function ComponentRenderer({ comp, isReadOnly }) {
 
     case 'calendar':
       return <CalendarRenderer comp={comp} isReadOnly={isReadOnly} />;
+
+    case 'weekcalendar':
+      return <WeeklyCalendarRenderer comp={comp} isReadOnly={isReadOnly} />;
 
     case 'table':
       return <TableRenderer comp={comp} isReadOnly={isReadOnly} />;
