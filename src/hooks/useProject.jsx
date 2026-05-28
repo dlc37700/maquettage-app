@@ -235,6 +235,17 @@ function reducer(state, action) {
         ),
       });
 
+    case 'APPLY_BACKGROUND_TO_SCREENS':
+      // action.screenIds: string[], action.backgroundColor, action.backgroundGradient, action.backgroundImage
+      return {
+        ...state,
+        screens: state.screens.map(s =>
+          action.screenIds.includes(s.id)
+            ? { ...s, backgroundColor: action.backgroundColor ?? s.backgroundColor, backgroundGradient: action.backgroundGradient ?? null, backgroundImage: action.backgroundImage ?? null }
+            : s
+        ),
+      };
+
     case 'SET_BACKGROUND': {
       const hasImageAction = 'image' in action;
       const hasBgAction = 'color' in action || 'gradient' in action;

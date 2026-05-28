@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useProject, useActiveScreen } from '../hooks/useProject';
+import BgApplyModal from './BgApplyModal';
+import { getClientNickname } from '../services/session';
 
 const THUMB_W = 120;
 const SCALE = THUMB_W / 390;
@@ -218,8 +220,9 @@ const actionBtnStyle = {
   color: 'rgba(255,255,255,0.8)',
 };
 
-export default function ScreenManager() {
+export default function ScreenManager({ isCreator = false, sessionCode = null }) {
   const { state, dispatch } = useProject();
+  const [showBgModal, setShowBgModal] = useState(false);
 
   const addScreen = () => {
     dispatch({ type: 'ADD_SCREEN' });
@@ -282,6 +285,33 @@ export default function ScreenManager() {
         ))}
       </div>
 
+      {isCreator && sessionCode && (
+        <div style={{ padding: '6px 8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+          <button
+            onClick={() => setShowBgModal(true)}
+            style={{
+              width: '100%',
+              padding: '7px 0',
+              borderRadius: 8,
+              border: '1.5px solid rgba(124,58,237,0.5)',
+              backgroundColor: 'rgba(124,58,237,0.12)',
+              color: '#A78BFA',
+              fontSize: 11,
+              fontFamily: 'Nunito, sans-serif',
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              transition: 'background-color 0.15s',
+            }}
+          >
+            🎨 Appliquer arrière-plan à…
+          </button>
+        </div>
+      )}
+
       <div style={{
         padding: '6px 10px',
         borderTop: '1px solid rgba(255,255,255,0.06)',
@@ -292,6 +322,16 @@ export default function ScreenManager() {
       }}>
         Max. 10 écrans recommandé
       </div>
+
+      {showBgModal && (
+        <BgApplyModal
+          sourceScreen={state.screens.find(s => !s._remote)}
+          allScreens={state.screens}
+          sessionCode={sessionCode}
+          myNickname={getClientNickname()}
+          onClose={() => setShowBgModal(false)}
+        />
+      )}
     </div>
   );
 }
