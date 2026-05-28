@@ -111,39 +111,34 @@ function SessionList({ sessions, onSelect, onBlock, onCopy, onDelete }) {
     return <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 14, marginTop: 40 }}>Aucune session trouvée.</div>;
   }
 
-  // Group by schoolName, fallback to "Sans établissement"
-  const groups = [];
-  const seen = {};
+  const groupMap = {};
+  const groupOrder = [];
   for (const s of sessions) {
     const key = (s.schoolName || '').trim() || 'Sans établissement';
-    if (!seen[key]) { seen[key] = []; groups.push(key); }
-    seen[key].push(s);
+    if (!groupMap[key]) { groupMap[key] = []; groupOrder.push(key); }
+    groupMap[key].push(s);
   }
 
+  const isOpen = (key) => (key in openGroups ? openGroups[key] : true);
   const toggle = (key) => setOpenGroups(prev => ({ ...prev, [key]: !prev[key] }));
-
-  // Open all by default on first render
-  const isOpen = (key) => key in openGroups ? openGroups[key] : true;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      {groups.map(groupKey => {
-        const groupSessions = seen[groupKey];
-        const active = groupSessions.filter(s => s.isActive).length;
+      {groupOrder.map(groupKey => {
+        const groupSessions = groupMap[groupKey];
+        const activeCount = groupSessions.filter(s => s.isActive).length;
         const open = isOpen(groupKey);
         return (
           <div key={groupKey} style={{ borderRadius: 12, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-            {/* Accordion header */}
             <button
               onClick={() => toggle(groupKey)}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', backgroundColor: open ? '#F5F3FF' : 'white', border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', transition: 'background 0.15s', borderBottom: open ? '1px solid #E5E7EB' : 'none' }}
+              style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', backgroundColor: open ? '#F5F3FF' : 'white', border: 'none', borderBottom: open ? '1px solid #E5E7EB' : 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', transition: 'background 0.15s' }}
             >
-              <span style={{ fontSize: 16, transition: 'transform 0.2s', display: 'inline-block', transform: open ? 'rotate(90deg)' : 'rotate(0deg)', color: '#7C3AED' }}>▶</span>
+              <span style={{ fontSize: 13, display: 'inline-block', transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s', color: '#7C3AED' }}>▶</span>
               <span style={{ fontWeight: 900, fontSize: 14, color: '#1F2937', flex: 1, textAlign: 'left' }}>🏫 {groupKey}</span>
               <span style={{ backgroundColor: '#EDE9FE', color: '#6D28D9', borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 700 }}>{groupSessions.length} session{groupSessions.length > 1 ? 's' : ''}</span>
-              {active > 0 && <span style={{ backgroundColor: '#D1FAE5', color: '#065F46', borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 700 }}>🟢 {active} active{active > 1 ? 's' : ''}</span>}
+              {activeCount > 0 && <span style={{ backgroundColor: '#D1FAE5', color: '#065F46', borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 700 }}>🟢 {activeCount} active{activeCount > 1 ? 's' : ''}</span>}
             </button>
-            {/* Accordion body */}
             {open && (
               <div style={{ padding: 12, backgroundColor: '#FAFAFA', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 10 }}>
                 {groupSessions.map(session => (
