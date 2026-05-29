@@ -62,8 +62,8 @@ function MiniComp({ comp }) {
       </div>
     );
     case 'image': return props.imageData
-      ? <img src={props.imageData} alt="" style={{ ...base, borderRadius: props.borderRadius || 8, objectFit: props.objectFit || 'cover' }} />
-      : <div style={{ ...base, backgroundColor: '#F3F4F6', border: '2px dashed #D1D5DB', borderRadius: props.borderRadius || 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🖼️</div>;
+      ? <img src={props.imageData} alt="" style={{ ...base, borderRadius: props.borderRadius ?? 8, objectFit: props.frameless ? (props.objectFit || 'contain') : (props.objectFit || 'cover'), overflow: props.frameless ? undefined : 'hidden' }} />
+      : <div style={{ ...base, backgroundColor: props.frameless ? 'transparent' : '#F3F4F6', border: '1.5px dashed #D1D5DB', borderRadius: props.borderRadius ?? 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🖼️</div>;
     case 'avatar': return props.imageData
       ? <img src={props.imageData} alt="" style={{ ...base, borderRadius: '50%', objectFit: 'cover' }} />
       : <div style={{ ...base, ...bgStyle, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.round(Math.min(pos.width || 40, pos.height || 40) * 0.5) }}>{props.emoji || '👤'}</div>;

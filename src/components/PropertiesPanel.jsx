@@ -345,9 +345,19 @@ function ComponentProperties({ comp }) {
           <ImageUpload value={p.imageData} onChange={v => update({ imageData: v })} shape={comp.type === 'avatar' ? 'circle' : 'rect'} />
         </Field>
       )}
-      {comp.type === 'image' && p.imageData && (
+      {comp.type === 'image' && (
+        <Field label="Sans encadrement">
+          <Toggle value={!!p.frameless} onChange={v => update({ frameless: v })} />
+        </Field>
+      )}
+      {comp.type === 'image' && p.imageData && !p.frameless && (
         <Field label="Ajustement">
           <SelectInput value={p.objectFit || 'cover'} onChange={v => update({ objectFit: v })} options={[{ value: 'cover', label: 'Recadrer (cover)' }, { value: 'contain', label: 'Entier (contain)' }, { value: 'fill', label: 'Étirer (fill)' }]} />
+        </Field>
+      )}
+      {comp.type === 'image' && p.imageData && p.frameless && (
+        <Field label="Ajustement">
+          <SelectInput value={p.objectFit || 'contain'} onChange={v => update({ objectFit: v })} options={[{ value: 'contain', label: 'Entier (contain)' }, { value: 'cover', label: 'Recadrer (cover)' }, { value: 'fill', label: 'Étirer (fill)' }]} />
         </Field>
       )}
 

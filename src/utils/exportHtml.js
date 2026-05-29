@@ -79,13 +79,17 @@ function compToHtml(comp) {
   <span>${escHtml(props.label)}</span>
 </label>`;
 
-    case 'image':
+    case 'image': {
+      const imgBr = props.borderRadius ?? 8;
       if (props.imageData) {
-        return `<img src="${props.imageData}" alt="" style="${base}border-radius:${props.borderRadius || 8}px;object-fit:${props.objectFit || 'cover'}">`;
+        const fit = props.frameless ? (props.objectFit || 'contain') : (props.objectFit || 'cover');
+        const overflow = props.frameless ? '' : 'overflow:hidden;';
+        return `<img src="${props.imageData}" alt="" style="${base}border-radius:${imgBr}px;object-fit:${fit};${overflow}">`;
       }
-      return `<div style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-radius:${props.borderRadius || 8}px;display:flex;align-items:center;justify-content:center;border:2px dashed #D1D5DB">
+      return `<div style="${base}${props.frameless ? '' : getBgCss(props.bgColor, props.bgGradient) + ';'}border-radius:${imgBr}px;display:flex;align-items:center;justify-content:center;border:${props.frameless ? '1.5px' : '2px'} dashed #D1D5DB">
   <span style="font-size:32px">🖼️</span>
 </div>`;
+    }
 
     case 'avatar':
       if (props.imageData) {

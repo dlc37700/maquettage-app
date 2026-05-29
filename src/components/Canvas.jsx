@@ -450,22 +450,34 @@ function ComponentRenderer({ comp, isReadOnly }) {
         </div>
       );
 
-    case 'image':
+    case 'image': {
+      const br = props.borderRadius ?? 8;
       if (props.imageData) {
+        if (props.frameless) {
+          // No clipping wrapper — image floats freely, transparent PNGs show through
+          return (
+            <img
+              src={props.imageData}
+              alt=""
+              style={{ width: '100%', height: '100%', objectFit: props.objectFit || 'contain', display: 'block', borderRadius: br }}
+            />
+          );
+        }
         return (
-          <div style={{ width: '100%', height: '100%', borderRadius: props.borderRadius || 8, overflow: 'hidden' }}>
+          <div style={{ width: '100%', height: '100%', borderRadius: br, overflow: 'hidden' }}>
             <img src={props.imageData} alt="" style={{ width: '100%', height: '100%', objectFit: props.objectFit || 'cover', display: 'block' }} />
           </div>
         );
       }
       return (
-        <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), borderRadius: props.borderRadius || 8, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #D1D5DB' }}>
+        <div style={{ width: '100%', height: '100%', ...(!props.frameless && getBg(props.bgColor, props.bgGradient)), borderRadius: br, display: 'flex', alignItems: 'center', justifyContent: 'center', border: props.frameless ? '1.5px dashed #D1D5DB' : '2px dashed #D1D5DB' }}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: Math.min(pos.width, pos.height) * 0.28 }}>🖼️</div>
             <div style={{ fontSize: 11, marginTop: 4, fontFamily: 'Nunito, sans-serif', color: '#9CA3AF' }}>Cliquer pour importer</div>
           </div>
         </div>
       );
+    }
 
     case 'avatar':
       if (props.imageData) {
