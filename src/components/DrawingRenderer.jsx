@@ -16,9 +16,13 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
     setLoading(true);
     setError('');
     setPreviewUrl('');
-    const enhanced = `clean digital illustration of ${prompt.trim()}, simple minimalist design, white background, flat art style`;
+    const subject = prompt.trim();
+    // Keep subject first and prominent; "dessin de" anchors French words in their French meaning
+    // (avoids e.g. "papillon" being interpreted as the dog breed instead of a butterfly)
+    const enhanced = `dessin de ${subject}, illustration colorée, fond blanc, style simple et propre`;
+    const negative = `dog breed, ugly, blurry, text, watermark, signature`;
     const seed = Math.floor(Math.random() * 99999);
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhanced)}?width=512&height=512&model=flux&nologo=true&seed=${seed}`;
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhanced)}?width=512&height=512&model=flux&nologo=true&seed=${seed}&negative=${encodeURIComponent(negative)}`;
     setPreviewUrl(url);
   };
 
@@ -35,7 +39,7 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
         <div style={{ fontSize: 38, textAlign: 'center', marginBottom: 6 }}>🤖</div>
         <h3 style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 900, color: '#1e1b4b', textAlign: 'center' }}>Améliorer avec l&apos;IA</h3>
         <p style={{ margin: '0 0 16px', fontSize: 13, color: '#6B7280', lineHeight: 1.5, textAlign: 'center' }}>
-          Décrivez votre dessin pour obtenir une version améliorée
+          Décrivez votre dessin (ex : <em>un papillon</em>, <em>une maison</em>)
         </p>
 
         {sketchDataUrl && (
@@ -50,7 +54,7 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
             value={prompt}
             onChange={e => setPrompt(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && generate()}
-            placeholder="Ex: un chat, une maison, un arbre..."
+            placeholder="Ex: un papillon, une maison rouge, un chat qui dort..."
             style={{ flex: 1, padding: '10px 14px', borderRadius: 10, border: '1.5px solid #DDD6FE', fontSize: 14, fontFamily: 'Nunito, sans-serif', outline: 'none', boxSizing: 'border-box' }}
           />
           <button

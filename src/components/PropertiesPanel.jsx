@@ -340,14 +340,19 @@ function ComponentProperties({ comp }) {
       <SectionTitle>Apparence</SectionTitle>
 
       {/* Image upload for image and avatar */}
+      {comp.type === 'image' && (
+        <Field label="Sans encadrement (PNG libre)">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Toggle value={!!p.frameless} onChange={v => update({ frameless: v })} />
+            <span style={{ fontSize: 11, color: '#6B7280', fontFamily: 'Nunito, sans-serif', lineHeight: 1.3 }}>
+              {p.frameless ? 'Image flottante sans découpe' : 'Image avec cadre et découpe'}
+            </span>
+          </div>
+        </Field>
+      )}
       {(comp.type === 'image' || comp.type === 'avatar') && (
         <Field label="Image">
           <ImageUpload value={p.imageData} onChange={v => update({ imageData: v })} shape={comp.type === 'avatar' ? 'circle' : 'rect'} />
-        </Field>
-      )}
-      {comp.type === 'image' && (
-        <Field label="Sans encadrement">
-          <Toggle value={!!p.frameless} onChange={v => update({ frameless: v })} />
         </Field>
       )}
       {comp.type === 'image' && p.imageData && !p.frameless && (
