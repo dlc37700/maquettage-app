@@ -406,6 +406,14 @@ function ComponentProperties({ comp }) {
         <Field label="Fond en-tête"><ColorInput value={p.headerBgColor || '#6C63FF'} onChange={v => update({ headerBgColor: v })} /></Field>
       )}
 
+      {/* Search bar specific */}
+      {comp.type === 'searchbar' && (
+        <>
+          <Field label="Couleur icône"><ColorInput value={p.iconColor || '#9CA3AF'} onChange={v => update({ iconColor: v })} /></Field>
+          <Field label="Bouton effacer"><Toggle value={!!p.showClearBtn} onChange={v => update({ showClearBtn: v })} /></Field>
+        </>
+      )}
+
       {/* Drawing specific */}
       {comp.type === 'drawing' && (
         <Field label="Couleur bordure"><ColorInput value={p.borderColor || '#E5E7EB'} onChange={v => update({ borderColor: v })} /></Field>
