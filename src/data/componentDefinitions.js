@@ -96,7 +96,7 @@ export const COMPONENT_DEFINITIONS = [
     label: 'Image',
     icon: '🖼️',
     category: 'Médias',
-    defaultProps: { bgColor: '#E5E7EB', borderRadius: 8, opacity: 1, imageData: null, navigateTo: '', objectFit: 'cover' },
+    defaultProps: { bgColor: '#E5E7EB', borderRadius: 8, opacity: 1, imageData: null, navigateTo: '', objectFit: 'cover', frameless: false },
     defaultSize: { width: 270, height: 160 },
     tooltip: 'Importer une vraie image (jpg, png…)',
   },
