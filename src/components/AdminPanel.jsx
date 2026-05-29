@@ -94,6 +94,13 @@ function MiniComp({ comp }) {
         <span style={{ color: '#9CA3AF', fontSize: props.fontSize || 14, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{props.placeholder || props.label || ''}</span>
       </div>
     );
+    case 'searchbar': return (
+      <div style={{ ...base, backgroundColor: props.bgColor || '#F3F4F6', borderRadius: props.borderRadius ?? 24, display: 'flex', alignItems: 'center', padding: '0 8px', gap: 5, overflow: 'hidden' }}>
+        <span style={{ fontSize: Math.min(props.fontSize || 14, 14), flexShrink: 0 }}>🔍</span>
+        <span style={{ color: props.textColor || '#9CA3AF', fontSize: Math.min(props.fontSize || 14, 11), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{props.placeholder || 'Rechercher…'}</span>
+        {props.showClearBtn && <span style={{ color: props.iconColor || '#9CA3AF', fontSize: 9, flexShrink: 0 }}>✕</span>}
+      </div>
+    );
     case 'listitem': return (
       <div style={{ ...base, ...bgStyle, borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
         <div style={{ width: 34, height: 34, backgroundColor: '#EDE9FE', borderRadius: 9, flexShrink: 0 }} />

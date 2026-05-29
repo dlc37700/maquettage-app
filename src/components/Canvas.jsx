@@ -410,6 +410,26 @@ function ComponentRenderer({ comp, isReadOnly }) {
         </div>
       );
 
+    case 'searchbar': {
+      const iconColor = props.iconColor || '#9CA3AF';
+      const ff = `${props.fontFamily || 'Nunito'}, sans-serif`;
+      const br = props.borderRadius ?? 24;
+      const fs = props.fontSize || 14;
+      return (
+        <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, null), borderRadius: br, display: 'flex', alignItems: 'center', padding: '0 12px', gap: 8, boxSizing: 'border-box', overflow: 'hidden' }}>
+          <LucideIcons.Search size={Math.round(fs * 1.15)} color={iconColor} strokeWidth={2.2} style={{ flexShrink: 0 }} />
+          <span style={{ flex: 1, color: props.textColor || '#6B7280', fontSize: fs, fontFamily: ff, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1 }}>
+            {props.placeholder || 'Rechercher…'}
+          </span>
+          {props.showClearBtn && (
+            <div style={{ width: Math.round(fs * 1.2), height: Math.round(fs * 1.2), borderRadius: '50%', backgroundColor: iconColor + '33', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <LucideIcons.X size={Math.round(fs * 0.7)} color={iconColor} strokeWidth={2.5} />
+            </div>
+          )}
+        </div>
+      );
+    }
+
     case 'checkbox':
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: '100%' }}>

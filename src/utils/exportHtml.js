@@ -50,6 +50,23 @@ function compToHtml(comp) {
   <input type="text" placeholder="${escHtml(props.placeholder)}" style="flex:1;${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};border-radius:${props.borderRadius || 8}px;border:1.5px solid #E5E7EB;padding:0 12px;font-size:14px;font-family:${props.fontFamily || 'Nunito'},sans-serif;outline:none;width:100%;box-sizing:border-box">
 </div>`;
 
+    case 'searchbar': {
+      const iconColor = props.iconColor || '#9CA3AF';
+      const br = props.borderRadius ?? 24;
+      const fs = props.fontSize || 14;
+      const ff = props.fontFamily || 'Nunito';
+      const bg = props.bgColor || '#F3F4F6';
+      const tc = props.textColor || '#6B7280';
+      const clearBtn = props.showClearBtn
+        ? `<span style="width:${Math.round(fs*1.2)}px;height:${Math.round(fs*1.2)}px;border-radius:50%;background:${iconColor}33;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:${Math.round(fs*0.6)}px;color:${iconColor}">✕</span>`
+        : '';
+      return `<div style="${base}background:${bg};border-radius:${br}px;display:flex;align-items:center;padding:0 12px;gap:8px;box-sizing:border-box;overflow:hidden">
+  <svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(fs*1.15)}" height="${Math.round(fs*1.15)}" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+  <span style="flex:1;color:${tc};font-size:${fs}px;font-family:${ff},sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(props.placeholder || 'Rechercher…')}</span>
+  ${clearBtn}
+</div>`;
+    }
+
     case 'checkbox':
       return `<label style="${base}display:flex;align-items:center;gap:10px;cursor:pointer;font-family:${props.fontFamily || 'Nunito'},sans-serif;color:${props.textColor};font-size:${props.fontSize || 14}px">
   <input type="checkbox"${props.checked ? ' checked' : ''} style="width:18px;height:18px;accent-color:${props.accentColor};cursor:pointer;flex-shrink:0">
