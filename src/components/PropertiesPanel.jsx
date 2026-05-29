@@ -406,6 +406,11 @@ function ComponentProperties({ comp }) {
         <Field label="Fond en-tête"><ColorInput value={p.headerBgColor || '#6C63FF'} onChange={v => update({ headerBgColor: v })} /></Field>
       )}
 
+      {/* Drawing specific */}
+      {comp.type === 'drawing' && (
+        <Field label="Couleur bordure"><ColorInput value={p.borderColor || '#E5E7EB'} onChange={v => update({ borderColor: v })} /></Field>
+      )}
+
       {/* Weekly calendar specific */}
       {comp.type === 'weekcalendar' && (
         <>

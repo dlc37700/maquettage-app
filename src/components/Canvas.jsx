@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { useProject, useActiveScreen } from '../hooks/useProject';
 import * as LucideIcons from 'lucide-react';
 import * as TablerIcons from '@tabler/icons-react';
+import DrawingRenderer from './DrawingRenderer';
 
 const CANVAS_W = 390;
 const CANVAS_H = 844;
@@ -578,6 +579,9 @@ function ComponentRenderer({ comp, isReadOnly }) {
 
     case 'weekcalendar':
       return <WeeklyCalendarRenderer comp={comp} isReadOnly={isReadOnly} />;
+
+    case 'drawing':
+      return <DrawingRenderer comp={comp} isReadOnly={isReadOnly} />;
 
     case 'table':
       return <TableRenderer comp={comp} isReadOnly={isReadOnly} />;
