@@ -106,6 +106,11 @@ function MiniComp({ comp }) {
       </div>
     );
     case 'separator': return <hr style={{ ...base, border: 'none', borderTop: `1px solid ${props.color || '#E5E7EB'}`, margin: 0 }} />;
+    case 'drawing': {
+      const src = props.showAiResult && props.aiImageUrl ? props.aiImageUrl : (props.drawingData || null);
+      if (src) return <img src={src} alt="dessin" style={{ ...base, borderRadius: props.borderRadius || 8, objectFit: 'contain', border: `1px solid ${props.borderColor || '#E5E7EB'}`, backgroundColor: props.bgColor || '#FFFFFF' }} />;
+      return <div style={{ ...base, backgroundColor: props.bgColor || '#FFFFFF', border: `1px solid ${props.borderColor || '#E5E7EB'}`, borderRadius: props.borderRadius || 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, color: '#9CA3AF' }}>🖌️</div>;
+    }
     case 'weekcalendar': {
       const hBg = props.headerBgColor || '#6C63FF';
       const hTxt = props.headerTextColor || '#FFFFFF';

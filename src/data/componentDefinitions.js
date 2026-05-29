@@ -260,6 +260,23 @@ export const COMPONENT_DEFINITIONS = [
     defaultSize: { width: 380, height: 160 },
     tooltip: 'Un calendrier semaine avec cases Matin / Après-midi',
   },
+  {
+    type: 'drawing',
+    label: 'Zone de dessin',
+    icon: '🖌️',
+    category: 'Médias',
+    defaultProps: {
+      bgColor: '#FFFFFF',
+      borderColor: '#E5E7EB',
+      borderRadius: 8,
+      opacity: 1,
+      drawingData: null,
+      aiImageUrl: null,
+      showAiResult: false,
+    },
+    defaultSize: { width: 340, height: 260 },
+    tooltip: 'Dessinez à main levée, puis améliorez avec l\'IA',
+  },
 ];
 
 export const BUTTON_PRESETS = [

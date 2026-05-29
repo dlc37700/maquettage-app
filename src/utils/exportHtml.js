@@ -203,6 +203,14 @@ function compToHtml(comp) {
       return `<table style="${base}border-collapse:collapse;border-radius:${br}px;overflow:hidden;border:1px solid ${borderColor};font-family:${ff},sans-serif">${rowsHtml}</table>`;
     }
 
+    case 'drawing': {
+      const src = props.showAiResult && props.aiImageUrl ? props.aiImageUrl : (props.drawingData || null);
+      const br = props.borderRadius ?? 8;
+      const border = `1px solid ${props.borderColor || '#E5E7EB'}`;
+      if (!src) return `<div style="${base}background:${props.bgColor||'#FFFFFF'};border-radius:${br}px;border:${border}"></div>`;
+      return `<img src="${escHtml(src)}" style="${base}border-radius:${br}px;border:${border};object-fit:contain;background:${props.bgColor||'#FFFFFF'}" />`;
+    }
+
     case 'weekcalendar': {
       const slots = props.slots || {};
       const DAYS = ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche'];
