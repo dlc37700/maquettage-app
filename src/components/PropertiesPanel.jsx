@@ -431,7 +431,17 @@ function ComponentProperties({ comp }) {
 
       {/* Drawing specific */}
       {comp.type === 'drawing' && (
-        <Field label="Couleur bordure"><ColorInput value={p.borderColor || '#E5E7EB'} onChange={v => update({ borderColor: v })} /></Field>
+        <>
+          <Field label="Sans encadrement (image libre)">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Toggle value={!!p.frameless} onChange={v => update({ frameless: v })} />
+              <span style={{ fontSize: 11, color: '#6B7280', fontFamily: 'Nunito, sans-serif', lineHeight: 1.3 }}>
+                {p.frameless ? 'Fond transparent, sans bordure' : 'Avec fond et bordure'}
+              </span>
+            </div>
+          </Field>
+          {!p.frameless && <Field label="Couleur bordure"><ColorInput value={p.borderColor || '#E5E7EB'} onChange={v => update({ borderColor: v })} /></Field>}
+        </>
       )}
 
       {/* Weekly calendar specific */}

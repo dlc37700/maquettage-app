@@ -121,13 +121,16 @@ export default function DrawingRenderer({ comp, isReadOnly }) {
   const lastPt = useRef(null);
 
   const p = comp.props;
-  // Always use refs so effects/handlers read latest values without stale closure issues
+  // Refs so effects/handlers always read latest values without stale closures
   const bgColorRef = useRef(p.bgColor || '#FFFFFF');
   const drawingDataRef = useRef(p.drawingData || null);
+  const framelessRef = useRef(!!p.frameless);
   bgColorRef.current = p.bgColor || '#FFFFFF';
   drawingDataRef.current = p.drawingData || null;
+  framelessRef.current = !!p.frameless;
 
   const showAiResult = !!(p.aiImageUrl && p.showAiResult);
+  const frameless = !!p.frameless;
   const toolbarH = isReadOnly ? 0 : TOOLBAR_H;
   const canvasW = Math.round(comp.position.width);
   const canvasH = Math.round(comp.position.height - toolbarH);
@@ -137,8 +140,12 @@ export default function DrawingRenderer({ comp, isReadOnly }) {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = bgColorRef.current;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    if (framelessRef.current) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    } else {
+      ctx.fillStyle = bgColorRef.current;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
     if (drawingDataRef.current) {
       const img = new Image();
       img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
@@ -146,10 +153,10 @@ export default function DrawingRenderer({ comp, isReadOnly }) {
     }
   };
 
-  // Re-init when canvas logical size or background color changes
+  // Re-init when canvas logical size, background color or frameless mode changes
   useEffect(() => {
     initCanvas();
-  }, [canvasW, canvasH, p.bgColor]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [canvasW, canvasH, p.bgColor, p.frameless]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveCanvas = () => {
     if (!canvasRef.current) return;
@@ -176,10 +183,20 @@ export default function DrawingRenderer({ comp, isReadOnly }) {
     lastPt.current = pos;
     const ctx = canvasRef.current.getContext('2d');
     const isEraser = tool === 'eraser';
-    ctx.beginPath();
-    ctx.arc(pos.x, pos.y, (isEraser ? lineWidth * 2.5 : lineWidth) / 2, 0, Math.PI * 2);
-    ctx.fillStyle = isEraser ? bgColorRef.current : penColor;
-    ctx.fill();
+    if (isEraser && framelessRef.current) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, lineWidth * 2.5, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,0,0,1)';
+      ctx.fill();
+      ctx.restore();
+    } else {
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, (isEraser ? lineWidth * 2.5 : lineWidth) / 2, 0, Math.PI * 2);
+      ctx.fillStyle = isEraser ? bgColorRef.current : penColor;
+      ctx.fill();
+    }
   };
 
   const handlePointerMove = (e) => {
@@ -189,14 +206,28 @@ export default function DrawingRenderer({ comp, isReadOnly }) {
     const pos = getPos(e);
     const ctx = canvasRef.current.getContext('2d');
     const isEraser = tool === 'eraser';
-    ctx.beginPath();
-    ctx.moveTo(lastPt.current.x, lastPt.current.y);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.strokeStyle = isEraser ? bgColorRef.current : penColor;
-    ctx.lineWidth = isEraser ? lineWidth * 5 : lineWidth;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke();
+    if (isEraser && framelessRef.current) {
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.beginPath();
+      ctx.moveTo(lastPt.current.x, lastPt.current.y);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.lineWidth = lineWidth * 5;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = 'rgba(0,0,0,1)';
+      ctx.stroke();
+      ctx.restore();
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(lastPt.current.x, lastPt.current.y);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.strokeStyle = isEraser ? bgColorRef.current : penColor;
+      ctx.lineWidth = isEraser ? lineWidth * 5 : lineWidth;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+    }
     lastPt.current = pos;
   };
 
@@ -212,8 +243,12 @@ export default function DrawingRenderer({ comp, isReadOnly }) {
     const canvas = canvasRef.current;
     if (canvas) {
       const ctx = canvas.getContext('2d');
-      ctx.fillStyle = bgColorRef.current;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (framelessRef.current) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      } else {
+        ctx.fillStyle = bgColorRef.current;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
     }
     dispatch({ type: 'UPDATE_COMPONENT_PROPS', id: comp.id, props: { drawingData: null, aiImageUrl: null, showAiResult: false } });
   };
@@ -239,11 +274,11 @@ export default function DrawingRenderer({ comp, isReadOnly }) {
   });
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', borderRadius: p.borderRadius ?? 8, overflow: 'hidden', border: `1px solid ${p.borderColor || '#E5E7EB'}` }}>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', borderRadius: p.borderRadius ?? 8, overflow: 'hidden', border: frameless ? 'none' : `1px solid ${p.borderColor || '#E5E7EB'}` }}>
 
       {!isReadOnly && (
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 6px', backgroundColor: '#F9FAFB', borderBottom: `1px solid ${p.borderColor || '#E5E7EB'}`, flexShrink: 0, height: TOOLBAR_H, boxSizing: 'border-box' }}
+          style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 6px', backgroundColor: frameless ? 'rgba(255,255,255,0.85)' : '#F9FAFB', borderBottom: frameless ? 'none' : `1px solid ${p.borderColor || '#E5E7EB'}`, flexShrink: 0, height: TOOLBAR_H, boxSizing: 'border-box', backdropFilter: frameless ? 'blur(4px)' : undefined, position: frameless ? 'absolute' : undefined, top: frameless ? 0 : undefined, left: frameless ? 0 : undefined, right: frameless ? 0 : undefined, zIndex: frameless ? 2 : undefined, borderRadius: frameless ? '8px 8px 0 0' : undefined }}
           onMouseDown={e => e.stopPropagation()}
         >
           {!showAiResult ? (
@@ -282,7 +317,7 @@ export default function DrawingRenderer({ comp, isReadOnly }) {
       )}
 
       {/* AI result display – always in DOM so canvas doesn't unmount */}
-      <div style={{ display: showAiResult ? 'flex' : 'none', flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: p.bgColor || '#FFFFFF', overflow: 'hidden' }}>
+      <div style={{ display: showAiResult ? 'flex' : 'none', flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: frameless ? 'transparent' : (p.bgColor || '#FFFFFF'), overflow: 'hidden' }}>
         {p.aiImageUrl && <img src={p.aiImageUrl} alt="IA" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />}
       </div>
 
@@ -291,7 +326,7 @@ export default function DrawingRenderer({ comp, isReadOnly }) {
         ref={canvasRef}
         width={canvasW}
         height={canvasH}
-        style={{ display: showAiResult ? 'none' : 'block', flexShrink: 0, cursor: isReadOnly ? 'default' : tool === 'eraser' ? 'cell' : 'crosshair', touchAction: 'none' }}
+        style={{ display: showAiResult ? 'none' : 'block', flexShrink: 0, cursor: isReadOnly ? 'default' : tool === 'eraser' ? 'cell' : 'crosshair', touchAction: 'none', marginTop: frameless && !isReadOnly ? TOOLBAR_H : 0 }}
         onMouseDown={handlePointerDown}
         onMouseMove={handlePointerMove}
         onMouseUp={handlePointerUp}
