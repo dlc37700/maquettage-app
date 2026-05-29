@@ -290,6 +290,7 @@ export const COMPONENT_DEFINITIONS = [
       bgColor: '#FFFFFF',
       borderColor: '#E5E7EB',
       borderRadius: 8,
+      frameless: false,
       opacity: 1,
       drawingData: null,
       aiImageUrl: null,
