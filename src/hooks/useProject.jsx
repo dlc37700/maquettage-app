@@ -16,6 +16,7 @@ const INITIAL_STATE = {
   activeScreenId: INITIAL_ID,
   selectedComponentId: null,
   selectedNavbarItemIndex: null,
+  pendingTool: null,
 };
 
 function takeSnapshot(state) {
@@ -137,6 +138,7 @@ function reducer(state, action) {
           comps => [...comps, newComp]
         ),
         selectedComponentId: newComp.id,
+        pendingTool: null,
       });
     }
 
@@ -329,6 +331,22 @@ function reducer(state, action) {
         screens: next.screens,
         selectedComponentId: null,
       };
+    }
+
+    case 'SET_PENDING_TOOL':
+      return { ...state, pendingTool: action.tool || null };
+
+    case 'MOVE_LINE_ENDPOINT': {
+      // Updates both position and endpoint fractions atomically
+      const screens = updateScreenComponents(state.screens, state.activeScreenId, comps =>
+        comps.map(c => c.id === action.id ? {
+          ...c,
+          position: { x: action.x, y: action.y, width: action.width, height: action.height },
+          props: { ...c.props, x1f: action.x1f, y1f: action.y1f, x2f: action.x2f, y2f: action.y2f },
+        } : c)
+      );
+      if (action.commit) return pushHistory(state, { screens });
+      return { ...state, screens };
     }
 
     default:

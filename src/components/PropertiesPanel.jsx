@@ -506,6 +506,85 @@ function ComponentProperties({ comp }) {
         </>
       )}
 
+      {/* Line specific */}
+      {comp.type === 'line' && (
+        <>
+          <SectionTitle>Style de ligne</SectionTitle>
+          <Field label="Couleur">
+            <ColorInput value={p.color || '#374151'} onChange={v => update({ color: v })} />
+          </Field>
+          <Field label={`Épaisseur (${p.thickness ?? 2}px)`}>
+            <RangeInput value={p.thickness ?? 2} min={1} max={20} onChange={v => update({ thickness: v })} />
+          </Field>
+          <Field label="Style">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 5 }}>
+              {[
+                { id: 'solid', label: 'Plein' },
+                { id: 'dashed', label: 'Tirets' },
+                { id: 'dotted', label: 'Pointillés' },
+                { id: 'long-dash', label: 'Longs tirets' },
+                { id: 'dash-dot', label: 'Tiret-point' },
+                { id: 'double', label: 'Double' },
+              ].map(ls => {
+                const active = (p.lineStyle || 'solid') === ls.id;
+                const lc = p.color || '#374151';
+                return (
+                  <button key={ls.id} onClick={() => update({ lineStyle: ls.id })}
+                    style={{ padding: '5px 4px', borderRadius: 7, border: `2px solid ${active ? '#6C63FF' : '#E5E7EB'}`, backgroundColor: active ? '#EDE9FE' : '#F9FAFB', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                    <svg width="52" height="10" viewBox="0 0 52 10" style={{ display: 'block' }}>
+                      {ls.id === 'solid' && <line x1="3" y1="5" x2="49" y2="5" stroke={lc} strokeWidth="2" />}
+                      {ls.id === 'dashed' && <line x1="3" y1="5" x2="49" y2="5" stroke={lc} strokeWidth="2" strokeDasharray="6,4" />}
+                      {ls.id === 'dotted' && <line x1="3" y1="5" x2="49" y2="5" stroke={lc} strokeWidth="2.5" strokeDasharray="1.5,3" strokeLinecap="round" />}
+                      {ls.id === 'double' && <><line x1="3" y1="3" x2="49" y2="3" stroke={lc} strokeWidth="1.5" /><line x1="3" y1="7" x2="49" y2="7" stroke={lc} strokeWidth="1.5" /></>}
+                      {ls.id === 'long-dash' && <line x1="3" y1="5" x2="49" y2="5" stroke={lc} strokeWidth="2" strokeDasharray="12,4" />}
+                      {ls.id === 'dash-dot' && <line x1="3" y1="5" x2="49" y2="5" stroke={lc} strokeWidth="2" strokeDasharray="8,3,2,3" />}
+                    </svg>
+                    <span style={{ fontSize: 10, fontFamily: 'Nunito, sans-serif', fontWeight: 700, color: active ? '#6C63FF' : '#9CA3AF' }}>{ls.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </Field>
+          <SectionTitle>Extrémités</SectionTitle>
+          <Field label="Point A (début)">
+            <div style={{ display: 'flex', gap: 4 }}>
+              {[{ id: 'none', label: '—' }, { id: 'arrow', label: '◀' }, { id: 'dot', label: '●' }].map(opt => (
+                <button key={opt.id} onClick={() => update({ arrowStart: opt.id })}
+                  style={{ flex: 1, padding: '6px 4px', borderRadius: 7, border: `1.5px solid ${(p.arrowStart || 'none') === opt.id ? '#6C63FF' : '#E5E7EB'}`, backgroundColor: (p.arrowStart || 'none') === opt.id ? '#EDE9FE' : '#F9FAFB', cursor: 'pointer', fontSize: 14, color: (p.arrowStart || 'none') === opt.id ? '#6C63FF' : '#374151', fontFamily: 'Nunito, sans-serif', fontWeight: 700 }}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <Field label="Point B (fin)">
+            <div style={{ display: 'flex', gap: 4 }}>
+              {[{ id: 'none', label: '—' }, { id: 'arrow', label: '▶' }, { id: 'dot', label: '●' }].map(opt => (
+                <button key={opt.id} onClick={() => update({ arrowEnd: opt.id })}
+                  style={{ flex: 1, padding: '6px 4px', borderRadius: 7, border: `1.5px solid ${(p.arrowEnd || 'none') === opt.id ? '#6C63FF' : '#E5E7EB'}`, backgroundColor: (p.arrowEnd || 'none') === opt.id ? '#EDE9FE' : '#F9FAFB', cursor: 'pointer', fontSize: 14, color: (p.arrowEnd || 'none') === opt.id ? '#EC4899' : '#374151', fontFamily: 'Nunito, sans-serif', fontWeight: 700 }}>
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </Field>
+          <SectionTitle>Direction</SectionTitle>
+          <Field label="Présets">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 }}>
+              {[
+                { label: '→', title: 'Horizontal', x1f: 0.05, y1f: 0.5, x2f: 0.95, y2f: 0.5 },
+                { label: '↓', title: 'Vertical', x1f: 0.5, y1f: 0.05, x2f: 0.5, y2f: 0.95 },
+                { label: '↘', title: 'Diagonal ↘', x1f: 0.05, y1f: 0.05, x2f: 0.95, y2f: 0.95 },
+                { label: '↗', title: 'Diagonal ↗', x1f: 0.05, y1f: 0.95, x2f: 0.95, y2f: 0.05 },
+              ].map(d => (
+                <button key={d.label} onClick={() => update({ x1f: d.x1f, y1f: d.y1f, x2f: d.x2f, y2f: d.y2f })} title={d.title}
+                  style={{ padding: '7px 4px', borderRadius: 7, border: '1.5px solid #E5E7EB', backgroundColor: '#F9FAFB', cursor: 'pointer', fontSize: 16, fontFamily: 'Nunito, sans-serif' }}>
+                  {d.label}
+                </button>
+              ))}
+            </div>
+          </Field>
+        </>
+      )}
+
       {/* Shape specific */}
       {comp.type === 'shape' && (
         <>

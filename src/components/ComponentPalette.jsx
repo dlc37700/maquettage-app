@@ -21,7 +21,7 @@ const CATEGORY_ICONS = {
 };
 
 export default function ComponentPalette({ mobile = false }) {
-  const { dispatch } = useProject();
+  const { dispatch, state } = useProject();
   const { images, remove: removeImage } = useImageLibrary();
   const [search, setSearch] = useState('');
   const [openPresets, setOpenPresets] = useState(true);
@@ -192,9 +192,12 @@ export default function ComponentPalette({ mobile = false }) {
                   className="palette-item"
                   draggable
                   onDragStart={(e) => { e.dataTransfer.setData('componentType', def.type); e.dataTransfer.effectAllowed = 'copy'; }}
-                  onClick={() => addComponent(def.type)}
+                  onClick={() => def.type === 'line'
+                    ? dispatch({ type: 'SET_PENDING_TOOL', tool: 'line' })
+                    : addComponent(def.type)
+                  }
                   title={def.tooltip}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 8, cursor: 'grab', border: '1px solid rgba(255,255,255,0.05)' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', backgroundColor: def.type === 'line' && state.pendingTool === 'line' ? 'rgba(108,99,255,0.25)' : 'rgba(255,255,255,0.07)', borderRadius: 8, cursor: 'grab', border: def.type === 'line' && state.pendingTool === 'line' ? '1px solid #6C63FF' : '1px solid rgba(255,255,255,0.05)' }}
                 >
                   <span style={{ fontSize: 16, flexShrink: 0 }}>{def.icon}</span>
                   <span style={{ color: 'rgba(255,255,255,0.88)', fontSize: 12, fontFamily: 'Nunito, sans-serif', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{def.label}</span>
