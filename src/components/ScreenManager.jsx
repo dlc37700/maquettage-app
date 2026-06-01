@@ -285,7 +285,7 @@ export default function ScreenManager({ isCreator = false, sessionCode = null })
         ))}
       </div>
 
-      {isCreator && sessionCode && (
+      {sessionCode && (
         <div style={{ padding: '6px 8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
           <button
             onClick={() => setShowBgModal(true)}
@@ -325,7 +325,7 @@ export default function ScreenManager({ isCreator = false, sessionCode = null })
 
       {showBgModal && (
         <BgApplyModal
-          sourceScreen={state.screens.find(s => !s._remote)}
+          activeScreenId={state.activeScreenId}
           allScreens={state.screens}
           sessionCode={sessionCode}
           myNickname={getClientNickname()}
