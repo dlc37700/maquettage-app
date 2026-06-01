@@ -656,6 +656,22 @@ function ComponentProperties({ comp }) {
         </>
       )}
 
+      <SectionTitle>Transformation</SectionTitle>
+      <Field label={`Rotation (${p.rotation ?? 0}°)`}>
+        <RangeInput value={p.rotation ?? 0} min={0} max={359} onChange={v => update({ rotation: v })} />
+      </Field>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+        <button onClick={() => update({ rotation: 0 })} style={aBtnStyle('#F3F4F6', '#374151')} title="Remettre à 0°">○ Reset</button>
+        <button onClick={() => update({ rotation: (((p.rotation ?? 0) - 90) % 360 + 360) % 360 })} style={aBtnStyle('#F3F4F6', '#374151')} title="-90°">↺ −90°</button>
+        <button onClick={() => update({ rotation: ((p.rotation ?? 0) + 90) % 360 })} style={aBtnStyle('#F3F4F6', '#374151')} title="+90°">↻ +90°</button>
+      </div>
+      <Field label="Miroir">
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button onClick={() => update({ flipH: !(p.flipH) })} style={aBtnStyle(p.flipH ? '#EDE9FE' : '#F3F4F6', p.flipH ? '#6C63FF' : '#374151')}>↔ Horizontal</button>
+          <button onClick={() => update({ flipV: !(p.flipV) })} style={aBtnStyle(p.flipV ? '#EDE9FE' : '#F3F4F6', p.flipV ? '#6C63FF' : '#374151')}>↕ Vertical</button>
+        </div>
+      </Field>
+
       <SectionTitle>Ordre</SectionTitle>
       <div style={{ display: 'flex', gap: 6 }}>
         <button onClick={() => dispatch({ type: 'SET_Z_INDEX', id: comp.id, zIndex: maxZ + 1 })} style={aBtnStyle('#EDE9FE', '#6C63FF')}>⬆️ Devant</button>
