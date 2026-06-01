@@ -308,6 +308,46 @@ function compToHtml(comp) {
       return `<svg${navOnclick} style="${base}${navOnclick ? ';cursor:pointer' : ''};overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${svgInner}</svg>`;
     }
 
+    case 'line': {
+      const w = pos.width;
+      const h = pos.height;
+      const lx1 = (props.x1f ?? 0.05) * w;
+      const ly1 = (props.y1f ?? 0.5) * h;
+      const lx2 = (props.x2f ?? 0.95) * w;
+      const ly2 = (props.y2f ?? 0.5) * h;
+      const color = props.color || '#374151';
+      const thick = props.thickness ?? 2;
+      const style = props.lineStyle || 'solid';
+      let da = '';
+      if (style === 'dashed') da = `stroke-dasharray="${thick*4} ${thick*2}"`;
+      else if (style === 'dotted') da = `stroke-dasharray="${thick} ${thick*2}"`;
+      else if (style === 'long-dash') da = `stroke-dasharray="${thick*8} ${thick*3}"`;
+      else if (style === 'dash-dot') da = `stroke-dasharray="${thick*6} ${thick*2} ${thick} ${thick*2}"`;
+      const uid = `ml${Math.random().toString(36).slice(2,8)}`;
+      const aSize = Math.max(6, thick * 5);
+      const hasA = props.arrowStart && props.arrowStart !== 'none';
+      const hasB = props.arrowEnd && props.arrowEnd !== 'none';
+      let defs = '';
+      if (hasA || hasB) {
+        const mkr = (id, type, isStart) => {
+          if (type === 'arrow') return `<marker id="${id}" markerWidth="${aSize}" markerHeight="${aSize}" refX="${isStart ? aSize : 0}" refY="${aSize/2}" orient="auto${isStart ? '-start-reverse' : ''}"><polygon points="0 0, ${aSize} ${aSize/2}, 0 ${aSize}" fill="${color}"/></marker>`;
+          return `<marker id="${id}" markerWidth="${aSize}" markerHeight="${aSize}" refX="${aSize/2}" refY="${aSize/2}" orient="auto"><circle cx="${aSize/2}" cy="${aSize/2}" r="${aSize/2-0.5}" fill="${color}"/></marker>`;
+        };
+        defs = `<defs>${hasA ? mkr(`${uid}s`, props.arrowStart, true) : ''}${hasB ? mkr(`${uid}e`, props.arrowEnd, false) : ''}</defs>`;
+      }
+      let lineEl;
+      if (style === 'double') {
+        const offset = thick + 1;
+        const angle = Math.atan2(ly2 - ly1, lx2 - lx1);
+        const dx = Math.sin(angle) * offset;
+        const dy = -Math.cos(angle) * offset;
+        lineEl = `<line x1="${lx1+dx}" y1="${ly1+dy}" x2="${lx2+dx}" y2="${ly2+dy}" stroke="${color}" stroke-width="${thick}" stroke-linecap="round"/><line x1="${lx1-dx}" y1="${ly1-dy}" x2="${lx2-dx}" y2="${ly2-dy}" stroke="${color}" stroke-width="${thick}" stroke-linecap="round"/>`;
+      } else {
+        lineEl = `<line x1="${lx1}" y1="${ly1}" x2="${lx2}" y2="${ly2}" stroke="${color}" stroke-width="${thick}" stroke-linecap="round" ${da} ${hasA ? `marker-start="url(#${uid}s)"` : ''} ${hasB ? `marker-end="url(#${uid}e)"` : ''}/>`;
+      }
+      return `<svg${navOnclick} style="${base}overflow:visible${navOnclick ? ';cursor:pointer' : ''}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${defs}${lineEl}</svg>`;
+    }
+
     default:
       return '';
   }

@@ -672,6 +672,46 @@ function ComponentRenderer({ comp, isReadOnly }) {
       );
     }
 
+    case 'line': {
+      const w = pos.width;
+      const h = pos.height;
+      const lx1 = (props.x1f ?? 0.05) * w;
+      const ly1 = (props.y1f ?? 0.5) * h;
+      const lx2 = (props.x2f ?? 0.95) * w;
+      const ly2 = (props.y2f ?? 0.5) * h;
+      const color = props.color || '#374151';
+      const thick = props.thickness ?? 2;
+      const style = props.lineStyle || 'solid';
+      let dashArray;
+      if (style === 'dashed') dashArray = `${thick*4},${thick*2}`;
+      else if (style === 'dotted') dashArray = `${thick},${thick*2}`;
+      else if (style === 'long-dash') dashArray = `${thick*8},${thick*3}`;
+      else if (style === 'dash-dot') dashArray = `${thick*6},${thick*2},${thick},${thick*2}`;
+      const uid = comp.id.slice(-6);
+      const aSize = Math.max(6, thick * 5);
+      const hasArrows = props.arrowStart !== 'none' || props.arrowEnd !== 'none';
+      return (
+        <svg width="100%" height="100%" viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', overflow: 'visible' }} xmlns="http://www.w3.org/2000/svg">
+          {hasArrows && (
+            <defs>
+              {props.arrowStart === 'arrow' && <marker id={`as${uid}`} markerWidth={aSize} markerHeight={aSize} refX={aSize} refY={aSize/2} orient="auto-start-reverse"><polygon points={`0 0, ${aSize} ${aSize/2}, 0 ${aSize}`} fill={color} /></marker>}
+              {props.arrowStart === 'dot' && <marker id={`as${uid}`} markerWidth={aSize} markerHeight={aSize} refX={aSize/2} refY={aSize/2} orient="auto"><circle cx={aSize/2} cy={aSize/2} r={aSize/2 - 0.5} fill={color} /></marker>}
+              {props.arrowEnd === 'arrow' && <marker id={`ae${uid}`} markerWidth={aSize} markerHeight={aSize} refX={0} refY={aSize/2} orient="auto"><polygon points={`0 0, ${aSize} ${aSize/2}, 0 ${aSize}`} fill={color} /></marker>}
+              {props.arrowEnd === 'dot' && <marker id={`ae${uid}`} markerWidth={aSize} markerHeight={aSize} refX={aSize/2} refY={aSize/2} orient="auto"><circle cx={aSize/2} cy={aSize/2} r={aSize/2 - 0.5} fill={color} /></marker>}
+            </defs>
+          )}
+          <line
+            x1={lx1} y1={ly1} x2={lx2} y2={ly2}
+            stroke={color} strokeWidth={thick}
+            strokeDasharray={dashArray}
+            strokeLinecap="round"
+            markerStart={props.arrowStart !== 'none' ? `url(#as${uid})` : undefined}
+            markerEnd={props.arrowEnd !== 'none' ? `url(#ae${uid})` : undefined}
+          />
+        </svg>
+      );
+    }
+
     default:
       return <div style={{ width: '100%', height: '100%', backgroundColor: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#6B7280', fontFamily: 'Nunito, sans-serif' }}>{type}</div>;
   }
@@ -684,6 +724,8 @@ export default function Canvas({ canvasRef }) {
   const ref = canvasRef || localRef;
   const dragState = useRef(null);
   const [guides, setGuides] = useState([]);
+  const [linePreview, setLinePreview] = useState(null); // { x1, y1, x2, y2 }
+  const drawLineStart = useRef(null);
 
   // Calculate scale factors based on rendered size vs logical size
   const getScale = useCallback(() => {
@@ -809,6 +851,27 @@ export default function Canvas({ canvasRef }) {
     };
   }, [state, getScale, ref]);
 
+  const handleLineEndpointMouseDown = useCallback((e, compId, endpoint) => {
+    if (e.button !== 0) return;
+    e.stopPropagation(); e.preventDefault();
+    const s = state.screens.find(s => s.id === state.activeScreenId);
+    const comp = s?.components.find(c => c.id === compId);
+    if (!comp) return;
+    const { scaleX, scaleY } = getScale();
+    const p = comp.props;
+    const pos = comp.position;
+    dragState.current = {
+      type: 'moveLineEndpoint',
+      compId, endpoint,
+      scaleX, scaleY,
+      startMouseX: e.clientX, startMouseY: e.clientY,
+      origAx: pos.x + (p.x1f ?? 0.05) * pos.width,
+      origAy: pos.y + (p.y1f ?? 0.5) * pos.height,
+      origBx: pos.x + (p.x2f ?? 0.95) * pos.width,
+      origBy: pos.y + (p.y2f ?? 0.5) * pos.height,
+    };
+  }, [state, getScale]);
+
   useEffect(() => {
     const MIN_SIZE = 20;
     const SNAP_DIST = 6;
@@ -854,6 +917,19 @@ export default function Canvas({ canvasRef }) {
     const onMouseMove = (e) => {
       const ds = dragState.current;
       if (!ds) return;
+      if (ds.type === 'moveLineEndpoint') {
+        const dx = (e.clientX - ds.startMouseX) * ds.scaleX;
+        const dy = (e.clientY - ds.startMouseY) * ds.scaleY;
+        let ax = ds.origAx, ay = ds.origAy, bx = ds.origBx, by = ds.origBy;
+        if (ds.endpoint === 'a') { ax += dx; ay += dy; } else { bx += dx; by += dy; }
+        const pad = 10;
+        const x = Math.min(ax, bx) - pad;
+        const y = Math.min(ay, by) - pad;
+        const w = Math.max(20, Math.abs(bx - ax) + pad * 2);
+        const h = Math.max(20, Math.abs(by - ay) + pad * 2);
+        dispatch({ type: 'MOVE_LINE_ENDPOINT', id: ds.compId, x, y, width: w, height: h, x1f: (ax-x)/w, y1f: (ay-y)/h, x2f: (bx-x)/w, y2f: (by-y)/h, commit: false });
+        return;
+      }
       if (ds.type === 'rotate') {
         const dx = e.clientX - ds.centerClientX;
         const dy = e.clientY - ds.centerClientY;
@@ -884,6 +960,20 @@ export default function Canvas({ canvasRef }) {
       const ds = dragState.current;
       if (!ds) return;
       setGuides([]);
+      if (ds.type === 'moveLineEndpoint') {
+        const dx = (e.clientX - ds.startMouseX) * ds.scaleX;
+        const dy = (e.clientY - ds.startMouseY) * ds.scaleY;
+        let ax = ds.origAx, ay = ds.origAy, bx = ds.origBx, by = ds.origBy;
+        if (ds.endpoint === 'a') { ax += dx; ay += dy; } else { bx += dx; by += dy; }
+        const pad = 10;
+        const x = Math.min(ax, bx) - pad;
+        const y = Math.min(ay, by) - pad;
+        const w = Math.max(20, Math.abs(bx - ax) + pad * 2);
+        const h = Math.max(20, Math.abs(by - ay) + pad * 2);
+        dispatch({ type: 'MOVE_LINE_ENDPOINT', id: ds.compId, x, y, width: w, height: h, x1f: (ax-x)/w, y1f: (ay-y)/h, x2f: (bx-x)/w, y2f: (by-y)/h, commit: true });
+        dragState.current = null;
+        return;
+      }
       if (ds.type === 'rotate') { dragState.current = null; return; }
       const dx = (e.clientX - ds.startMouseX) * ds.scaleX;
       const dy = (e.clientY - ds.startMouseY) * ds.scaleY;
@@ -932,17 +1022,26 @@ export default function Canvas({ canvasRef }) {
       }
       dragState.current = null;
     };
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        dispatch({ type: 'SET_PENDING_TOOL', tool: null });
+        drawLineStart.current = null;
+        setLinePreview(null);
+      }
+    };
     document.addEventListener('mousemove', onMouseMove);
     document.addEventListener('mouseup', onMouseUp);
     document.addEventListener('touchmove', onTouchMove, { passive: false });
     document.addEventListener('touchend', onTouchEnd);
+    document.addEventListener('keydown', onKeyDown);
     return () => {
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
       document.removeEventListener('touchmove', onTouchMove);
       document.removeEventListener('touchend', onTouchEnd);
+      document.removeEventListener('keydown', onKeyDown);
     };
-  }, [dispatch, state, setGuides]);
+  }, [dispatch, state, setGuides, setLinePreview]);
 
   if (!screen) return null;
   const sortedComponents = [...(screen.components || [])].sort((a, b) => (a.zIndex || 1) - (b.zIndex || 1));
@@ -989,7 +1088,19 @@ export default function Canvas({ canvasRef }) {
                 title="Pivoter"
               >↻</div>
             )}
-            {isSelected && ['nw', 'ne', 'sw', 'se'].map((h) => (
+            {isSelected && comp.type === 'line' && (() => {
+              const lx1 = (comp.props.x1f ?? 0.05) * width;
+              const ly1 = (comp.props.y1f ?? 0.5) * height;
+              const lx2 = (comp.props.x2f ?? 0.95) * width;
+              const ly2 = (comp.props.y2f ?? 0.5) * height;
+              return (
+                <>
+                  <div onMouseDown={(e) => handleLineEndpointMouseDown(e, comp.id, 'a')} style={{ position: 'absolute', left: lx1 - 7, top: ly1 - 7, width: 14, height: 14, borderRadius: '50%', backgroundColor: '#6C63FF', border: '2px solid white', cursor: 'move', zIndex: 15, boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} title="Point A" />
+                  <div onMouseDown={(e) => handleLineEndpointMouseDown(e, comp.id, 'b')} style={{ position: 'absolute', left: lx2 - 7, top: ly2 - 7, width: 14, height: 14, borderRadius: '50%', backgroundColor: '#EC4899', border: '2px solid white', cursor: 'move', zIndex: 15, boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} title="Point B" />
+                </>
+              );
+            })()}
+            {isSelected && comp.type !== 'line' && ['nw', 'ne', 'sw', 'se'].map((h) => (
               <div key={h} className={`resize-handle ${h}`} onMouseDown={(e) => handleResizeMouseDown(e, comp.id, h)} onTouchStart={(e) => handleResizeTouchStart(e, comp.id, h)} />
             ))}
           </div>
@@ -1008,6 +1119,60 @@ export default function Canvas({ canvasRef }) {
       {/* Read-only overlay for remote screens */}
       {isRemote && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 9999, cursor: 'default' }} title={`Écran de ${screen._nickname || 'un camarade'} — lecture seule`} />
+      )}
+      {/* Draw-line mode overlay */}
+      {state.pendingTool === 'line' && !isRemote && (
+        <div
+          onMouseDown={(e) => {
+            if (e.button !== 0) return;
+            const rect = ref.current.getBoundingClientRect();
+            const { scaleX, scaleY } = getScale();
+            const cx = Math.max(0, Math.min(CANVAS_W, (e.clientX - rect.left) * scaleX));
+            const cy = Math.max(0, Math.min(CANVAS_H, (e.clientY - rect.top) * scaleY));
+            drawLineStart.current = { x: cx, y: cy };
+            setLinePreview({ x1: cx, y1: cy, x2: cx, y2: cy });
+          }}
+          onMouseMove={(e) => {
+            if (!drawLineStart.current) return;
+            const rect = ref.current.getBoundingClientRect();
+            const { scaleX, scaleY } = getScale();
+            const cx = Math.max(0, Math.min(CANVAS_W, (e.clientX - rect.left) * scaleX));
+            const cy = Math.max(0, Math.min(CANVAS_H, (e.clientY - rect.top) * scaleY));
+            setLinePreview({ x1: drawLineStart.current.x, y1: drawLineStart.current.y, x2: cx, y2: cy });
+          }}
+          onMouseUp={(e) => {
+            if (!drawLineStart.current) { dispatch({ type: 'SET_PENDING_TOOL', tool: null }); return; }
+            const rect = ref.current.getBoundingClientRect();
+            const { scaleX, scaleY } = getScale();
+            const cx = Math.max(0, Math.min(CANVAS_W, (e.clientX - rect.left) * scaleX));
+            const cy = Math.max(0, Math.min(CANVAS_H, (e.clientY - rect.top) * scaleY));
+            const x1 = drawLineStart.current.x, y1 = drawLineStart.current.y;
+            const x2 = cx, y2 = cy;
+            const pad = 10;
+            const bx = Math.min(x1, x2) - pad;
+            const by = Math.min(y1, y2) - pad;
+            const bw = Math.max(20, Math.abs(x2 - x1) + pad * 2);
+            const bh = Math.max(20, Math.abs(y2 - y1) + pad * 2);
+            dispatch({ type: 'ADD_COMPONENT', componentType: 'line', x: bx, y: by, overrideProps: { x1f: (x1-bx)/bw, y1f: (y1-by)/bh, x2f: (x2-bx)/bw, y2f: (y2-by)/bh }, overrideSize: { width: bw, height: bh } });
+            drawLineStart.current = null;
+            setLinePreview(null);
+          }}
+          style={{ position: 'absolute', inset: 0, zIndex: 9997, cursor: 'crosshair' }}
+        />
+      )}
+      {/* Line draw preview */}
+      {linePreview && (
+        <svg style={{ position: 'absolute', inset: 0, width: CANVAS_W, height: CANVAS_H, pointerEvents: 'none', zIndex: 9998, overflow: 'visible' }} viewBox={`0 0 ${CANVAS_W} ${CANVAS_H}`}>
+          <line x1={linePreview.x1} y1={linePreview.y1} x2={linePreview.x2} y2={linePreview.y2} stroke="#6C63FF" strokeWidth={2} strokeDasharray="6,3" strokeLinecap="round" />
+          <circle cx={linePreview.x1} cy={linePreview.y1} r={5} fill="#6C63FF" />
+          <circle cx={linePreview.x2} cy={linePreview.y2} r={5} fill="#EC4899" />
+        </svg>
+      )}
+      {/* Draw mode banner */}
+      {state.pendingTool === 'line' && !isRemote && (
+        <div style={{ position: 'absolute', bottom: 10, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#6C63FF', color: 'white', fontSize: 11, fontFamily: 'Nunito, sans-serif', fontWeight: 700, padding: '5px 14px', borderRadius: 20, zIndex: 10000, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
+          ✏️ Cliquez et glissez pour tracer la ligne — Échap pour annuler
+        </div>
       )}
     </div>
   );
