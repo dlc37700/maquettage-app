@@ -17,10 +17,10 @@ export function useImageLibrary() {
     return () => window.removeEventListener(EV, h);
   }, []);
 
-  const save = (dataUrl, name = 'Image') => {
+  const save = (dataUrl, name = 'Image', meta = {}) => {
     const list = read();
     if (list.length >= MAX) return null; // caller handles message
-    const item = { id: `img_${Date.now()}`, dataUrl, name: (name || 'Image').trim(), createdAt: Date.now() };
+    const item = { id: `img_${Date.now()}`, dataUrl, name: (name || 'Image').trim(), createdAt: Date.now(), ...meta };
     try {
       const updated = [item, ...list];
       localStorage.setItem(KEY, JSON.stringify(updated));

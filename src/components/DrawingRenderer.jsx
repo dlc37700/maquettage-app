@@ -63,12 +63,21 @@ async function removeBg(url) {
   });
 }
 
+const ANIM_TYPES = [
+  { id: '',        label: '— Aucune',        icon: '○' },
+  { id: 'spin3d',  label: 'Rotation 3D ↻',   icon: '🔄' },
+  { id: 'spinz',   label: 'Rotation Z ↺',    icon: '🌀' },
+  { id: 'float',   label: 'Flottement ↕',    icon: '🕊️' },
+  { id: 'pulse',   label: 'Pulsation ◉',     icon: '💫' },
+];
+
 function AiModal({ sketchDataUrl, onClose, onApply }) {
   const [prompt, setPrompt] = useState('');
   const [pollinationsUrl, setPollinationsUrl] = useState('');
   const [resultDataUrl, setResultDataUrl] = useState('');
   const [step, setStep] = useState('idle'); // idle | fetching | removing | done | error
   const [error, setError] = useState('');
+  const [animType, setAnimType] = useState('');
   const inputRef = useRef(null);
 
   useEffect(() => { setTimeout(() => inputRef.current?.focus(), 60); }, []);
@@ -79,8 +88,13 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
     setError('');
     setResultDataUrl('');
     const subject = prompt.trim();
-    const enhanced = `dessin de ${subject}, illustration colorée, fond blanc, style simple et propre`;
-    const negative = `dog breed, ugly, blurry, text, watermark, signature`;
+    // For 3D mode use a product-photography prompt for a more solid/volumetric result
+    const enhanced = animType === 'spin3d'
+      ? `rendu 3D photoréaliste de ${subject}, objet seul centré, vue légèrement de face en angle 3/4, fond blanc pur, éclairage studio, haute qualité`
+      : `dessin de ${subject}, illustration colorée, fond blanc, style simple et propre`;
+    const negative = animType === 'spin3d'
+      ? `background, shadow, multiple objects, text, watermark, ugly, blurry`
+      : `dog breed, ugly, blurry, text, watermark, signature`;
     const seed = Math.floor(Math.random() * 99999);
     const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhanced)}?width=512&height=512&model=flux&nologo=true&seed=${seed}&negative=${encodeURIComponent(negative)}`;
     setPollinationsUrl(url);
@@ -101,7 +115,9 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
   const isWorking = step === 'fetching' || step === 'removing';
   const canApply = step === 'done' && resultDataUrl;
 
-  const statusLabel = step === 'fetching' ? '🎨 L\'IA dessine…' : step === 'removing' ? '✂️ Détourage…' : null;
+  const statusLabel = step === 'fetching'
+    ? (animType === 'spin3d' ? '🎨 Rendu 3D en cours…' : '🎨 L\'IA dessine…')
+    : step === 'removing' ? '✂️ Détourage…' : null;
 
   return createPortal(
     <div
@@ -125,13 +141,29 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
           </div>
         )}
 
+        {/* Animation type selector */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 11, color: '#6B7280', fontWeight: 700, marginBottom: 6 }}>Animation :</div>
+          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+            {ANIM_TYPES.map(a => (
+              <button
+                key={a.id}
+                onClick={() => setAnimType(a.id)}
+                style={{ padding: '5px 10px', borderRadius: 8, border: `1.5px solid ${animType === a.id ? '#6C63FF' : '#E5E7EB'}`, backgroundColor: animType === a.id ? '#EDE9FE' : '#F9FAFB', color: animType === a.id ? '#6C63FF' : '#6B7280', fontSize: 11, fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer' }}
+              >
+                {a.icon} {a.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
           <input
             ref={inputRef}
             value={prompt}
             onChange={e => setPrompt(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && generate()}
-            placeholder="Ex: un papillon, une maison rouge, un chat qui dort..."
+            placeholder={animType === 'spin3d' ? 'Ex: une robe, une voiture, un vase…' : 'Ex: un papillon, une maison rouge, un chat qui dort...'}
             style={{ flex: 1, padding: '10px 14px', borderRadius: 10, border: '1.5px solid #DDD6FE', fontSize: 14, fontFamily: 'Nunito, sans-serif', outline: 'none', boxSizing: 'border-box' }}
           />
           <button
@@ -169,7 +201,15 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
               </div>
             )}
             {resultDataUrl && (
-              <img src={resultDataUrl} alt="Résultat IA" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              <img
+                src={resultDataUrl}
+                alt="Résultat IA"
+                style={{
+                  width: '100%', height: '100%', objectFit: 'contain',
+                  animation: animType ? `maquetapp-${animType} ${animType === 'float' ? '2s ease-in-out' : animType === 'pulse' ? '1.5s ease-in-out' : '3s linear'} infinite` : undefined,
+                  transformOrigin: 'center center',
+                }}
+              />
             )}
           </div>
         )}
@@ -179,10 +219,10 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
         <div style={{ display: 'flex', gap: 8 }}>
           {canApply && (
             <button
-              onClick={() => onApply(resultDataUrl, prompt.trim())}
+              onClick={() => onApply(resultDataUrl, prompt.trim(), animType)}
               style={{ flex: 1, padding: '11px 0', backgroundColor: '#10B981', color: 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: 'pointer' }}
             >
-              ✅ Appliquer
+              ✅ Appliquer{animType ? ` (${ANIM_TYPES.find(a=>a.id===animType)?.icon})` : ''}
             </button>
           )}
           <button
@@ -212,6 +252,7 @@ export default function DrawingRenderer({ comp, isReadOnly }) {
   const [saveMsg, setSaveMsg] = useState('');
   const lastPt = useRef(null);
   const lastPromptRef = useRef('');
+  const lastAnimTypeRef = useRef('');
 
   const p = comp.props;
   const bgColorRef = useRef(p.bgColor || '#FFFFFF');
@@ -348,9 +389,10 @@ export default function DrawingRenderer({ comp, isReadOnly }) {
     dispatch({ type: 'UPDATE_COMPONENT_PROPS', id: comp.id, props: { showAiResult: false } });
   };
 
-  const applyAiImage = (dataUrl, promptText) => {
+  const applyAiImage = (dataUrl, promptText, animationType) => {
     lastPromptRef.current = promptText || 'Image IA';
-    dispatch({ type: 'UPDATE_COMPONENT_PROPS', id: comp.id, props: { aiImageUrl: dataUrl, showAiResult: true } });
+    lastAnimTypeRef.current = animationType || '';
+    dispatch({ type: 'UPDATE_COMPONENT_PROPS', id: comp.id, props: { aiImageUrl: dataUrl, showAiResult: true, animationType: animationType || '' } });
     setShowAiModal(false);
   };
 
@@ -358,7 +400,8 @@ export default function DrawingRenderer({ comp, isReadOnly }) {
     e.stopPropagation();
     if (!p.aiImageUrl) return;
     const name = lastPromptRef.current || 'Image IA';
-    const saved = saveToLibrary(p.aiImageUrl, name);
+    const animationType = p.animationType || lastAnimTypeRef.current || '';
+    const saved = saveToLibrary(p.aiImageUrl, name, { animationType });
     if (saved) {
       // Reset zone so user can generate another image
       const canvas = canvasRef.current;
