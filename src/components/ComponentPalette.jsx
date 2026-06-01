@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { COMPONENT_DEFINITIONS, BUTTON_PRESETS, AVATAR_PRESETS } from '../data/componentDefinitions';
 import { useProject } from '../hooks/useProject';
+import { useImageLibrary } from '../hooks/useImageLibrary';
 
 function groupBy(arr, key) {
   return arr.reduce((acc, item) => {
@@ -21,10 +22,12 @@ const CATEGORY_ICONS = {
 
 export default function ComponentPalette({ mobile = false }) {
   const { dispatch } = useProject();
+  const { images, remove: removeImage } = useImageLibrary();
   const [search, setSearch] = useState('');
   const [openPresets, setOpenPresets] = useState(true);
   const [openCategories, setOpenCategories] = useState({});
   const [openAvatars, setOpenAvatars] = useState(true);
+  const [openImages, setOpenImages] = useState(true);
 
   const filtered = COMPONENT_DEFINITIONS.filter(d => d.label.toLowerCase().includes(search.toLowerCase()));
   const groups = groupBy(filtered, 'category');
@@ -132,6 +135,47 @@ export default function ComponentPalette({ mobile = false }) {
 
             <div style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.1)', margin: '4px 0 10px' }} />
           </>
+        )}
+
+        {/* Mes images library */}
+        {!search && images.length > 0 && (
+          <div style={{ marginBottom: 10 }}>
+            <button
+              onClick={() => setOpenImages(v => !v)}
+              style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', color: '#A78BFA', fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', padding: '4px 4px', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+            >
+              <span>🖼️ Mes images <span style={{ backgroundColor: '#6C63FF', color: 'white', borderRadius: 8, padding: '1px 5px', fontSize: 9, fontWeight: 800, marginLeft: 4 }}>{images.length}</span></span>
+              <span style={{ fontSize: 9 }}>{openImages ? '▲' : '▼'}</span>
+            </button>
+            {openImages && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+                {images.map(img => (
+                  <div
+                    key={img.id}
+                    className="palette-item"
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData('componentType', 'image');
+                      e.dataTransfer.setData('overrideProps', JSON.stringify({ frameless: true, imageData: img.dataUrl }));
+                      e.dataTransfer.effectAllowed = 'copy';
+                    }}
+                    onClick={() => addComponent('image', { frameless: true, imageData: img.dataUrl })}
+                    title={img.name}
+                    style={{ position: 'relative', borderRadius: 7, overflow: 'hidden', cursor: 'grab', border: '1px solid rgba(255,255,255,0.12)', background: 'repeating-conic-gradient(#555 0% 25%, #333 0% 50%) 0 0 / 10px 10px' }}
+                  >
+                    <img src={img.dataUrl} alt={img.name} style={{ width: '100%', height: 54, objectFit: 'contain', display: 'block' }} />
+                    <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.75)', padding: '2px 4px', backgroundColor: 'rgba(0,0,0,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'Nunito, sans-serif', fontWeight: 600 }}>{img.name}</div>
+                    <button
+                      onClick={e => { e.stopPropagation(); removeImage(img.id); }}
+                      style={{ position: 'absolute', top: 3, right: 3, width: 16, height: 16, borderRadius: '50%', backgroundColor: '#EF4444', border: 'none', color: 'white', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, fontWeight: 900 }}
+                      title="Supprimer"
+                    >×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.1)', margin: '8px 0 6px' }} />
+          </div>
         )}
 
         {/* Regular components */}
