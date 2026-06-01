@@ -8,6 +8,19 @@ import { getShapeSvgInner } from '../data/shapes';
 const CANVAS_W = 390;
 const CANVAS_H = 844;
 
+// Inject CSS keyframes for image animations (once)
+if (typeof document !== 'undefined' && !document.getElementById('maquetapp-anims')) {
+  const s = document.createElement('style');
+  s.id = 'maquetapp-anims';
+  s.textContent = `
+    @keyframes maquetapp-spin3d { from{transform:perspective(500px) rotateY(0deg)} to{transform:perspective(500px) rotateY(360deg)} }
+    @keyframes maquetapp-spinz  { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+    @keyframes maquetapp-float  { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8%)} }
+    @keyframes maquetapp-pulse  { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
+  `;
+  document.head.appendChild(s);
+}
+
 function LucideIcon({ name, size = 24, color = '#6C63FF' }) {
   const Icon = LucideIcons[name];
   if (!Icon) return <LucideIcons.Circle size={size} color={color} />;
@@ -453,6 +466,11 @@ function ComponentRenderer({ comp, isReadOnly }) {
 
     case 'image': {
       const br = props.borderRadius ?? 8;
+      const animType = props.animationType || '';
+      const animStyle = animType ? {
+        animation: `maquetapp-${animType} ${animType === 'float' ? '2s ease-in-out' : animType === 'pulse' ? '1.5s ease-in-out' : '3s linear'} infinite`,
+        transformOrigin: 'center center',
+      } : {};
       if (props.imageData) {
         if (props.frameless) {
           // No clipping wrapper — image floats freely, transparent PNGs show through
@@ -460,13 +478,13 @@ function ComponentRenderer({ comp, isReadOnly }) {
             <img
               src={props.imageData}
               alt=""
-              style={{ width: '100%', height: '100%', objectFit: props.objectFit || 'contain', display: 'block', borderRadius: br }}
+              style={{ width: '100%', height: '100%', objectFit: props.objectFit || 'contain', display: 'block', borderRadius: br, ...animStyle }}
             />
           );
         }
         return (
           <div style={{ width: '100%', height: '100%', borderRadius: br, overflow: 'hidden' }}>
-            <img src={props.imageData} alt="" style={{ width: '100%', height: '100%', objectFit: props.objectFit || 'cover', display: 'block' }} />
+            <img src={props.imageData} alt="" style={{ width: '100%', height: '100%', objectFit: props.objectFit || 'cover', display: 'block', ...animStyle }} />
           </div>
         );
       }

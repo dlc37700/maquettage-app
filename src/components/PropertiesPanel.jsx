@@ -631,6 +631,31 @@ function ComponentProperties({ comp }) {
       {'label' in p && comp.type === 'switch' && <Field label="Texte"><TextInput value={p.label} onChange={v => update({ label: v })} /></Field>}
       <Field label={`Opacité (${Math.round((p.opacity ?? 1) * 100)}%)`}><RangeInput value={Math.round((p.opacity ?? 1) * 100)} onChange={v => update({ opacity: v / 100 })} /></Field>
 
+      {comp.type === 'image' && (
+        <>
+          <SectionTitle>Animation</SectionTitle>
+          <Field label="Type">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {[
+                { id: '', label: 'Aucune' },
+                { id: 'spin3d', label: '🔄 3D' },
+                { id: 'spinz', label: '🌀 Z' },
+                { id: 'float', label: '🕊️ Float' },
+                { id: 'pulse', label: '💫 Pulse' },
+              ].map(a => (
+                <button
+                  key={a.id}
+                  onClick={() => update({ animationType: a.id })}
+                  style={{ padding: '4px 8px', borderRadius: 6, fontSize: 11, fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${(p.animationType || '') === a.id ? '#6C63FF' : '#E5E7EB'}`, backgroundColor: (p.animationType || '') === a.id ? '#EDE9FE' : '#F9FAFB', color: (p.animationType || '') === a.id ? '#6C63FF' : '#6B7280' }}
+                >
+                  {a.label}
+                </button>
+              ))}
+            </div>
+          </Field>
+        </>
+      )}
+
       <SectionTitle>Ordre</SectionTitle>
       <div style={{ display: 'flex', gap: 6 }}>
         <button onClick={() => dispatch({ type: 'SET_Z_INDEX', id: comp.id, zIndex: maxZ + 1 })} style={aBtnStyle('#EDE9FE', '#6C63FF')}>⬆️ Devant</button>

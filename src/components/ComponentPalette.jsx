@@ -156,14 +156,17 @@ export default function ComponentPalette({ mobile = false }) {
                     draggable
                     onDragStart={(e) => {
                       e.dataTransfer.setData('componentType', 'image');
-                      e.dataTransfer.setData('overrideProps', JSON.stringify({ frameless: true, imageData: img.dataUrl }));
+                      e.dataTransfer.setData('overrideProps', JSON.stringify({ frameless: true, imageData: img.dataUrl, animationType: img.animationType || '' }));
                       e.dataTransfer.effectAllowed = 'copy';
                     }}
-                    onClick={() => addComponent('image', { frameless: true, imageData: img.dataUrl })}
+                    onClick={() => addComponent('image', { frameless: true, imageData: img.dataUrl, animationType: img.animationType || '' })}
                     title={img.name}
                     style={{ position: 'relative', borderRadius: 7, overflow: 'hidden', cursor: 'grab', border: '1px solid rgba(255,255,255,0.12)', background: 'repeating-conic-gradient(#555 0% 25%, #333 0% 50%) 0 0 / 10px 10px' }}
                   >
                     <img src={img.dataUrl} alt={img.name} style={{ width: '100%', height: 54, objectFit: 'contain', display: 'block' }} />
+                    {img.animationType && (
+                      <div style={{ position: 'absolute', top: 3, left: 3, backgroundColor: '#6C63FF', borderRadius: 4, fontSize: 9, padding: '1px 4px', color: 'white', fontWeight: 800 }}>🔄</div>
+                    )}
                     <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.75)', padding: '2px 4px', backgroundColor: 'rgba(0,0,0,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'Nunito, sans-serif', fontWeight: 600 }}>{img.name}</div>
                     <button
                       onClick={e => { e.stopPropagation(); removeImage(img.id); }}

@@ -83,10 +83,12 @@ function compToHtml(comp) {
 
     case 'image': {
       const imgBr = props.borderRadius ?? 8;
+      const animType = props.animationType || '';
+      const animCss = animType ? `animation:maquetapp-${animType} ${animType === 'float' ? '2s ease-in-out' : animType === 'pulse' ? '1.5s ease-in-out' : '3s linear'} infinite;transform-origin:center center;` : '';
       if (props.imageData) {
         const fit = props.frameless ? (props.objectFit || 'contain') : (props.objectFit || 'cover');
         const overflow = props.frameless ? '' : 'overflow:hidden;';
-        return `<img${navOnclick} src="${props.imageData}" alt="" style="${base}border-radius:${imgBr}px;object-fit:${fit};${overflow}${navOnclick ? ';cursor:pointer' : ''}">`;
+        return `<img${navOnclick} src="${props.imageData}" alt="" style="${base}border-radius:${imgBr}px;object-fit:${fit};${overflow}${animCss}${navOnclick ? ';cursor:pointer' : ''}">`;
       }
       return `<div${navOnclick} style="${base}${props.frameless ? '' : getBgCss(props.bgColor, props.bgGradient) + ';'}border-radius:${imgBr}px;display:flex;align-items:center;justify-content:center;border:${props.frameless ? '1.5px' : '2px'} dashed #D1D5DB${navOnclick ? ';cursor:pointer' : ''}">
   <span style="font-size:32px">🖼️</span>
@@ -359,6 +361,10 @@ export function exportProjectAsHtml(state) {
       overflow: hidden;
       position: relative;
     }
+    @keyframes maquetapp-spin3d { from{transform:perspective(500px) rotateY(0deg)} to{transform:perspective(500px) rotateY(360deg)} }
+    @keyframes maquetapp-spinz  { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+    @keyframes maquetapp-float  { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8%)} }
+    @keyframes maquetapp-pulse  { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
   </style>
 </head>
 <body>
