@@ -585,6 +585,89 @@ function ComponentProperties({ comp }) {
         </>
       )}
 
+      {/* Schedule specific */}
+      {comp.type === 'schedule' && (() => {
+        const slots = Array.isArray(p.slots) ? p.slots : [];
+        const nextId = slots.length > 0 ? Math.max(...slots.map(s => s.id || 0)) + 1 : 1;
+        const SLOT_COLORS = ['#6C63FF','#3B82F6','#10B981','#F97316','#EC4899','#EF4444','#8B5CF6','#F59E0B'];
+
+        const updateSlot = (id, changes) => {
+          const newSlots = slots.map(s => s.id === id ? { ...s, ...changes } : s);
+          update({ slots: newSlots });
+        };
+        const addSlot = () => {
+          const lastSlot = slots[slots.length - 1];
+          const newHour = lastSlot ? Math.min(23, lastSlot.hour + 1) : 8;
+          update({ slots: [...slots, { id: nextId, hour: newHour, minute: 0, label: 'Événement', color: SLOT_COLORS[slots.length % SLOT_COLORS.length] }] });
+        };
+        const removeSlot = (id) => {
+          if (slots.length <= 1) return;
+          update({ slots: slots.filter(s => s.id !== id) });
+        };
+
+        return (
+          <>
+            <SectionTitle>Créneaux horaires</SectionTitle>
+            {slots.map((slot, i) => (
+              <div key={slot.id || i} style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6, backgroundColor: '#F9FAFB', borderRadius: 8, padding: '5px 7px', border: '1px solid #F3F4F6' }}>
+                {/* Color dot picker */}
+                <input
+                  type="color"
+                  value={slot.color || '#6C63FF'}
+                  onChange={e => updateSlot(slot.id, { color: e.target.value })}
+                  style={{ width: 22, height: 22, borderRadius: '50%', border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0 }}
+                  title="Couleur"
+                />
+                {/* Hour */}
+                <input
+                  type="number"
+                  min={0} max={23}
+                  value={slot.hour}
+                  onChange={e => updateSlot(slot.id, { hour: Math.max(0, Math.min(23, Number(e.target.value))) })}
+                  style={{ width: 36, padding: '3px 4px', borderRadius: 5, border: '1px solid #E5E7EB', fontSize: 12, textAlign: 'center', fontFamily: 'monospace', fontWeight: 700, color: p.timeColor || '#6C63FF', outline: 'none' }}
+                />
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#9CA3AF' }}>:</span>
+                {/* Minute */}
+                <input
+                  type="number"
+                  min={0} max={59}
+                  value={slot.minute}
+                  onChange={e => updateSlot(slot.id, { minute: Math.max(0, Math.min(59, Number(e.target.value))) })}
+                  style={{ width: 36, padding: '3px 4px', borderRadius: 5, border: '1px solid #E5E7EB', fontSize: 12, textAlign: 'center', fontFamily: 'monospace', fontWeight: 700, color: p.timeColor || '#6C63FF', outline: 'none' }}
+                />
+                {/* Label */}
+                <input
+                  type="text"
+                  value={slot.label || ''}
+                  onChange={e => updateSlot(slot.id, { label: e.target.value })}
+                  placeholder="Libellé…"
+                  style={{ flex: 1, minWidth: 0, padding: '3px 5px', borderRadius: 5, border: '1px solid #E5E7EB', fontSize: 11, fontFamily: 'Nunito, sans-serif', outline: 'none', color: '#1F2937' }}
+                />
+                {/* Delete */}
+                <button
+                  onClick={() => removeSlot(slot.id)}
+                  disabled={slots.length <= 1}
+                  style={{ width: 20, height: 20, borderRadius: 5, border: 'none', backgroundColor: slots.length <= 1 ? '#F3F4F6' : '#FEE2E2', color: slots.length <= 1 ? '#D1D5DB' : '#DC2626', fontSize: 11, cursor: slots.length <= 1 ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                >✕</button>
+              </div>
+            ))}
+            <button
+              onClick={addSlot}
+              style={{ width: '100%', padding: '6px', borderRadius: 7, border: '1.5px dashed #A78BFA', backgroundColor: '#F5F3FF', color: '#6C63FF', fontSize: 11, fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', marginBottom: 8 }}
+            >+ Ajouter un créneau</button>
+
+            <SectionTitle>Apparence</SectionTitle>
+            <Field label="Fond"><ColorInput value={p.bgColor || '#FFFFFF'} onChange={v => update({ bgColor: v })} /></Field>
+            <Field label="Couleur horloge"><ColorInput value={p.timeColor || '#6C63FF'} onChange={v => update({ timeColor: v })} /></Field>
+            <Field label="Couleur texte"><ColorInput value={p.textColor || '#1F2937'} onChange={v => update({ textColor: v })} /></Field>
+            <Field label="Couleur séparateur"><ColorInput value={p.borderColor || '#F3F4F6'} onChange={v => update({ borderColor: v })} /></Field>
+            <Field label={`Taille texte (${p.fontSize || 14}px)`}><RangeInput value={p.fontSize || 14} min={10} max={22} onChange={v => update({ fontSize: v })} /></Field>
+            <Field label={`Arrondi (${p.borderRadius ?? 12}px)`}><RangeInput value={p.borderRadius ?? 12} min={0} max={32} onChange={v => update({ borderRadius: v })} /></Field>
+            <Field label="Afficher les labels"><Toggle value={p.showLabels !== false} onChange={v => update({ showLabels: v })} /></Field>
+          </>
+        );
+      })()}
+
       {/* Shape specific */}
       {comp.type === 'shape' && (
         <>

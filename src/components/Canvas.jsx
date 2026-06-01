@@ -241,6 +241,154 @@ function WeeklyCalendarRenderer({ comp, isReadOnly }) {
   );
 }
 
+function ScheduleRenderer({ comp, isReadOnly }) {
+  const { dispatch } = useProject();
+  const [editing, setEditing] = useState(null); // { slotId, field: 'hour'|'minute'|'label', value }
+
+  const p = comp.props;
+  const slots = Array.isArray(p.slots) ? p.slots : [];
+  const ff = `${p.fontFamily || 'Nunito'}, sans-serif`;
+  const rowH = Math.max(32, (comp.position.height) / Math.max(1, slots.length));
+
+  const updateSlot = (id, changes) => {
+    const newSlots = slots.map(s => s.id === id ? { ...s, ...changes } : s);
+    dispatch({ type: 'UPDATE_COMPONENT_PROPS', id: comp.id, props: { slots: newSlots } });
+  };
+
+  const startEdit = (e, slotId, field, currentValue) => {
+    if (isReadOnly) return;
+    e.stopPropagation();
+    setEditing({ slotId, field, value: String(currentValue) });
+  };
+
+  const commitEdit = () => {
+    if (!editing) return;
+    const { slotId, field, value } = editing;
+    if (field === 'hour') {
+      const h = Math.max(0, Math.min(23, parseInt(value) || 0));
+      updateSlot(slotId, { hour: h });
+    } else if (field === 'minute') {
+      const m = Math.max(0, Math.min(59, parseInt(value) || 0));
+      updateSlot(slotId, { minute: m });
+    } else if (field === 'label') {
+      updateSlot(slotId, { label: value });
+    }
+    setEditing(null);
+  };
+
+  const adjustTime = (e, slotId, field, delta) => {
+    e.stopPropagation();
+    if (isReadOnly) return;
+    const slot = slots.find(s => s.id === slotId);
+    if (!slot) return;
+    if (field === 'hour') updateSlot(slotId, { hour: ((slot.hour + delta + 24) % 24) });
+    else updateSlot(slotId, { minute: ((slot.minute + delta + 60) % 60) });
+  };
+
+  const timeFs = Math.max(12, Math.min(22, rowH * 0.42));
+  const labelFs = Math.max(10, Math.min(16, rowH * 0.35));
+  const dotSize = Math.max(6, Math.min(10, rowH * 0.22));
+  const padH = Math.max(6, comp.position.width * 0.03);
+  const spinBtnStyle = {
+    background: 'none', border: 'none', cursor: 'pointer',
+    fontSize: Math.max(7, timeFs * 0.42), lineHeight: 1,
+    color: '#9CA3AF', padding: '0 1px', userSelect: 'none', display: 'block',
+  };
+
+  return (
+    <div style={{ width: '100%', height: '100%', backgroundColor: p.bgColor || '#FFFFFF', borderRadius: p.borderRadius ?? 12, overflow: 'hidden', fontFamily: ff, display: 'flex', flexDirection: 'column' }}>
+      {slots.map((slot, i) => {
+        const isEditingH = editing?.slotId === slot.id && editing?.field === 'hour';
+        const isEditingM = editing?.slotId === slot.id && editing?.field === 'minute';
+        const isEditingL = editing?.slotId === slot.id && editing?.field === 'label';
+        const borderBottom = i < slots.length - 1 ? `1px solid ${p.borderColor || '#F3F4F6'}` : 'none';
+
+        return (
+          <div key={slot.id || i} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: padH * 0.6, padding: `0 ${padH}px`, borderBottom, minHeight: 0, overflow: 'hidden' }}>
+            {/* Color dot */}
+            <div style={{ width: dotSize, height: dotSize, borderRadius: '50%', backgroundColor: slot.color || p.timeColor || '#6C63FF', flexShrink: 0 }} />
+
+            {/* Hour spinner */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+              {!isReadOnly && <button style={spinBtnStyle} onMouseDown={(e) => adjustTime(e, slot.id, 'hour', 1)}>▲</button>}
+              {isEditingH ? (
+                <input
+                  autoFocus
+                  value={editing.value}
+                  onChange={e => setEditing(ed => ({ ...ed, value: e.target.value }))}
+                  onBlur={commitEdit}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') commitEdit(); e.stopPropagation(); }}
+                  onMouseDown={e => e.stopPropagation()}
+                  style={{ width: timeFs * 1.4, fontSize: timeFs, fontWeight: 800, color: p.timeColor || '#6C63FF', fontFamily: 'monospace', textAlign: 'center', border: 'none', outline: `2px solid ${p.timeColor || '#6C63FF'}`, borderRadius: 4, background: 'rgba(108,99,255,0.08)', padding: 0 }}
+                />
+              ) : (
+                <span
+                  onClick={(e) => startEdit(e, slot.id, 'hour', slot.hour)}
+                  style={{ fontSize: timeFs, fontWeight: 800, color: p.timeColor || '#6C63FF', fontFamily: 'monospace', cursor: isReadOnly ? 'default' : 'text', lineHeight: 1, minWidth: timeFs * 1.2, textAlign: 'center' }}
+                >
+                  {String(slot.hour).padStart(2, '0')}
+                </span>
+              )}
+              {!isReadOnly && <button style={spinBtnStyle} onMouseDown={(e) => adjustTime(e, slot.id, 'hour', -1)}>▼</button>}
+            </div>
+
+            {/* Colon separator */}
+            <span style={{ fontSize: timeFs, fontWeight: 800, color: p.timeColor || '#6C63FF', lineHeight: 1, flexShrink: 0, marginBottom: !isReadOnly ? 2 : 0 }}>:</span>
+
+            {/* Minute spinner */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
+              {!isReadOnly && <button style={spinBtnStyle} onMouseDown={(e) => adjustTime(e, slot.id, 'minute', 1)}>▲</button>}
+              {isEditingM ? (
+                <input
+                  autoFocus
+                  value={editing.value}
+                  onChange={e => setEditing(ed => ({ ...ed, value: e.target.value }))}
+                  onBlur={commitEdit}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') commitEdit(); e.stopPropagation(); }}
+                  onMouseDown={e => e.stopPropagation()}
+                  style={{ width: timeFs * 1.4, fontSize: timeFs, fontWeight: 800, color: p.timeColor || '#6C63FF', fontFamily: 'monospace', textAlign: 'center', border: 'none', outline: `2px solid ${p.timeColor || '#6C63FF'}`, borderRadius: 4, background: 'rgba(108,99,255,0.08)', padding: 0 }}
+                />
+              ) : (
+                <span
+                  onClick={(e) => startEdit(e, slot.id, 'minute', slot.minute)}
+                  style={{ fontSize: timeFs, fontWeight: 800, color: p.timeColor || '#6C63FF', fontFamily: 'monospace', cursor: isReadOnly ? 'default' : 'text', lineHeight: 1, minWidth: timeFs * 1.2, textAlign: 'center' }}
+                >
+                  {String(slot.minute).padStart(2, '0')}
+                </span>
+              )}
+              {!isReadOnly && <button style={spinBtnStyle} onMouseDown={(e) => adjustTime(e, slot.id, 'minute', -1)}>▼</button>}
+            </div>
+
+            {/* Label */}
+            {p.showLabels !== false && (
+              <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+                {isEditingL ? (
+                  <input
+                    autoFocus
+                    value={editing.value}
+                    onChange={e => setEditing(ed => ({ ...ed, value: e.target.value }))}
+                    onBlur={commitEdit}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') commitEdit(); e.stopPropagation(); }}
+                    onMouseDown={e => e.stopPropagation()}
+                    style={{ width: '100%', fontSize: labelFs, fontFamily: ff, color: p.textColor || '#1F2937', border: 'none', outline: `2px solid ${p.timeColor || '#6C63FF'}`, borderRadius: 4, background: 'rgba(108,99,255,0.05)', padding: '1px 4px', boxSizing: 'border-box' }}
+                  />
+                ) : (
+                  <span
+                    onClick={(e) => startEdit(e, slot.id, 'label', slot.label || '')}
+                    style={{ fontSize: labelFs, color: p.textColor || '#1F2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', cursor: isReadOnly ? 'default' : 'text' }}
+                  >
+                    {slot.label || ''}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function TableRenderer({ comp, isReadOnly }) {
   const { state, dispatch } = useProject();
   const isSelected = state.selectedComponentId === comp.id;
@@ -651,6 +799,9 @@ function ComponentRenderer({ comp, isReadOnly }) {
 
     case 'weekcalendar':
       return <WeeklyCalendarRenderer comp={comp} isReadOnly={isReadOnly} />;
+
+    case 'schedule':
+      return <ScheduleRenderer comp={comp} isReadOnly={isReadOnly} />;
 
     case 'drawing':
       return <DrawingRenderer comp={comp} isReadOnly={isReadOnly} />;

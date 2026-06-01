@@ -348,6 +348,35 @@ function compToHtml(comp) {
       return `<svg${navOnclick} style="${base}overflow:visible${navOnclick ? ';cursor:pointer' : ''}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${defs}${lineEl}</svg>`;
     }
 
+    case 'schedule': {
+      const slots = Array.isArray(props.slots) ? props.slots : [];
+      const bgColor = props.bgColor || '#FFFFFF';
+      const timeColor = props.timeColor || '#6C63FF';
+      const textColor = props.textColor || '#1F2937';
+      const borderColor = props.borderColor || '#F3F4F6';
+      const br = props.borderRadius ?? 12;
+      const fs = props.fontSize || 14;
+      const ff = props.fontFamily || 'Nunito';
+      const rowH = Math.round(pos.height / Math.max(1, slots.length));
+
+      const rowsHtml = slots.map((slot, i) => {
+        const borderBottom = i < slots.length - 1 ? `border-bottom:1px solid ${borderColor};` : '';
+        const hh = String(slot.hour).padStart(2, '0');
+        const mm = String(slot.minute).padStart(2, '0');
+        const dotColor = slot.color || timeColor;
+        const labelHtml = props.showLabels !== false
+          ? `<span style="flex:1;font-size:${Math.round(fs*0.9)}px;color:${textColor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:${ff},sans-serif">${escHtml(slot.label || '')}</span>`
+          : '';
+        return `<div style="display:flex;align-items:center;gap:8px;padding:0 ${Math.round(pos.width*0.03)}px;height:${rowH}px;${borderBottom}">
+  <div style="width:8px;height:8px;border-radius:50%;background:${dotColor};flex-shrink:0"></div>
+  <span style="font-size:${fs}px;font-weight:800;color:${timeColor};font-family:monospace;flex-shrink:0">${hh}:${mm}</span>
+  ${labelHtml}
+</div>`;
+      }).join('');
+
+      return `<div${navOnclick} style="${base}background:${bgColor};border-radius:${br}px;overflow:hidden;display:flex;flex-direction:column${navOnclick ? ';cursor:pointer' : ''}">${rowsHtml}</div>`;
+    }
+
     default:
       return '';
   }
