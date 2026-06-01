@@ -19,7 +19,12 @@ function lucideRef(name) {
 
 function compToHtml(comp) {
   const { type, props, position: pos, zIndex } = comp;
-  const base = `position:absolute;left:${pos.x}px;top:${pos.y}px;width:${pos.width}px;height:${pos.height}px;opacity:${props.opacity ?? 1};z-index:${zIndex || 1};box-sizing:border-box;`;
+  const _transforms = [];
+  if (props.rotation) _transforms.push(`rotate(${props.rotation}deg)`);
+  if (props.flipH) _transforms.push('scaleX(-1)');
+  if (props.flipV) _transforms.push('scaleY(-1)');
+  const _transformCss = _transforms.length ? `transform:${_transforms.join(' ')};transform-origin:center center;` : '';
+  const base = `position:absolute;left:${pos.x}px;top:${pos.y}px;width:${pos.width}px;height:${pos.height}px;opacity:${props.opacity ?? 1};z-index:${zIndex || 1};box-sizing:border-box;${_transformCss}`;
   const navOnclick = props.navigateTo
     ? ` onclick="document.querySelectorAll('.screen').forEach((el)=>el.style.display=el.id==='screen-${props.navigateTo}'?'block':'none')"`
     : '';

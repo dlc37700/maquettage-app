@@ -768,6 +768,26 @@ export default function Canvas({ canvasRef }) {
     };
   }, [state, getScale]);
 
+  const handleRotateMouseDown = useCallback((e, compId) => {
+    if (e.button !== 0) return;
+    e.stopPropagation(); e.preventDefault();
+    const screen = state.screens.find(s => s.id === state.activeScreenId);
+    const comp = screen?.components.find(c => c.id === compId);
+    if (!comp) return;
+    const rect = ref.current.getBoundingClientRect();
+    const { scaleX, scaleY } = getScale();
+    // Component center in client coordinates
+    const centerClientX = rect.left + (comp.position.x + comp.position.width / 2) / scaleX;
+    const centerClientY = rect.top + (comp.position.y + comp.position.height / 2) / scaleY;
+    const startAngle = Math.atan2(e.clientY - centerClientY, e.clientX - centerClientX) * 180 / Math.PI;
+    dragState.current = {
+      type: 'rotate', compId,
+      centerClientX, centerClientY,
+      startAngle,
+      origRotation: comp.props.rotation || 0,
+    };
+  }, [state, getScale, ref]);
+
   useEffect(() => {
     const MIN_SIZE = 20;
     const SNAP_DIST = 6;
@@ -813,6 +833,20 @@ export default function Canvas({ canvasRef }) {
     const onMouseMove = (e) => {
       const ds = dragState.current;
       if (!ds) return;
+      if (ds.type === 'rotate') {
+        const dx = e.clientX - ds.centerClientX;
+        const dy = e.clientY - ds.centerClientY;
+        const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+        let rotation = Math.round(ds.origRotation + angle - ds.startAngle);
+        rotation = ((rotation % 360) + 360) % 360;
+        // Snap to 0/45/90/135/180/225/270/315 when close
+        const snapAngles = [0, 45, 90, 135, 180, 225, 270, 315, 360];
+        for (const snap of snapAngles) {
+          if (Math.abs(rotation - snap) < 5) { rotation = snap % 360; break; }
+        }
+        dispatch({ type: 'UPDATE_COMPONENT_PROPS', id: ds.compId, props: { rotation } });
+        return;
+      }
       const dx = (e.clientX - ds.startMouseX) * ds.scaleX;
       const dy = (e.clientY - ds.startMouseY) * ds.scaleY;
       if (ds.type === 'move') {
@@ -829,6 +863,7 @@ export default function Canvas({ canvasRef }) {
       const ds = dragState.current;
       if (!ds) return;
       setGuides([]);
+      if (ds.type === 'rotate') { dragState.current = null; return; }
       const dx = (e.clientX - ds.startMouseX) * ds.scaleX;
       const dy = (e.clientY - ds.startMouseY) * ds.scaleY;
       if (ds.type === 'move') {
@@ -904,12 +939,20 @@ export default function Canvas({ canvasRef }) {
       {sortedComponents.map((comp) => {
         const isSelected = !isRemote && comp.id === state.selectedComponentId;
         const { x, y, width, height } = comp.position;
+        const rotation = comp.props.rotation || 0;
+        const flipH = comp.props.flipH || false;
+        const flipV = comp.props.flipV || false;
+        const transforms = [];
+        if (rotation) transforms.push(`rotate(${rotation}deg)`);
+        if (flipH) transforms.push('scaleX(-1)');
+        if (flipV) transforms.push('scaleY(-1)');
+        const transformStr = transforms.length ? transforms.join(' ') : undefined;
         return (
           <div key={comp.id}
             className={isRemote ? undefined : 'canvas-component'}
             onMouseDown={isRemote ? undefined : (e) => handleComponentMouseDown(e, comp.id)}
             onTouchStart={isRemote ? undefined : (e) => handleComponentTouchStart(e, comp.id)}
-            style={{ position: 'absolute', left: x, top: y, width, height, opacity: comp.props.opacity ?? 1, zIndex: comp.zIndex || 1, outline: isSelected ? '2px solid #6C63FF' : undefined, outlineOffset: isSelected ? '1px' : undefined }}>
+            style={{ position: 'absolute', left: x, top: y, width, height, opacity: comp.props.opacity ?? 1, zIndex: comp.zIndex || 1, outline: isSelected ? '2px solid #6C63FF' : undefined, outlineOffset: isSelected ? '1px' : undefined, transform: transformStr, transformOrigin: 'center center' }}>
             <div className="component-outline" style={{ width: '100%', height: '100%' }}>
               <ComponentRenderer comp={comp} isReadOnly={isRemote} />
             </div>
@@ -917,6 +960,13 @@ export default function Canvas({ canvasRef }) {
               <div style={{ position: 'absolute', top: 3, right: 3, width: 16, height: 16, backgroundColor: '#3B82F6', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10 }}>
                 <span style={{ fontSize: 9, color: 'white', lineHeight: 1 }}>🔗</span>
               </div>
+            )}
+            {isSelected && (
+              <div
+                onMouseDown={(e) => handleRotateMouseDown(e, comp.id)}
+                style={{ position: 'absolute', top: -26, left: '50%', transform: 'translateX(-50%)', width: 20, height: 20, borderRadius: '50%', backgroundColor: '#6C63FF', border: '2px solid white', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: 'white', zIndex: 15, boxShadow: '0 1px 5px rgba(0,0,0,0.35)', userSelect: 'none' }}
+                title="Pivoter"
+              >↻</div>
             )}
             {isSelected && ['nw', 'ne', 'sw', 'se'].map((h) => (
               <div key={h} className={`resize-handle ${h}`} onMouseDown={(e) => handleResizeMouseDown(e, comp.id, h)} onTouchStart={(e) => handleResizeTouchStart(e, comp.id, h)} />
