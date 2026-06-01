@@ -228,9 +228,9 @@ export const COMPONENT_DEFINITIONS = [
     label: 'Séparateur',
     icon: '➖',
     category: 'Données',
-    defaultProps: { color: '#E5E7EB', opacity: 1, navigateTo: '' },
-    defaultSize: { width: 390, height: 8 },
-    tooltip: 'Une ligne de séparation horizontale',
+    defaultProps: { color: '#E5E7EB', opacity: 1, navigateTo: '', lineStyle: 'solid', thickness: 2 },
+    defaultSize: { width: 340, height: 14 },
+    tooltip: 'Une ligne de séparation — couleur, style et épaisseur personnalisables',
   },
   {
     type: 'keyboard',

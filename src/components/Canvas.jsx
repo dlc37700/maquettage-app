@@ -579,8 +579,29 @@ function ComponentRenderer({ comp, isReadOnly }) {
     case 'badge':
       return <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), borderRadius: '50%', color: props.textColor, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: Math.min(pos.width, pos.height) * 0.38, fontWeight: 700, fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif` }}>{props.count}</div>;
 
-    case 'separator':
-      return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}><div style={{ width: '100%', height: 1.5, backgroundColor: props.color }} /></div>;
+    case 'separator': {
+      const sepColor = props.color || '#E5E7EB';
+      const sepThick = props.thickness ?? 2;
+      const sepStyle = props.lineStyle || 'solid';
+      let sepContent;
+      if (sepStyle === 'long-dash') {
+        sepContent = <div style={{ width: '100%', height: sepThick, background: `repeating-linear-gradient(to right, ${sepColor} 0px, ${sepColor} 18px, transparent 18px, transparent 26px)` }} />;
+      } else if (sepStyle === 'dash-dot') {
+        sepContent = <div style={{ width: '100%', height: sepThick, background: `repeating-linear-gradient(to right, ${sepColor} 0px, ${sepColor} 10px, transparent 10px, transparent 14px, ${sepColor} 14px, ${sepColor} 16px, transparent 16px, transparent 22px)` }} />;
+      } else if (sepStyle === 'wavy') {
+        const amp = Math.max(3, sepThick * 2);
+        sepContent = <svg width="100%" height={amp * 2 + 4} viewBox={`0 0 200 ${amp * 2 + 4}`} preserveAspectRatio="none"><path d={`M0,${amp+2} Q5,2 10,${amp+2} Q15,${amp*2+2} 20,${amp+2} Q25,2 30,${amp+2} Q35,${amp*2+2} 40,${amp+2} Q45,2 50,${amp+2} Q55,${amp*2+2} 60,${amp+2} Q65,2 70,${amp+2} Q75,${amp*2+2} 80,${amp+2} Q85,2 90,${amp+2} Q95,${amp*2+2} 100,${amp+2} Q105,2 110,${amp+2} Q115,${amp*2+2} 120,${amp+2} Q125,2 130,${amp+2} Q135,${amp*2+2} 140,${amp+2} Q145,2 150,${amp+2} Q155,${amp*2+2} 160,${amp+2} Q165,2 170,${amp+2} Q175,${amp*2+2} 180,${amp+2} Q185,2 190,${amp+2} Q195,${amp*2+2} 200,${amp+2}`} stroke={sepColor} strokeWidth={sepThick} fill="none" /></svg>;
+      } else if (sepStyle === 'zigzag') {
+        const zh = Math.max(6, sepThick * 3);
+        sepContent = <svg width="100%" height={zh} viewBox={`0 0 200 ${zh}`} preserveAspectRatio="none"><polyline points={`0,${zh/2} 5,0 10,${zh} 15,0 20,${zh} 25,0 30,${zh} 35,0 40,${zh} 45,0 50,${zh} 55,0 60,${zh} 65,0 70,${zh} 75,0 80,${zh} 85,0 90,${zh} 95,0 100,${zh} 105,0 110,${zh} 115,0 120,${zh} 125,0 130,${zh} 135,0 140,${zh} 145,0 150,${zh} 155,0 160,${zh} 165,0 170,${zh} 175,0 180,${zh} 185,0 190,${zh} 195,0 200,${zh/2}`} stroke={sepColor} strokeWidth={sepThick} fill="none" /></svg>;
+      } else if (sepStyle === 'double') {
+        sepContent = <div style={{ width: '100%', borderTop: `${Math.max(3, sepThick + 2)}px double ${sepColor}` }} />;
+      } else {
+        // solid, dashed, dotted
+        sepContent = <div style={{ width: '100%', borderTop: `${sepThick}px ${sepStyle} ${sepColor}` }} />;
+      }
+      return <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center' }}>{sepContent}</div>;
+    }
 
     case 'colorblock':
       if (props.backgroundImage) {
