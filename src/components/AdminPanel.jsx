@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { getShapeSvgInner } from '../data/shapes';
 import { isFirebaseConfigured } from '../services/firebase';
 import {
   getAllSessions, setSessionBlocked, removeMember, deleteSession,
@@ -139,6 +140,10 @@ function MiniComp({ comp }) {
           ))}
         </div>
       );
+    }
+    case 'shape': {
+      const svgInner = getShapeSvgInner(props.shape || 'circle', props.fillColor || '#6C63FF', props.strokeColor || 'transparent', props.strokeWidth ?? 0);
+      return <div style={base}><svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" dangerouslySetInnerHTML={{ __html: svgInner }} /></div>;
     }
     default: return <div style={{ ...base, ...bgStyle, borderRadius: props.borderRadius || 0 }} />;
   }
