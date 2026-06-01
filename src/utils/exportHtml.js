@@ -62,7 +62,7 @@ function compToHtml(comp) {
       const clearBtn = props.showClearBtn
         ? `<span style="width:${Math.round(fs*1.2)}px;height:${Math.round(fs*1.2)}px;border-radius:50%;background:${iconColor}33;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:${Math.round(fs*0.6)}px;color:${iconColor}">✕</span>`
         : '';
-      return `<div style="${base}background:${bg};border-radius:${br}px;display:flex;align-items:center;padding:0 12px;gap:8px;box-sizing:border-box;overflow:hidden">
+      return `<div${navOnclick} style="${base}background:${bg};border-radius:${br}px;display:flex;align-items:center;padding:0 12px;gap:8px;box-sizing:border-box;overflow:hidden${navOnclick ? ';cursor:pointer' : ''}">
   <svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(fs*1.15)}" height="${Math.round(fs*1.15)}" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
   <span style="flex:1;color:${tc};font-size:${fs}px;font-family:${ff},sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(props.placeholder || 'Rechercher…')}</span>
   ${clearBtn}
@@ -70,13 +70,13 @@ function compToHtml(comp) {
     }
 
     case 'checkbox':
-      return `<label style="${base}display:flex;align-items:center;gap:10px;cursor:pointer;font-family:${props.fontFamily || 'Nunito'},sans-serif;color:${props.textColor};font-size:${props.fontSize || 14}px">
+      return `<label${navOnclick} style="${base}display:flex;align-items:center;gap:10px;cursor:pointer;font-family:${props.fontFamily || 'Nunito'},sans-serif;color:${props.textColor};font-size:${props.fontSize || 14}px${navOnclick ? ';cursor:pointer' : ''}">
   <input type="checkbox"${props.checked ? ' checked' : ''} style="width:18px;height:18px;accent-color:${props.accentColor};cursor:pointer;flex-shrink:0">
   <span>${escHtml(props.label)}</span>
 </label>`;
 
     case 'radio':
-      return `<label style="${base}display:flex;align-items:center;gap:10px;cursor:pointer;font-family:${props.fontFamily || 'Nunito'},sans-serif;color:${props.textColor};font-size:${props.fontSize || 14}px">
+      return `<label${navOnclick} style="${base}display:flex;align-items:center;gap:10px;cursor:pointer;font-family:${props.fontFamily || 'Nunito'},sans-serif;color:${props.textColor};font-size:${props.fontSize || 14}px${navOnclick ? ';cursor:pointer' : ''}">
   <input type="radio"${props.checked ? ' checked' : ''} style="width:18px;height:18px;accent-color:${props.accentColor};cursor:pointer;flex-shrink:0">
   <span>${escHtml(props.label)}</span>
 </label>`;
@@ -226,15 +226,15 @@ function compToHtml(comp) {
         }).join('');
         return `<tr>${cellsHtml}</tr>`;
       }).join('');
-      return `<table style="${base}border-collapse:collapse;border-radius:${br}px;overflow:hidden;border:1px solid ${borderColor};font-family:${ff},sans-serif">${rowsHtml}</table>`;
+      return `<table${navOnclick} style="${base}border-collapse:collapse;border-radius:${br}px;overflow:hidden;border:1px solid ${borderColor};font-family:${ff},sans-serif${navOnclick ? ';cursor:pointer' : ''}">${rowsHtml}</table>`;
     }
 
     case 'drawing': {
       const src = props.showAiResult && props.aiImageUrl ? props.aiImageUrl : (props.drawingData || null);
       const br = props.borderRadius ?? 8;
       const border = `1px solid ${props.borderColor || '#E5E7EB'}`;
-      if (!src) return `<div style="${base}background:${props.bgColor||'#FFFFFF'};border-radius:${br}px;border:${border}"></div>`;
-      return `<img src="${escHtml(src)}" style="${base}border-radius:${br}px;border:${border};object-fit:contain;background:${props.bgColor||'#FFFFFF'}" />`;
+      if (!src) return `<div${navOnclick} style="${base}background:${props.bgColor||'#FFFFFF'};border-radius:${br}px;border:${border}${navOnclick ? ';cursor:pointer' : ''}"></div>`;
+      return `<img${navOnclick} src="${escHtml(src)}" style="${base}border-radius:${br}px;border:${border};object-fit:contain;background:${props.bgColor||'#FFFFFF'}${navOnclick ? ';cursor:pointer' : ''}" />`;
     }
 
     case 'weekcalendar': {
@@ -266,7 +266,12 @@ function compToHtml(comp) {
         const borderBottom = ri < ROWS.length - 1 ? `border-bottom:1px solid ${bc};` : '';
         return `<tr style="${borderBottom}"><td style="width:44px;background:${rlBg};color:${rlTxt};font-weight:700;text-align:center;padding:3px 2px;font-size:${fs - 1}px;font-family:${ff},sans-serif;border-right:1px solid ${bc};line-height:1.2">${ROW_LABELS[ri]}</td>${cells}</tr>`;
       }).join('');
-      return `<table style="${base}border-collapse:collapse;border-radius:${br}px;overflow:hidden;border:1px solid ${bc};font-family:${ff},sans-serif;background:${props.bgColor||'#FFFFFF'}"><thead><tr><th style="width:44px;background:${hBg};border-right:1px solid ${bc};padding:4px 2px"></th>${headerCells}</tr></thead><tbody>${dataRows}</tbody></table>`;
+      return `<table${navOnclick} style="${base}border-collapse:collapse;border-radius:${br}px;overflow:hidden;border:1px solid ${bc};font-family:${ff},sans-serif;background:${props.bgColor||'#FFFFFF'}${navOnclick ? ';cursor:pointer' : ''}"><thead><tr><th style="width:44px;background:${hBg};border-right:1px solid ${bc};padding:4px 2px"></th>${headerCells}</tr></thead><tbody>${dataRows}</tbody></table>`;
+    }
+
+    case 'shape': {
+      const svgInner = getShapeSvgInner(props.shape || 'circle', props.fillColor || '#6C63FF', props.strokeColor || 'transparent', props.strokeWidth ?? 0);
+      return `<svg${navOnclick} style="${base}${navOnclick ? ';cursor:pointer' : ''};overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${svgInner}</svg>`;
     }
 
     default:
