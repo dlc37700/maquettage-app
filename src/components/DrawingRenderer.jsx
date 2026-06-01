@@ -391,6 +391,15 @@ export default function DrawingRenderer({ comp, isReadOnly }) {
   });
 
   return (
+    <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      {!isReadOnly && (
+        <button
+          onMouseDown={e => e.stopPropagation()}
+          onClick={e => { e.stopPropagation(); dispatch({ type: 'DELETE_COMPONENT', id: comp.id }); }}
+          title="Supprimer la zone de dessin"
+          style={{ position: 'absolute', top: -8, right: -8, zIndex: 20, width: 20, height: 20, borderRadius: '50%', backgroundColor: '#EF4444', border: '2px solid white', color: 'white', fontSize: 13, fontWeight: 900, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1, boxShadow: '0 1px 5px rgba(0,0,0,0.35)', padding: 0 }}
+        >×</button>
+      )}
     <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', borderRadius: p.borderRadius ?? 8, overflow: 'hidden', border: frameless ? 'none' : `1px solid ${p.borderColor || '#E5E7EB'}` }}>
 
       {!isReadOnly && (
@@ -468,6 +477,7 @@ export default function DrawingRenderer({ comp, isReadOnly }) {
           onApply={applyAiImage}
         />
       )}
+    </div>
     </div>
   );
 }
