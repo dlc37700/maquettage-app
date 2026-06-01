@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useProject, useActiveScreen } from '../hooks/useProject';
 import BgApplyModal from './BgApplyModal';
 import { getClientNickname } from '../services/session';
+import { getShapeSvgInner } from '../data/shapes';
 
 const THUMB_W = 120;
 const SCALE = THUMB_W / 390;
@@ -97,6 +98,10 @@ function MiniComp({ comp }) {
     }
     case 'separator':
       return <div style={{ ...base, borderTop: `1px solid ${props.color || '#E5E7EB'}` }} />;
+    case 'shape': {
+      const svgInner = getShapeSvgInner(props.shape || 'circle', props.fillColor || '#6C63FF', props.strokeColor || 'transparent', props.strokeWidth ?? 0);
+      return <div style={base}><svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" dangerouslySetInnerHTML={{ __html: svgInner }} /></div>;
+    }
     default:
       return <div style={{ ...base, backgroundColor: '#E5E7EB' }} />;
   }

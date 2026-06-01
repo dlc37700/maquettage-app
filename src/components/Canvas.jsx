@@ -3,6 +3,7 @@ import { useProject, useActiveScreen } from '../hooks/useProject';
 import * as LucideIcons from 'lucide-react';
 import * as TablerIcons from '@tabler/icons-react';
 import DrawingRenderer from './DrawingRenderer';
+import { getShapeSvgInner } from '../data/shapes';
 
 const CANVAS_W = 390;
 const CANVAS_H = 844;
@@ -617,6 +618,20 @@ function ComponentRenderer({ comp, isReadOnly }) {
 
     case 'table':
       return <TableRenderer comp={comp} isReadOnly={isReadOnly} />;
+
+    case 'shape': {
+      const svgInner = getShapeSvgInner(props.shape || 'circle', props.fillColor || '#6C63FF', props.strokeColor || 'transparent', props.strokeWidth ?? 0);
+      return (
+        <svg
+          width="100%" height="100%"
+          viewBox="0 0 100 100"
+          preserveAspectRatio="none"
+          xmlns="http://www.w3.org/2000/svg"
+          style={{ display: 'block', overflow: 'visible' }}
+          dangerouslySetInnerHTML={{ __html: svgInner }}
+        />
+      );
+    }
 
     default:
       return <div style={{ width: '100%', height: '100%', backgroundColor: '#F3F4F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, color: '#6B7280', fontFamily: 'Nunito, sans-serif' }}>{type}</div>;

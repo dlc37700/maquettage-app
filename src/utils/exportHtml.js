@@ -1,3 +1,5 @@
+import { getShapeSvgInner } from '../data/shapes';
+
 function getBgCss(bgColor, bgGradient) {
   if (bgGradient && bgGradient.from && bgGradient.to) {
     return `background:linear-gradient(${bgGradient.angle ?? 135}deg,${bgGradient.from},${bgGradient.to})`;
@@ -41,7 +43,7 @@ function compToHtml(comp) {
     case 'text': {
       const fw = props.fontWeight === 'bold' ? 700 : props.fontWeight === 'semibold' ? 600 : 400;
       const vAlign = props.verticalAlign === 'top' ? 'flex-start' : props.verticalAlign === 'bottom' ? 'flex-end' : 'center';
-      return `<p style="${base}color:${props.textColor};font-size:${props.fontSize || 16}px;font-weight:${fw};font-family:${props.fontFamily || 'Nunito'},sans-serif;font-style:${props.fontStyle || 'normal'};text-decoration:${props.textDecoration || 'none'};text-align:${props.textAlign || 'left'};margin:0;display:flex;align-items:${vAlign};line-height:1.4;overflow:hidden;padding:2px 4px;white-space:pre-wrap;word-break:break-word">${escHtml(props.label)}</p>`;
+      return `<p${navOnclick} style="${base}color:${props.textColor};font-size:${props.fontSize || 16}px;font-weight:${fw};font-family:${props.fontFamily || 'Nunito'},sans-serif;font-style:${props.fontStyle || 'normal'};text-decoration:${props.textDecoration || 'none'};text-align:${props.textAlign || 'left'};margin:0;display:flex;align-items:${vAlign};line-height:1.4;overflow:hidden;padding:2px 4px;white-space:pre-wrap;word-break:break-word${navOnclick ? ';cursor:pointer' : ''}">${escHtml(props.label)}</p>`;
     }
 
     case 'input':
@@ -84,34 +86,34 @@ function compToHtml(comp) {
       if (props.imageData) {
         const fit = props.frameless ? (props.objectFit || 'contain') : (props.objectFit || 'cover');
         const overflow = props.frameless ? '' : 'overflow:hidden;';
-        return `<img src="${props.imageData}" alt="" style="${base}border-radius:${imgBr}px;object-fit:${fit};${overflow}">`;
+        return `<img${navOnclick} src="${props.imageData}" alt="" style="${base}border-radius:${imgBr}px;object-fit:${fit};${overflow}${navOnclick ? ';cursor:pointer' : ''}">`;
       }
-      return `<div style="${base}${props.frameless ? '' : getBgCss(props.bgColor, props.bgGradient) + ';'}border-radius:${imgBr}px;display:flex;align-items:center;justify-content:center;border:${props.frameless ? '1.5px' : '2px'} dashed #D1D5DB">
+      return `<div${navOnclick} style="${base}${props.frameless ? '' : getBgCss(props.bgColor, props.bgGradient) + ';'}border-radius:${imgBr}px;display:flex;align-items:center;justify-content:center;border:${props.frameless ? '1.5px' : '2px'} dashed #D1D5DB${navOnclick ? ';cursor:pointer' : ''}">
   <span style="font-size:32px">🖼️</span>
 </div>`;
     }
 
     case 'avatar':
       if (props.imageData) {
-        return `<img src="${props.imageData}" alt="" style="${base}border-radius:50%;object-fit:cover">`;
+        return `<img${navOnclick} src="${props.imageData}" alt="" style="${base}border-radius:50%;object-fit:cover${navOnclick ? ';cursor:pointer' : ''}">`;
       }
       if (props.emoji) {
         const emojiSize = Math.round(Math.min(pos.width, pos.height) * 0.55);
-        return `<div style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden">
+        return `<div${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden${navOnclick ? ';cursor:pointer' : ''}">
   <span style="font-size:${emojiSize}px;line-height:1">${escHtml(props.emoji)}</span>
 </div>`;
       }
-      return `<div style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden">
+      return `<div${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden${navOnclick ? ';cursor:pointer' : ''}">
   <i data-lucide="user" style="width:${Math.round(Math.min(pos.width, pos.height) * 0.55)}px;height:${Math.round(Math.min(pos.width, pos.height) * 0.55)}px;color:white"></i>
 </div>`;
 
     case 'icon':
-      return `<div style="${base}display:flex;align-items:center;justify-content:center">
+      return `<div${navOnclick} style="${base}display:flex;align-items:center;justify-content:center${navOnclick ? ';cursor:pointer' : ''}">
   <i data-lucide="${lucideRef(props.iconName || 'star')}" style="width:${Math.round(Math.min(pos.width, pos.height) * 0.55)}px;height:${Math.round(Math.min(pos.width, pos.height) * 0.55)}px;color:${props.color}"></i>
 </div>`;
 
     case 'header':
-      return `<header style="${base}${getBgCss(props.bgColor, props.bgGradient)};display:flex;align-items:center;padding:0 16px;gap:12px">
+      return `<header${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};display:flex;align-items:center;padding:0 16px;gap:12px${navOnclick ? ';cursor:pointer' : ''}">
   ${props.showBack ? `<button onclick="history.back()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;padding:0"><i data-lucide="arrow-left" style="width:20px;height:20px;color:${props.textColor}"></i></button>` : ''}
   <span style="color:${props.textColor};font-size:18px;font-weight:700;font-family:${props.fontFamily || 'Nunito'},sans-serif;flex:1;text-align:${props.textAlign || 'left'}">${escHtml(props.title)}</span>
 </header>`;
@@ -129,20 +131,20 @@ function compToHtml(comp) {
 
     case 'colorblock':
       if (props.backgroundImage) {
-        return `<div style="${base}border-radius:${props.borderRadius || 0}px;overflow:hidden"><img src="${props.backgroundImage}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>`;
+        return `<div${navOnclick} style="${base}border-radius:${props.borderRadius || 0}px;overflow:hidden${navOnclick ? ';cursor:pointer' : ''}"><img src="${props.backgroundImage}" alt="" style="width:100%;height:100%;object-fit:cover;display:block"></div>`;
       }
-      return `<div style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-radius:${props.borderRadius || 0}px"></div>`;
+      return `<div${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-radius:${props.borderRadius || 0}px${navOnclick ? ';cursor:pointer' : ''}"></div>`;
 
     case 'switch': {
       const id = `sw-${Math.random().toString(36).slice(2, 7)}`;
-      return `<label for="${id}" style="${base}display:flex;align-items:center;gap:12px;cursor:pointer;font-family:${props.fontFamily || 'Nunito'},sans-serif;font-size:${props.fontSize || 14}px;color:#1F2937">
+      return `<label${navOnclick} for="${id}" style="${base}display:flex;align-items:center;gap:12px;cursor:pointer;font-family:${props.fontFamily || 'Nunito'},sans-serif;font-size:${props.fontSize || 14}px;color:#1F2937${navOnclick ? ';cursor:pointer' : ''}">
   <span style="flex:1">${escHtml(props.label)}</span>
   <input type="checkbox" id="${id}" role="switch"${props.checked ? ' checked' : ''} style="width:46px;height:26px;appearance:none;background-color:${props.checked ? props.activeColor : '#D1D5DB'};border-radius:13px;position:relative;cursor:pointer;flex-shrink:0;transition:background .15s;outline:none" onclick="this.style.backgroundColor=this.checked?'${props.activeColor}':'#D1D5DB'">
 </label>`;
     }
 
     case 'slider':
-      return `<div style="${base}display:flex;align-items:center">
+      return `<div${navOnclick} style="${base}display:flex;align-items:center${navOnclick ? ';cursor:pointer' : ''}">
   <input type="range" value="${props.value || 60}" min="0" max="100" style="flex:1;accent-color:${props.activeColor};cursor:pointer">
 </div>`;
 
@@ -154,9 +156,12 @@ function compToHtml(comp) {
 </div>`;
 
     case 'badge':
-      return `<span style="${base}${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${Math.round(Math.min(pos.width, pos.height) * 0.38)}px;font-weight:700;font-family:${props.fontFamily || 'Nunito'},sans-serif">${props.count ?? 0}</span>`;
+      return `<span${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${Math.round(Math.min(pos.width, pos.height) * 0.38)}px;font-weight:700;font-family:${props.fontFamily || 'Nunito'},sans-serif${navOnclick ? ';cursor:pointer' : ''}">${props.count ?? 0}</span>`;
 
     case 'separator':
+      if (navOnclick) {
+        return `<div${navOnclick} style="${base}display:flex;align-items:center;cursor:pointer"><hr style="width:100%;border:none;border-top:1px solid ${props.color || '#E5E7EB'};margin:0"></div>`;
+      }
       return `<hr style="${base}border:none;border-top:1px solid ${props.color || '#E5E7EB'};margin:0">`;
 
     case 'keyboard': {
@@ -172,7 +177,7 @@ function compToHtml(comp) {
         }).join('');
         return `<div style="display:flex;flex:1;gap:3px">${keysHtml}</div>`;
       }).join('');
-      return `<div style="${base}background:${kbBg};border-radius:${props.borderRadius||0}px;display:flex;flex-direction:column;gap:3px;padding:4px 6px;box-sizing:border-box">${rowsHtml}</div>`;
+      return `<div${navOnclick} style="${base}background:${kbBg};border-radius:${props.borderRadius||0}px;display:flex;flex-direction:column;gap:3px;padding:4px 6px;box-sizing:border-box${navOnclick ? ';cursor:pointer' : ''}">${rowsHtml}</div>`;
     }
     case 'calendar': {
       const accent = props.accentColor || '#6C63FF';
@@ -201,7 +206,7 @@ function compToHtml(comp) {
         const evHtml = ev ? `<div style="width:90%;background:${accent}33;border-radius:2px;font-size:7px;color:${accent};font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center">${escHtml(ev)}</div>` : '';
         return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;aspect-ratio:1;background:${bg};border-radius:4px;overflow:hidden"><span style="font-size:10px;font-weight:${isToday?800:400};color:${color};line-height:1.1">${d||''}</span>${evHtml}</div>`;
       }).join('');
-      return `<div style="${base}background:${calBg};border-radius:${br}px;overflow:hidden;font-family:Nunito,sans-serif;display:flex;flex-direction:column"><div style="background:${hBg};padding:6px 10px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="color:white;font-weight:800;font-size:13px">${MONTHS_FR[month]} ${year}</span></div><div style="display:grid;grid-template-columns:repeat(7,1fr);padding:4px 6px 2px;flex-shrink:0">${dayLabels}</div><div style="flex:1;display:grid;grid-template-columns:repeat(7,1fr);padding:0 6px 4px;align-content:start;gap:1px">${dayCells}</div></div>`;
+      return `<div${navOnclick} style="${base}background:${calBg};border-radius:${br}px;overflow:hidden;font-family:Nunito,sans-serif;display:flex;flex-direction:column${navOnclick ? ';cursor:pointer' : ''}"><div style="background:${hBg};padding:6px 10px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="color:white;font-weight:800;font-size:13px">${MONTHS_FR[month]} ${year}</span></div><div style="display:grid;grid-template-columns:repeat(7,1fr);padding:4px 6px 2px;flex-shrink:0">${dayLabels}</div><div style="flex:1;display:grid;grid-template-columns:repeat(7,1fr);padding:0 6px 4px;align-content:start;gap:1px">${dayCells}</div></div>`;
     }
 
     case 'table': {

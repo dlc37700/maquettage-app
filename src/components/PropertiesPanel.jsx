@@ -3,6 +3,7 @@ import { useProject, useActiveScreen } from '../hooks/useProject';
 import { COMPONENT_DEFINITIONS, THEMES, FONT_OPTIONS } from '../data/componentDefinitions';
 // ICON_OPTIONS removed — now using IconPicker with iconLibraries
 import IconPicker from './IconPicker';
+import { SHAPES_CATEGORIES, getShapeSvgInner } from '../data/shapes';
 
 function Field({ label, children }) {
   return <div style={{ marginBottom: 12 }}><div style={{ color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>{label}</div>{children}</div>;
@@ -454,6 +455,50 @@ function ComponentProperties({ comp }) {
           <Field label="Fond cellule"><ColorInput value={p.cellBgColor || '#FFFFFF'} onChange={v => update({ cellBgColor: v })} /></Field>
           <Field label="Texte cellule"><ColorInput value={p.cellTextColor || '#1F2937'} onChange={v => update({ cellTextColor: v })} /></Field>
           <Field label="Couleur bordure"><ColorInput value={p.borderColor || '#E5E7EB'} onChange={v => update({ borderColor: v })} /></Field>
+        </>
+      )}
+
+      {/* Shape specific */}
+      {comp.type === 'shape' && (
+        <>
+          <SectionTitle>Forme</SectionTitle>
+          {SHAPES_CATEGORIES.map(cat => (
+            <div key={cat.label} style={{ marginBottom: 8 }}>
+              <div style={{ fontSize: 10, color: '#6B7280', fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 4 }}>{cat.label}</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                {cat.shapes.map(s => {
+                  const isSelected = (p.shape || 'circle') === s.id;
+                  const svgInner = getShapeSvgInner(s.id, isSelected ? '#6C63FF' : '#9CA3AF', 'none', 0);
+                  return (
+                    <div
+                      key={s.id}
+                      title={s.label}
+                      onClick={() => update({ shape: s.id })}
+                      style={{
+                        width: 34, height: 34, borderRadius: 6, cursor: 'pointer', padding: 3,
+                        border: `2px solid ${isSelected ? '#6C63FF' : '#E5E7EB'}`,
+                        backgroundColor: isSelected ? '#EDE9FE' : '#F9FAFB',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      <svg width="22" height="22" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" dangerouslySetInnerHTML={{ __html: svgInner }} />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          <SectionTitle>Couleurs</SectionTitle>
+          <Field label="Remplissage">
+            <ColorInput value={p.fillColor || '#6C63FF'} onChange={v => update({ fillColor: v })} />
+          </Field>
+          <Field label="Contour">
+            <ColorInput value={p.strokeColor === 'transparent' ? '#000000' : (p.strokeColor || '#000000')} onChange={v => update({ strokeColor: v })} />
+          </Field>
+          <Field label={`Épaisseur contour (${p.strokeWidth ?? 0}px)`}>
+            <RangeInput value={p.strokeWidth ?? 0} min={0} max={20} onChange={v => update({ strokeColor: p.strokeColor === 'transparent' && v > 0 ? '#000000' : p.strokeColor, strokeWidth: v })} />
+          </Field>
         </>
       )}
 
