@@ -445,6 +445,54 @@ function ComponentProperties({ comp }) {
         </>
       )}
 
+      {/* Separator specific */}
+      {comp.type === 'separator' && (
+        <>
+          <Field label="Couleur">
+            <ColorInput value={p.color || '#E5E7EB'} onChange={v => update({ color: v })} />
+          </Field>
+          <Field label={`Épaisseur (${p.thickness ?? 2}px)`}>
+            <RangeInput value={p.thickness ?? 2} min={1} max={10} onChange={v => update({ thickness: v })} />
+          </Field>
+          <Field label="Style de ligne">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
+              {[
+                { id: 'solid', label: 'Plein' },
+                { id: 'dashed', label: 'Tirets' },
+                { id: 'dotted', label: 'Pointillés' },
+                { id: 'double', label: 'Double' },
+                { id: 'long-dash', label: 'Longs tirets' },
+                { id: 'dash-dot', label: 'Tiret-point' },
+                { id: 'wavy', label: 'Ondulé' },
+                { id: 'zigzag', label: 'Zigzag' },
+              ].map(ls => {
+                const isActive = (p.lineStyle || 'solid') === ls.id;
+                const lineColor = p.color || '#6B7280';
+                return (
+                  <button
+                    key={ls.id}
+                    onClick={() => update({ lineStyle: ls.id })}
+                    style={{ padding: '6px 4px', borderRadius: 8, border: `2px solid ${isActive ? '#6C63FF' : '#E5E7EB'}`, backgroundColor: isActive ? '#EDE9FE' : '#F9FAFB', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
+                  >
+                    <svg width="58" height="12" viewBox="0 0 58 12" style={{ display: 'block' }}>
+                      {ls.id === 'solid' && <line x1="3" y1="6" x2="55" y2="6" stroke={lineColor} strokeWidth="2" />}
+                      {ls.id === 'dashed' && <line x1="3" y1="6" x2="55" y2="6" stroke={lineColor} strokeWidth="2" strokeDasharray="6,4" />}
+                      {ls.id === 'dotted' && <line x1="3" y1="6" x2="55" y2="6" stroke={lineColor} strokeWidth="2.5" strokeDasharray="1.5,3" strokeLinecap="round" />}
+                      {ls.id === 'double' && <><line x1="3" y1="4" x2="55" y2="4" stroke={lineColor} strokeWidth="1.5" /><line x1="3" y1="8" x2="55" y2="8" stroke={lineColor} strokeWidth="1.5" /></>}
+                      {ls.id === 'long-dash' && <line x1="3" y1="6" x2="55" y2="6" stroke={lineColor} strokeWidth="2" strokeDasharray="12,4" />}
+                      {ls.id === 'dash-dot' && <line x1="3" y1="6" x2="55" y2="6" stroke={lineColor} strokeWidth="2" strokeDasharray="8,3,2,3" />}
+                      {ls.id === 'wavy' && <path d="M3,8 Q8,4 13,8 Q18,12 23,8 Q28,4 33,8 Q38,12 43,8 Q48,4 53,8" stroke={lineColor} strokeWidth="1.5" fill="none" />}
+                      {ls.id === 'zigzag' && <polyline points="3,9 9,3 15,9 21,3 27,9 33,3 39,9 45,3 51,9" stroke={lineColor} strokeWidth="1.5" fill="none" />}
+                    </svg>
+                    <span style={{ fontSize: 10, fontFamily: 'Nunito, sans-serif', fontWeight: 700, color: isActive ? '#6C63FF' : '#9CA3AF' }}>{ls.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </Field>
+        </>
+      )}
+
       {/* Weekly calendar specific */}
       {comp.type === 'weekcalendar' && (
         <>

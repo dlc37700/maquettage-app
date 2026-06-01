@@ -165,11 +165,38 @@ function compToHtml(comp) {
     case 'badge':
       return `<span${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${Math.round(Math.min(pos.width, pos.height) * 0.38)}px;font-weight:700;font-family:${props.fontFamily || 'Nunito'},sans-serif${navOnclick ? ';cursor:pointer' : ''}">${props.count ?? 0}</span>`;
 
-    case 'separator':
-      if (navOnclick) {
-        return `<div${navOnclick} style="${base}display:flex;align-items:center;cursor:pointer"><hr style="width:100%;border:none;border-top:1px solid ${props.color || '#E5E7EB'};margin:0"></div>`;
+    case 'separator': {
+      const sepColor = props.color || '#E5E7EB';
+      const sepThick = props.thickness ?? 2;
+      const sepStyle = props.lineStyle || 'solid';
+      let lineHtml = '';
+      if (sepStyle === 'wavy') {
+        const w = pos.width; const h = pos.height;
+        const amp = Math.max(2, sepThick * 2); const freq = 10;
+        let path = `M0,${h / 2}`;
+        for (let x = 0; x < w; x += freq) path += ` Q${x + freq / 2},${h / 2 - amp} ${x + freq},${h / 2}`;
+        lineHtml = `<svg style="position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible" viewBox="0 0 ${w} ${h}"><path d="${path}" stroke="${sepColor}" stroke-width="${sepThick}" fill="none"/></svg>`;
+      } else if (sepStyle === 'zigzag') {
+        const w = pos.width; const h = pos.height;
+        const amp = Math.max(2, sepThick * 2); const freq = 10;
+        let pts = '';
+        for (let x = 0; x <= w; x += freq) pts += `${x},${Math.round(x / freq) % 2 === 0 ? h / 2 + amp : h / 2 - amp} `;
+        lineHtml = `<svg style="position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible" viewBox="0 0 ${w} ${h}"><polyline points="${pts.trim()}" stroke="${sepColor}" stroke-width="${sepThick}" fill="none"/></svg>`;
+      } else if (sepStyle === 'long-dash') {
+        const dash = sepThick * 8; const gap = sepThick * 3;
+        lineHtml = `<div style="position:absolute;left:0;top:50%;width:100%;height:${sepThick}px;transform:translateY(-50%);background:repeating-linear-gradient(to right,${sepColor} 0,${sepColor} ${dash}px,transparent ${dash}px,transparent ${dash + gap}px)"></div>`;
+      } else if (sepStyle === 'dash-dot') {
+        const dash = sepThick * 6; const dot = sepThick; const gap = sepThick * 2;
+        lineHtml = `<div style="position:absolute;left:0;top:50%;width:100%;height:${sepThick}px;transform:translateY(-50%);background:repeating-linear-gradient(to right,${sepColor} 0,${sepColor} ${dash}px,transparent ${dash}px,transparent ${dash + gap}px,${sepColor} ${dash + gap}px,${sepColor} ${dash + gap + dot}px,transparent ${dash + gap + dot}px,transparent ${dash + gap * 2 + dot}px)"></div>`;
+      } else if (sepStyle === 'double') {
+        const g = Math.max(2, sepThick);
+        lineHtml = `<div style="position:absolute;left:0;top:50%;transform:translateY(-50%);width:100%;display:flex;flex-direction:column;gap:${g}px"><div style="width:100%;height:${sepThick}px;background:${sepColor}"></div><div style="width:100%;height:${sepThick}px;background:${sepColor}"></div></div>`;
+      } else {
+        const bs = sepStyle === 'dashed' ? 'dashed' : sepStyle === 'dotted' ? 'dotted' : 'solid';
+        lineHtml = `<div style="position:absolute;left:0;top:50%;width:100%;height:0;transform:translateY(-50%);border-top:${sepThick}px ${bs} ${sepColor}"></div>`;
       }
-      return `<hr style="${base}border:none;border-top:1px solid ${props.color || '#E5E7EB'};margin:0">`;
+      return `<div${navOnclick} style="${base}${navOnclick ? ';cursor:pointer' : ''}">${lineHtml}</div>`;
+    }
 
     case 'keyboard': {
       const rows = [['A','Z','E','R','T','Y','U','I','O','P'],['Q','S','D','F','G','H','J','K','L','M'],['⇧','W','X','C','V','B','N','⌫'],['123','espace','↵']];
