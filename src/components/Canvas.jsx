@@ -65,10 +65,12 @@ function ShapeWithText({ comp, isReadOnly }) {
   const fc = p.textColor || '#FFFFFF';
   const ff = `${p.fontFamily || 'Nunito'}, sans-serif`;
   const fw = p.fontWeight === 'bold' ? 700 : p.fontWeight === 'semibold' ? 600 : 400;
+  const animType = p.animationType || '';
+  const animStyle = animType ? { animation: `maquetapp-${animType} ${animType === 'float' ? '2s ease-in-out' : animType === 'pulse' ? '1.5s ease-in-out' : '3s linear'} infinite`, transformOrigin: 'center center' } : {};
 
   return (
     <div
-      style={{ width: '100%', height: '100%', position: 'relative', cursor: isReadOnly ? 'default' : isSelected ? 'text' : 'default' }}
+      style={{ width: '100%', height: '100%', position: 'relative', cursor: isReadOnly ? 'default' : isSelected ? 'text' : 'default', ...animStyle }}
       onClick={startEdit}
     >
       <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"
@@ -656,8 +658,10 @@ function FontworkRenderer({ comp }) {
   const p = comp.props;
   const uid = `fw${comp.id.replace(/[^a-zA-Z0-9]/g, '')}`;
   const svgContent = getFontworkSvg(p.letter || 'A', p.style || 'fill', p, uid);
+  const animType = p.animationType || '';
+  const animStyle = animType ? { animation: `maquetapp-${animType} ${animType === 'float' ? '2s ease-in-out' : animType === 'pulse' ? '1.5s ease-in-out' : '3s linear'} infinite`, transformOrigin: 'center center' } : {};
   return (
-    <div style={{ width: '100%', height: '100%' }}>
+    <div style={{ width: '100%', height: '100%', ...animStyle }}>
       <svg
         width="100%"
         height="100%"

@@ -320,7 +320,8 @@ function compToHtml(comp) {
     case 'fontwork': {
       const fwUid = `fw${Math.random().toString(36).slice(2)}`;
       const fwSvg = getFontworkSvg(props.letter || 'A', props.style || 'fill', props, fwUid);
-      return `<div${navOnclick} style="${base}${navOnclick ? 'cursor:pointer;' : ''}"><svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">${fwSvg}</svg></div>`;
+      const fwAnim = props.animationType ? `animation:maquetapp-${props.animationType} ${props.animationType === 'float' ? '2s ease-in-out' : props.animationType === 'pulse' ? '1.5s ease-in-out' : '3s linear'} infinite;transform-origin:center center;` : '';
+      return `<div${navOnclick} style="${base}${fwAnim}${navOnclick ? 'cursor:pointer;' : ''}"><svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">${fwSvg}</svg></div>`;
     }
 
     case 'shape': {
@@ -331,7 +332,8 @@ function compToHtml(comp) {
       const ff = props.fontFamily || 'Nunito';
       const fw = props.fontWeight === 'bold' ? 700 : props.fontWeight === 'semibold' ? 600 : 400;
       const textHtml = shapeText ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:6px;pointer-events:none"><span style="color:${fc};font-size:${fs}px;font-family:${ff},sans-serif;font-weight:${fw};text-align:center;word-break:break-word;line-height:1.2;white-space:pre-wrap">${escHtml(shapeText)}</span></div>` : '';
-      return `<div${navOnclick} style="${base}position:relative${navOnclick ? ';cursor:pointer' : ''}"><svg style="position:absolute;inset:0;width:100%;height:100%;overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${svgInner}</svg>${textHtml}</div>`;
+      const shapeAnim = props.animationType ? `animation:maquetapp-${props.animationType} ${props.animationType === 'float' ? '2s ease-in-out' : props.animationType === 'pulse' ? '1.5s ease-in-out' : '3s linear'} infinite;transform-origin:center center;` : '';
+      return `<div${navOnclick} style="${base}position:relative;${shapeAnim}${navOnclick ? 'cursor:pointer;' : ''}"><svg style="position:absolute;inset:0;width:100%;height:100%;overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${svgInner}</svg>${textHtml}</div>`;
     }
 
     case 'line': {
