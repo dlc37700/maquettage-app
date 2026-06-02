@@ -3,63 +3,86 @@ import { createPortal } from 'react-dom';
 import { useProject } from '../hooks/useProject';
 import { useImageLibrary } from '../hooks/useImageLibrary';
 
-// BFS flood-fill from all edges to remove uniform background, outputs transparent PNG data URL.
-// Falls back to original URL if CORS or canvas access fails.
-async function removeBg(url) {
+// BFS flood-fill background removal. Expects a data URL (no CORS issues).
+async function removeBg(dataUrl) {
   return new Promise((resolve) => {
     const img = new Image();
-    img.crossOrigin = 'anonymous';
     img.onload = () => {
       try {
         const w = img.width, h = img.height;
         const offscreen = document.createElement('canvas');
-        offscreen.width = w;
-        offscreen.height = h;
+        offscreen.width = w; offscreen.height = h;
         const ctx = offscreen.getContext('2d');
         ctx.drawImage(img, 0, 0);
         const imgData = ctx.getImageData(0, 0, w, h);
         const d = imgData.data;
 
-        // Sample 8 points around the edges to estimate background color
-        const pts = [[0,0],[w-1,0],[0,h-1],[w-1,h-1],[Math.floor(w/2),0],[0,Math.floor(h/2)],[w-1,Math.floor(h/2)],[Math.floor(w/2),h-1]];
-        let bgR=0, bgG=0, bgB=0;
-        pts.forEach(([x,y]) => { const i=(y*w+x)*4; bgR+=d[i]; bgG+=d[i+1]; bgB+=d[i+2]; });
-        bgR=Math.round(bgR/pts.length); bgG=Math.round(bgG/pts.length); bgB=Math.round(bgB/pts.length);
+        // Sample many edge pixels to robustly estimate background colour
+        const edgePts = [];
+        const step = Math.max(1, Math.floor(Math.min(w, h) / 20));
+        for (let x = 0; x < w; x += step) { edgePts.push([x, 0]); edgePts.push([x, h - 1]); }
+        for (let y = step; y < h - step; y += step) { edgePts.push([0, y]); edgePts.push([w - 1, y]); }
+        let bgR = 0, bgG = 0, bgB = 0;
+        edgePts.forEach(([x, y]) => { const i = (y * w + x) * 4; bgR += d[i]; bgG += d[i+1]; bgB += d[i+2]; });
+        bgR = Math.round(bgR / edgePts.length);
+        bgG = Math.round(bgG / edgePts.length);
+        bgB = Math.round(bgB / edgePts.length);
 
-        const T = 40; // colour distance threshold
-        const isBg = (pi) => {
-          const dr=d[pi]-bgR, dg=d[pi+1]-bgG, db=d[pi+2]-bgB;
-          return (dr*dr + dg*dg + db*db) < T*T*3;
-        };
+        const T = 48;
+        const dist2 = (pi) => { const dr=d[pi]-bgR, dg=d[pi+1]-bgG, db=d[pi+2]-bgB; return dr*dr+dg*dg+db*db; };
+        const isBg = (pi) => dist2(pi) < T*T*3;
 
+        // BFS from all edges
         const visited = new Uint8Array(w * h);
         const stack = [];
-        for (let x=0; x<w; x++) { stack.push(x, 0); stack.push(x, h-1); }
-        for (let y=1; y<h-1; y++) { stack.push(0, y); stack.push(w-1, y); }
-
+        for (let x = 0; x < w; x++) { stack.push(x, 0); stack.push(x, h - 1); }
+        for (let y = 1; y < h - 1; y++) { stack.push(0, y); stack.push(w - 1, y); }
         let si = 0;
         while (si < stack.length) {
-          const x=stack[si++], y=stack[si++];
-          const idx=y*w+x;
+          const x = stack[si++], y = stack[si++];
+          const idx = y * w + x;
           if (visited[idx]) continue;
-          visited[idx]=1;
-          const pi=idx*4;
+          visited[idx] = 1;
+          const pi = idx * 4;
           if (!isBg(pi)) continue;
-          d[pi+3]=0;
-          if (x>0)   { stack.push(x-1, y); }
-          if (x<w-1) { stack.push(x+1, y); }
-          if (y>0)   { stack.push(x, y-1); }
-          if (y<h-1) { stack.push(x, y+1); }
+          d[pi + 3] = 0;
+          if (x > 0)   stack.push(x - 1, y);
+          if (x < w-1) stack.push(x + 1, y);
+          if (y > 0)   stack.push(x, y - 1);
+          if (y < h-1) stack.push(x, y + 1);
+        }
+
+        // Soft feathering: pixels near the transparent boundary get reduced alpha
+        const alpha = new Uint8Array(w * h);
+        for (let i = 0; i < w * h; i++) alpha[i] = d[i * 4 + 3];
+        for (let y = 1; y < h - 1; y++) {
+          for (let x = 1; x < w - 1; x++) {
+            const idx = y * w + x;
+            if (alpha[idx] === 0) continue;
+            const hasTransparentNeighbor =
+              alpha[(y-1)*w+x] === 0 || alpha[(y+1)*w+x] === 0 ||
+              alpha[y*w+(x-1)] === 0 || alpha[y*w+(x+1)] === 0;
+            if (hasTransparentNeighbor) d[idx * 4 + 3] = Math.min(d[idx * 4 + 3], 180);
+          }
         }
 
         ctx.putImageData(imgData, 0, 0);
         resolve(offscreen.toDataURL('image/png'));
-      } catch {
-        resolve(url); // CORS blocked — use original
+      } catch (e) {
+        resolve(dataUrl);
       }
     };
-    img.onerror = () => resolve(url);
-    img.src = url;
+    img.onerror = () => resolve(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
   });
 }
 
@@ -71,58 +94,107 @@ const ANIM_TYPES = [
   { id: 'pulse',   label: 'Pulsation ◉',     icon: '💫' },
 ];
 
+const SUGGESTIONS = ['🌸 Fleur', '🏠 Maison', '🚗 Voiture', '🦋 Papillon', '🐱 Chat', '⭐ Étoile', '🌳 Arbre', '🍎 Pomme'];
+
 function AiModal({ sketchDataUrl, onClose, onApply }) {
   const [prompt, setPrompt] = useState('');
-  const [pollinationsUrl, setPollinationsUrl] = useState('');
   const [resultDataUrl, setResultDataUrl] = useState('');
   const [step, setStep] = useState('idle'); // idle | fetching | removing | done | error
   const [error, setError] = useState('');
+  const [elapsed, setElapsed] = useState(0);
   const [animType, setAnimType] = useState('');
+  const [removeBgOn, setRemoveBgOn] = useState(true);
   const inputRef = useRef(null);
+  const abortRef = useRef(null);
+  const timerRef = useRef(null);
+  const lastUrlRef = useRef('');
 
   useEffect(() => { setTimeout(() => inputRef.current?.focus(), 60); }, []);
 
-  const generate = () => {
-    if (!prompt.trim() || step === 'fetching' || step === 'removing') return;
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+      clearInterval(timerRef.current);
+    };
+  }, []);
+
+  const isWorking = step === 'fetching' || step === 'removing';
+
+  const stopTimer = () => { clearInterval(timerRef.current); timerRef.current = null; };
+
+  const generate = async (urlOverride) => {
+    if (isWorking) return;
+    const subject = (urlOverride ? prompt : prompt).trim();
+    if (!subject && !urlOverride) return;
+
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
+
     setStep('fetching');
     setError('');
     setResultDataUrl('');
-    const subject = prompt.trim();
-    // For 3D mode use a product-photography prompt for a more solid/volumetric result
+    setElapsed(0);
+
+    timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
+
     const enhanced = animType === 'spin3d'
       ? `rendu 3D photoréaliste de ${subject}, objet seul centré, vue légèrement de face en angle 3/4, fond blanc pur, éclairage studio, haute qualité`
-      : `dessin de ${subject}, illustration colorée, fond blanc, style simple et propre`;
+      : `illustration vectorielle colorée de ${subject}, fond blanc pur uni, style flat design moderne, contours nets, objet centré`;
     const negative = animType === 'spin3d'
       ? `background, shadow, multiple objects, text, watermark, ugly, blurry`
-      : `dog breed, ugly, blurry, text, watermark, signature`;
+      : `background texture, ugly, blurry, text, watermark, signature, multiple objects`;
     const seed = Math.floor(Math.random() * 99999);
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhanced)}?width=512&height=512&model=flux&nologo=true&seed=${seed}&negative=${encodeURIComponent(negative)}`;
-    setPollinationsUrl(url);
+    const url = urlOverride || `https://image.pollinations.ai/prompt/${encodeURIComponent(enhanced)}?width=512&height=512&model=flux&nologo=true&seed=${seed}&negative=${encodeURIComponent(negative)}`;
+    lastUrlRef.current = url;
+
+    const timeout = setTimeout(() => abortRef.current?.abort(), 90000);
+
+    try {
+      const res = await fetch(url, { signal: abortRef.current.signal });
+      clearTimeout(timeout);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const dataUrl = await blobToDataUrl(blob);
+
+      if (removeBgOn) {
+        setStep('removing');
+        const cleaned = await removeBg(dataUrl);
+        setResultDataUrl(cleaned);
+      } else {
+        setResultDataUrl(dataUrl);
+      }
+      setStep('done');
+    } catch (e) {
+      clearTimeout(timeout);
+      if (e.name === 'AbortError') {
+        setStep('idle');
+      } else {
+        setStep('error');
+        setError("Impossible de générer l'image. Vérifiez votre connexion et réessayez.");
+      }
+    } finally {
+      stopTimer();
+    }
   };
 
-  const handleImgLoad = async () => {
-    setStep('removing');
-    const dataUrl = await removeBg(pollinationsUrl);
-    setResultDataUrl(dataUrl);
-    setStep('done');
+  const cancel = () => {
+    abortRef.current?.abort();
+    stopTimer();
+    setStep('idle');
+    setElapsed(0);
   };
 
-  const handleImgError = () => {
-    setStep('error');
-    setError("Impossible de générer l'image. Réessayez.");
-  };
+  const retry = () => generate(lastUrlRef.current);
 
-  const isWorking = step === 'fetching' || step === 'removing';
-  const canApply = step === 'done' && resultDataUrl;
-
+  const progressPct = Math.min(100, (elapsed / 30) * 100);
   const statusLabel = step === 'fetching'
-    ? (animType === 'spin3d' ? '🎨 Rendu 3D en cours…' : '🎨 L\'IA dessine…')
-    : step === 'removing' ? '✂️ Détourage…' : null;
+    ? (animType === 'spin3d' ? `🎨 Rendu 3D… ${elapsed}s` : `🎨 L'IA dessine… ${elapsed}s`)
+    : step === 'removing' ? '✂️ Suppression du fond…' : null;
 
   return createPortal(
     <div
       style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.65)', zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}
-      onClick={onClose}
+      onClick={isWorking ? undefined : onClose}
       onMouseDown={e => e.stopPropagation()}
     >
       <div
@@ -130,77 +202,104 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
         style={{ backgroundColor: 'white', borderRadius: 20, padding: '28px 28px 24px', width: 440, maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', fontFamily: 'Nunito, sans-serif' }}
       >
         <div style={{ fontSize: 38, textAlign: 'center', marginBottom: 6 }}>🤖</div>
-        <h3 style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 900, color: '#1e1b4b', textAlign: 'center' }}>Améliorer avec l&apos;IA</h3>
-        <p style={{ margin: '0 0 16px', fontSize: 13, color: '#6B7280', lineHeight: 1.5, textAlign: 'center' }}>
-          Décrivez votre dessin (ex : <em>un papillon</em>, <em>une maison</em>)
+        <h3 style={{ margin: '0 0 4px', fontSize: 20, fontWeight: 900, color: '#1e1b4b', textAlign: 'center' }}>Générer avec l&apos;IA</h3>
+        <p style={{ margin: '0 0 14px', fontSize: 13, color: '#6B7280', lineHeight: 1.5, textAlign: 'center' }}>
+          Décrivez ce que vous voulez générer
         </p>
 
         {sketchDataUrl && (
-          <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid #E5E7EB', height: 100, backgroundColor: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ marginBottom: 14, borderRadius: 10, overflow: 'hidden', border: '1px solid #E5E7EB', height: 80, backgroundColor: '#F9FAFB', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <img src={sketchDataUrl} alt="Votre dessin" style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} />
           </div>
         )}
 
-        {/* Animation type selector */}
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 11, color: '#6B7280', fontWeight: 700, marginBottom: 6 }}>Animation :</div>
-          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+        {/* Quick suggestion chips */}
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 10 }}>
+          {SUGGESTIONS.map(s => {
+            const label = s.replace(/^.+? /, '');
+            return (
+              <button
+                key={s}
+                onClick={() => { setPrompt(label); setTimeout(() => inputRef.current?.focus(), 30); }}
+                style={{ padding: '4px 9px', borderRadius: 20, border: '1.5px solid #DDD6FE', backgroundColor: '#F5F3FF', color: '#7C3AED', fontSize: 11, fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer' }}
+              >
+                {s}
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+          <input
+            ref={inputRef}
+            value={prompt}
+            onChange={e => setPrompt(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !isWorking && generate()}
+            placeholder={animType === 'spin3d' ? 'Ex: une robe, une voiture, un vase…' : 'Ex: un papillon, une maison rouge, un chat…'}
+            disabled={isWorking}
+            style={{ flex: 1, padding: '10px 14px', borderRadius: 10, border: '1.5px solid #DDD6FE', fontSize: 14, fontFamily: 'Nunito, sans-serif', outline: 'none', boxSizing: 'border-box', opacity: isWorking ? 0.6 : 1 }}
+          />
+          {isWorking ? (
+            <button
+              onClick={cancel}
+              style={{ padding: '10px 14px', backgroundColor: '#EF4444', color: 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: 'pointer', flexShrink: 0 }}
+            >
+              ✕ Annuler
+            </button>
+          ) : (
+            <button
+              onClick={() => generate()}
+              disabled={!prompt.trim()}
+              style={{ padding: '10px 16px', backgroundColor: prompt.trim() ? '#6C63FF' : '#E5E7EB', color: prompt.trim() ? 'white' : '#9CA3AF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: prompt.trim() ? 'pointer' : 'default', flexShrink: 0 }}
+            >
+              ✨ Générer
+            </button>
+          )}
+        </div>
+
+        {/* Options row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#6B7280', fontWeight: 700, cursor: 'pointer' }}>
+            <input type="checkbox" checked={removeBgOn} onChange={e => setRemoveBgOn(e.target.checked)} style={{ cursor: 'pointer' }} />
+            Supprimer le fond
+          </label>
+          <div style={{ flex: 1 }} />
+          <div style={{ fontSize: 11, color: '#6B7280', fontWeight: 700 }}>Animation :</div>
+          <div style={{ display: 'flex', gap: 4 }}>
             {ANIM_TYPES.map(a => (
               <button
                 key={a.id}
                 onClick={() => setAnimType(a.id)}
-                style={{ padding: '5px 10px', borderRadius: 8, border: `1.5px solid ${animType === a.id ? '#6C63FF' : '#E5E7EB'}`, backgroundColor: animType === a.id ? '#EDE9FE' : '#F9FAFB', color: animType === a.id ? '#6C63FF' : '#6B7280', fontSize: 11, fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer' }}
+                title={a.label}
+                style={{ padding: '4px 8px', borderRadius: 7, border: `1.5px solid ${animType === a.id ? '#6C63FF' : '#E5E7EB'}`, backgroundColor: animType === a.id ? '#EDE9FE' : '#F9FAFB', color: animType === a.id ? '#6C63FF' : '#6B7280', fontSize: 11, fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer' }}
               >
-                {a.icon} {a.label}
+                {a.icon}
               </button>
             ))}
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-          <input
-            ref={inputRef}
-            value={prompt}
-            onChange={e => setPrompt(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && generate()}
-            placeholder={animType === 'spin3d' ? 'Ex: une robe, une voiture, un vase…' : 'Ex: un papillon, une maison rouge, un chat qui dort...'}
-            style={{ flex: 1, padding: '10px 14px', borderRadius: 10, border: '1.5px solid #DDD6FE', fontSize: 14, fontFamily: 'Nunito, sans-serif', outline: 'none', boxSizing: 'border-box' }}
-          />
-          <button
-            onClick={generate}
-            disabled={!prompt.trim() || isWorking}
-            style={{ padding: '10px 16px', backgroundColor: prompt.trim() && !isWorking ? '#6C63FF' : '#E5E7EB', color: prompt.trim() && !isWorking ? 'white' : '#9CA3AF', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: prompt.trim() && !isWorking ? 'pointer' : 'default', flexShrink: 0 }}
-          >
-            {isWorking ? '⏳' : '✨ Générer'}
-          </button>
-        </div>
-
-        {/* Hidden img to trigger Pollinations load + CORS for canvas */}
-        {pollinationsUrl && (
-          <img
-            key={pollinationsUrl}
-            src={pollinationsUrl}
-            crossOrigin="anonymous"
-            style={{ display: 'none' }}
-            onLoad={handleImgLoad}
-            onError={handleImgError}
-          />
+        {/* Progress bar */}
+        {isWorking && (
+          <div style={{ marginBottom: 10, height: 4, backgroundColor: '#EDE9FE', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${progressPct}%`, backgroundColor: '#6C63FF', borderRadius: 2, transition: 'width 0.8s linear' }} />
+          </div>
         )}
 
-        {/* Preview with checkerboard to show transparency */}
-        {(isWorking || canApply) && (
+        {/* Preview */}
+        {(isWorking || step === 'done' || step === 'error') && (
           <div style={{
-            marginBottom: 16, borderRadius: 12, border: '2px solid #DDD6FE', height: 220,
+            marginBottom: 14, borderRadius: 12, border: '2px solid #DDD6FE', height: 200,
             background: 'repeating-conic-gradient(#e0e0e0 0% 25%, white 0% 50%) 0 0 / 16px 16px',
             display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden',
           }}>
             {isWorking && (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: 'rgba(249,250,251,0.92)' }}>
-                <div style={{ fontSize: 36 }}>🎨</div>
+                <div style={{ fontSize: 32 }}>🎨</div>
                 <span style={{ fontSize: 13, color: '#6B7280', fontFamily: 'Nunito, sans-serif' }}>{statusLabel}</span>
               </div>
             )}
-            {resultDataUrl && (
+            {resultDataUrl && !isWorking && (
               <img
                 src={resultDataUrl}
                 alt="Résultat IA"
@@ -211,13 +310,17 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
                 }}
               />
             )}
+            {step === 'error' && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 28 }}>⚠️</span>
+                <span style={{ fontSize: 12, color: '#EF4444', fontFamily: 'Nunito, sans-serif', textAlign: 'center', padding: '0 16px' }}>{error}</span>
+              </div>
+            )}
           </div>
         )}
 
-        {error && <p style={{ color: '#EF4444', fontSize: 12, marginBottom: 12 }}>{error}</p>}
-
         <div style={{ display: 'flex', gap: 8 }}>
-          {canApply && (
+          {step === 'done' && resultDataUrl && (
             <button
               onClick={() => onApply(resultDataUrl, prompt.trim(), animType)}
               style={{ flex: 1, padding: '11px 0', backgroundColor: '#10B981', color: 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: 'pointer' }}
@@ -225,11 +328,28 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
               ✅ Appliquer{animType ? ` (${ANIM_TYPES.find(a=>a.id===animType)?.icon})` : ''}
             </button>
           )}
+          {step === 'done' && resultDataUrl && (
+            <button
+              onClick={() => generate()}
+              style={{ padding: '11px 14px', backgroundColor: '#EDE9FE', color: '#6C63FF', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: 'pointer', flexShrink: 0 }}
+            >
+              🔄 Régénérer
+            </button>
+          )}
+          {step === 'error' && (
+            <button
+              onClick={retry}
+              style={{ flex: 1, padding: '11px 0', backgroundColor: '#6C63FF', color: 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: 'pointer' }}
+            >
+              🔄 Réessayer
+            </button>
+          )}
           <button
-            onClick={onClose}
-            style={{ flex: canApply ? 0 : 1, padding: '11px 20px', backgroundColor: '#F3F4F6', color: '#6B7280', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+            onClick={isWorking ? undefined : onClose}
+            disabled={isWorking}
+            style={{ flex: (step === 'done' && resultDataUrl) || step === 'error' ? 0 : 1, padding: '11px 20px', backgroundColor: '#F3F4F6', color: isWorking ? '#D1D5DB' : '#6B7280', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: isWorking ? 'default' : 'pointer', flexShrink: 0 }}
           >
-            Annuler
+            Fermer
           </button>
         </div>
       </div>
