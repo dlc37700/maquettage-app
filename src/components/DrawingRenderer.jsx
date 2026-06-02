@@ -77,37 +77,24 @@ async function removeBg(dataUrl) {
   });
 }
 
-// Phase 1: Load image without CORS.
-// referrerPolicy='no-referrer' évite que Pollinations bloque selon l'origine de la page.
-function loadImage(url, timeoutMs) {
+function blobToDataUrl(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+// Charge l'image via <img> sans crossOrigin (fallback display-only, sans bg removal).
+// referrerPolicy='no-referrer' pour ne pas exposer l'origine au serveur.
+function loadImageForDisplay(url, timeoutMs) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('timeout')), timeoutMs);
     const img = new Image();
     img.referrerPolicy = 'no-referrer';
-    img.onload = () => { clearTimeout(timer); resolve(img); };
-    img.onerror = (e) => { clearTimeout(timer); console.error('[AI] img.onerror', url, e); reject(new Error('load_error')); };
-    img.src = url;
-  });
-}
-
-// Phase 2 (optional): Try to get pixel-accessible data URL via a separate CORS request.
-// Resolves with data URL on success, null on any failure (never rejects).
-function tryGetDataUrlCors(url) {
-  return new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(null), 15000);
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      clearTimeout(timer);
-      try {
-        const c = document.createElement('canvas');
-        c.width = img.naturalWidth || 512;
-        c.height = img.naturalHeight || 512;
-        c.getContext('2d').drawImage(img, 0, 0);
-        resolve(c.toDataURL('image/png'));
-      } catch { resolve(null); }
-    };
-    img.onerror = () => { clearTimeout(timer); resolve(null); };
+    img.onload = () => { clearTimeout(timer); resolve(); };
+    img.onerror = () => { clearTimeout(timer); reject(new Error('load_error')); };
     img.src = url;
   });
 }
@@ -162,12 +149,11 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
       attemptRef.current = attempt + 1;
 
       if (attempt > 0) {
-        await new Promise(r => setTimeout(r, 3000));
+        await new Promise(r => setTimeout(r, 4000));
         if (cancelledRef.current) break;
       }
 
       const seed = Math.floor(Math.random() * 99999);
-      // URL simplifiée : pas de "negative" ni "model" qui peuvent causer des erreurs 4xx sur Pollinations
       const enhanced = animType === 'spin3d'
         ? `3D render of ${subject}, centered object, white background, studio lighting, high quality`
         : `${subject}, flat design illustration, white background, centered, colorful, clean`;
@@ -175,16 +161,30 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
       lastUrlRef.current = url;
 
       try {
-        await loadImage(url, 60000);
-        if (cancelledRef.current) return;
+        let finalDataUrl;
 
-        let finalDataUrl = url;
-        if (removeBgOn) {
-          setStep('removing');
-          const dataUrl = await tryGetDataUrlCors(url);
-          if (!cancelledRef.current && dataUrl) {
+        try {
+          const ctrl = new AbortController();
+          const fetchTimer = setTimeout(() => ctrl.abort(), 60000);
+          const res = await fetch(url, { signal: ctrl.signal });
+          clearTimeout(fetchTimer);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const blob = await res.blob();
+          const dataUrl = await blobToDataUrl(blob);
+
+          if (removeBgOn) {
+            setStep('removing');
+            if (cancelledRef.current) return;
             finalDataUrl = await removeBg(dataUrl);
+          } else {
+            finalDataUrl = dataUrl;
           }
+        } catch (fetchErr) {
+          if (fetchErr.name === 'AbortError') throw new Error('timeout');
+          if (fetchErr.message && fetchErr.message.startsWith('HTTP')) throw fetchErr;
+          // TypeError (CORS bloqué) → fallback display-only via <img>
+          await loadImageForDisplay(url, 60000);
+          finalDataUrl = url;
         }
 
         if (cancelledRef.current) return;
@@ -194,7 +194,6 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
         return;
       } catch (e) {
         if (e.message === 'timeout' || cancelledRef.current) break;
-        // réseau/serveur → on réessaie
       }
     }
 
