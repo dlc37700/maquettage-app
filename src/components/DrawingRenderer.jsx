@@ -137,6 +137,7 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
   useEffect(() => { return () => { cancelledRef.current = true; clearInterval(timerRef.current); }; }, []);
 
   const isWorking = step === 'fetching' || step === 'removing';
+  const attemptRef = useRef(0);
 
   const generate = async (urlOverride) => {
     if (isWorking) return;
@@ -144,6 +145,7 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
     if (!subject && !urlOverride) return;
 
     cancelledRef.current = false;
+    attemptRef.current = 0;
     setStep('fetching');
     setError('');
     setResultDataUrl('');
@@ -151,44 +153,54 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
     clearInterval(timerRef.current);
     timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
 
-    const seed = Math.floor(Math.random() * 99999);
-    const enhanced = animType === 'spin3d'
-      ? `rendu 3D photoréaliste de ${subject}, objet seul centré, vue légèrement de face en angle 3/4, fond blanc pur, éclairage studio, haute qualité`
-      : `illustration vectorielle colorée de ${subject}, fond blanc pur uni, style flat design moderne, contours nets, objet centré`;
-    const negative = animType === 'spin3d'
-      ? `background, shadow, multiple objects, text, watermark, ugly, blurry`
-      : `background texture, ugly, blurry, text, watermark, signature, multiple objects`;
-    const url = urlOverride || `https://image.pollinations.ai/prompt/${encodeURIComponent(enhanced)}?width=512&height=512&model=flux&nologo=true&seed=${seed}&negative=${encodeURIComponent(negative)}`;
-    lastUrlRef.current = url;
+    const MAX_ATTEMPTS = 3;
 
-    try {
-      // Phase 1: load without CORS — always succeeds if URL is reachable
-      await loadImage(url, 90000);
-      if (cancelledRef.current) return;
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      if (cancelledRef.current) break;
+      attemptRef.current = attempt + 1;
 
-      let finalDataUrl = url; // default: show via URL directly
-
-      // Phase 2: optional bg removal — separate CORS request, silent fallback
-      if (removeBgOn) {
-        setStep('removing');
-        const dataUrl = await tryGetDataUrlCors(url);
-        if (!cancelledRef.current && dataUrl) {
-          finalDataUrl = await removeBg(dataUrl);
-        }
+      if (attempt > 0) {
+        await new Promise(r => setTimeout(r, 3000));
+        if (cancelledRef.current) break;
       }
 
-      if (cancelledRef.current) return;
-      setResultDataUrl(finalDataUrl);
-      setStep('done');
-    } catch (e) {
-      if (cancelledRef.current) return;
-      setStep('error');
-      setError(e.message === 'timeout'
-        ? "L'image prend trop de temps à générer. Réessayez."
-        : "Impossible de charger l'image. Vérifiez votre connexion et réessayez.");
-    } finally {
-      clearInterval(timerRef.current);
+      const seed = Math.floor(Math.random() * 99999);
+      // URL simplifiée : pas de "negative" ni "model" qui peuvent causer des erreurs 4xx sur Pollinations
+      const enhanced = animType === 'spin3d'
+        ? `3D render of ${subject}, centered object, white background, studio lighting, high quality`
+        : `${subject}, flat design illustration, white background, centered, colorful, clean`;
+      const url = urlOverride || `https://image.pollinations.ai/prompt/${encodeURIComponent(enhanced)}?width=512&height=512&nologo=true&seed=${seed}`;
+      lastUrlRef.current = url;
+
+      try {
+        await loadImage(url, 60000);
+        if (cancelledRef.current) return;
+
+        let finalDataUrl = url;
+        if (removeBgOn) {
+          setStep('removing');
+          const dataUrl = await tryGetDataUrlCors(url);
+          if (!cancelledRef.current && dataUrl) {
+            finalDataUrl = await removeBg(dataUrl);
+          }
+        }
+
+        if (cancelledRef.current) return;
+        setResultDataUrl(finalDataUrl);
+        setStep('done');
+        clearInterval(timerRef.current);
+        return;
+      } catch (e) {
+        if (e.message === 'timeout' || cancelledRef.current) break;
+        // réseau/serveur → on réessaie
+      }
     }
+
+    if (!cancelledRef.current) {
+      setStep('error');
+      setError("Le service IA est temporairement indisponible. Réessayez dans quelques instants.");
+    }
+    clearInterval(timerRef.current);
   };
 
   const cancel = () => {
@@ -201,8 +213,9 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
   const retry = () => generate(lastUrlRef.current);
 
   const progressPct = Math.min(100, (elapsed / 30) * 100);
+  const attemptLabel = attemptRef.current > 1 ? ` (tentative ${attemptRef.current}/3)` : '';
   const statusLabel = step === 'fetching'
-    ? (animType === 'spin3d' ? `🎨 Rendu 3D… ${elapsed}s` : `🎨 L'IA dessine… ${elapsed}s`)
+    ? (animType === 'spin3d' ? `🎨 Rendu 3D… ${elapsed}s${attemptLabel}` : `🎨 L'IA dessine… ${elapsed}s${attemptLabel}`)
     : step === 'removing' ? '✂️ Suppression du fond…' : null;
 
   return createPortal(
