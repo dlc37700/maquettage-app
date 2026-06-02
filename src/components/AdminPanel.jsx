@@ -205,6 +205,7 @@ function SessionCard({ session, onSelect, onBlock, onDelete }) {
 
 function SessionList({ sessions, onSelect, onBlock, onDelete }) {
   const [openGroups, setOpenGroups] = useState({});
+  const [openClasses, setOpenClasses] = useState({});
 
   if (sessions.length === 0) {
     return <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 14, marginTop: 40 }}>Aucune session trouvée.</div>;
@@ -222,6 +223,9 @@ function SessionList({ sessions, onSelect, onBlock, onDelete }) {
   // Default: all closed
   const isOpen = (key) => (key in openGroups ? openGroups[key] : false);
   const toggle = (key) => setOpenGroups(prev => ({ ...prev, [key]: !prev[key] }));
+
+  const isClassOpen = (key) => (key in openClasses ? openClasses[key] : false);
+  const toggleClass = (key) => setOpenClasses(prev => ({ ...prev, [key]: !prev[key] }));
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -252,20 +256,33 @@ function SessionList({ sessions, onSelect, onBlock, onDelete }) {
               {activeCount > 0 && <span style={{ backgroundColor: '#D1FAE5', color: '#065F46', borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 700 }}>🟢 {activeCount} active{activeCount > 1 ? 's' : ''}</span>}
             </button>
             {open && (
-              <div style={{ padding: '10px 12px 12px', backgroundColor: '#FAFAFA' }}>
-                {classOrder.map(cls => (
-                  <div key={cls} style={{ marginBottom: 10 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, padding: '4px 2px' }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: '#7C3AED', textTransform: 'uppercase', letterSpacing: 0.5 }}>📚 {cls}</span>
-                      <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>— {classMap[cls].length} session{classMap[cls].length > 1 ? 's' : ''}</span>
+              <div style={{ padding: '8px 10px 10px', backgroundColor: '#FAFAFA', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {classOrder.map(cls => {
+                  const clsKey = `${groupKey}::${cls}`;
+                  const clsOpen = isClassOpen(clsKey);
+                  const clsSessions = classMap[cls];
+                  const clsActive = clsSessions.filter(s => s.isActive).length;
+                  return (
+                    <div key={cls} style={{ borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
+                      <button
+                        onClick={() => toggleClass(clsKey)}
+                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', backgroundColor: clsOpen ? '#EDE9FE' : '#F9FAFB', border: 'none', borderBottom: clsOpen ? '1px solid #E5E7EB' : 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', transition: 'background 0.15s' }}
+                      >
+                        <span style={{ fontSize: 11, display: 'inline-block', transform: clsOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s', color: '#A78BFA' }}>▶</span>
+                        <span style={{ fontWeight: 800, fontSize: 13, color: '#4C1D95', flex: 1, textAlign: 'left' }}>📚 {cls}</span>
+                        <span style={{ backgroundColor: '#F3F4F6', color: '#6B7280', borderRadius: 20, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>{clsSessions.length} session{clsSessions.length > 1 ? 's' : ''}</span>
+                        {clsActive > 0 && <span style={{ backgroundColor: '#D1FAE5', color: '#065F46', borderRadius: 20, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>🟢 {clsActive}</span>}
+                      </button>
+                      {clsOpen && (
+                        <div style={{ padding: 10, backgroundColor: 'white', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 8 }}>
+                          {clsSessions.map(session => (
+                            <SessionCard key={session.code} session={session} onSelect={onSelect} onBlock={onBlock} onDelete={onDelete} />
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 8 }}>
-                      {classMap[cls].map(session => (
-                        <SessionCard key={session.code} session={session} onSelect={onSelect} onBlock={onBlock} onDelete={onDelete} />
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
