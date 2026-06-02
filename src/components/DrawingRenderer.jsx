@@ -77,13 +77,15 @@ async function removeBg(dataUrl) {
   });
 }
 
-// Phase 1: Load image without CORS (always works for display — no cache poisoning).
+// Phase 1: Load image without CORS.
+// referrerPolicy='no-referrer' évite que Pollinations bloque selon l'origine de la page.
 function loadImage(url, timeoutMs) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('timeout')), timeoutMs);
     const img = new Image();
+    img.referrerPolicy = 'no-referrer';
     img.onload = () => { clearTimeout(timer); resolve(img); };
-    img.onerror = () => { clearTimeout(timer); reject(new Error('load_error')); };
+    img.onerror = (e) => { clearTimeout(timer); console.error('[AI] img.onerror', url, e); reject(new Error('load_error')); };
     img.src = url;
   });
 }
@@ -338,9 +340,15 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
               />
             )}
             {step === 'error' && (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: '0 16px' }}>
                 <span style={{ fontSize: 28 }}>⚠️</span>
-                <span style={{ fontSize: 12, color: '#EF4444', fontFamily: 'Nunito, sans-serif', textAlign: 'center', padding: '0 16px' }}>{error}</span>
+                <span style={{ fontSize: 12, color: '#EF4444', fontFamily: 'Nunito, sans-serif', textAlign: 'center' }}>{error}</span>
+                {lastUrlRef.current && (
+                  <a href={lastUrlRef.current} target="_blank" rel="noopener noreferrer"
+                    style={{ fontSize: 11, color: '#6C63FF', fontFamily: 'Nunito, sans-serif', fontWeight: 700 }}>
+                    🔗 Tester l'URL directement
+                  </a>
+                )}
               </div>
             )}
           </div>
