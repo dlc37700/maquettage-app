@@ -37,6 +37,67 @@ function AnyIcon({ name, iconSet, size = 24, color = '#6C63FF', strokeWidth = 2 
   return L ? <L size={size} color={color} strokeWidth={strokeWidth} /> : null;
 }
 
+function ShapeWithText({ comp, isReadOnly }) {
+  const { state, dispatch } = useProject();
+  const p = comp.props;
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState('');
+  const inputRef = useRef(null);
+  const isSelected = state.selectedComponentId === comp.id;
+
+  const startEdit = (e) => {
+    if (isReadOnly) return;
+    if (!isSelected) return;
+    e.stopPropagation();
+    setEditValue(p.text || '');
+    setEditing(true);
+    setTimeout(() => inputRef.current?.focus(), 30);
+  };
+
+  const commitEdit = () => {
+    setEditing(false);
+    dispatch({ type: 'UPDATE_COMPONENT_PROPS', id: comp.id, props: { text: editValue } });
+  };
+
+  const svgInner = getShapeSvgInner(p.shape || 'circle', p.fillColor || '#6C63FF', p.strokeColor || 'transparent', p.strokeWidth ?? 0);
+  const fs = p.fontSize || 16;
+  const fc = p.textColor || '#FFFFFF';
+  const ff = `${p.fontFamily || 'Nunito'}, sans-serif`;
+  const fw = p.fontWeight === 'bold' ? 700 : p.fontWeight === 'semibold' ? 600 : 400;
+
+  return (
+    <div
+      style={{ width: '100%', height: '100%', position: 'relative', cursor: isReadOnly ? 'default' : isSelected ? 'text' : 'default' }}
+      onClick={startEdit}
+    >
+      <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"
+        style={{ display: 'block', position: 'absolute', inset: 0, overflow: 'visible' }}
+        dangerouslySetInnerHTML={{ __html: svgInner }}
+      />
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 6, pointerEvents: 'none' }}>
+        {editing ? (
+          <input
+            ref={inputRef}
+            value={editValue}
+            onChange={e => setEditValue(e.target.value)}
+            onBlur={commitEdit}
+            onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditing(false); }}
+            onMouseDown={e => e.stopPropagation()}
+            style={{ pointerEvents: 'all', width: '100%', textAlign: 'center', background: 'transparent', border: 'none', outline: 'none', color: fc, fontSize: fs, fontFamily: ff, fontWeight: fw, caretColor: fc }}
+          />
+        ) : (
+          p.text ? <span style={{ textAlign: 'center', color: fc, fontSize: fs, fontFamily: ff, fontWeight: fw, userSelect: 'none', wordBreak: 'break-word', lineHeight: 1.2 }}>{p.text}</span> : null
+        )}
+      </div>
+      {isSelected && !isReadOnly && !p.text && !editing && (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: 'Nunito, sans-serif' }}>cliquer pour écrire</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function LightningBolt({ color, size }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -874,19 +935,8 @@ function ComponentRenderer({ comp, isReadOnly }) {
     case 'table':
       return <TableRenderer comp={comp} isReadOnly={isReadOnly} />;
 
-    case 'shape': {
-      const svgInner = getShapeSvgInner(props.shape || 'circle', props.fillColor || '#6C63FF', props.strokeColor || 'transparent', props.strokeWidth ?? 0);
-      return (
-        <svg
-          width="100%" height="100%"
-          viewBox="0 0 100 100"
-          preserveAspectRatio="none"
-          xmlns="http://www.w3.org/2000/svg"
-          style={{ display: 'block', overflow: 'visible' }}
-          dangerouslySetInnerHTML={{ __html: svgInner }}
-        />
-      );
-    }
+    case 'shape':
+      return <ShapeWithText comp={comp} isReadOnly={isReadOnly} />;
 
     case 'line': {
       const w = pos.width;

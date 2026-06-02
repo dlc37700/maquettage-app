@@ -709,6 +709,27 @@ function ComponentProperties({ comp }) {
           <Field label={`Épaisseur contour (${p.strokeWidth ?? 0}px)`}>
             <RangeInput value={p.strokeWidth ?? 0} min={0} max={20} onChange={v => update({ strokeColor: p.strokeColor === 'transparent' && v > 0 ? '#000000' : p.strokeColor, strokeWidth: v })} />
           </Field>
+          <SectionTitle>Texte dans la forme</SectionTitle>
+          <Field label="Texte">
+            <input
+              value={p.text || ''}
+              onChange={e => update({ text: e.target.value })}
+              placeholder="Écrire dans la forme…"
+              style={{ width: '100%', padding: '6px 10px', borderRadius: 8, border: '1.5px solid #E5E7EB', fontSize: 13, fontFamily: 'Nunito, sans-serif', boxSizing: 'border-box', outline: 'none' }}
+            />
+          </Field>
+          {(p.text !== undefined) && <>
+            <Field label="Couleur texte"><ColorInput value={p.textColor || '#FFFFFF'} onChange={v => update({ textColor: v })} /></Field>
+            <Field label={`Taille texte (${p.fontSize || 16}px)`}><RangeInput value={p.fontSize || 16} min={8} max={120} onChange={v => update({ fontSize: v })} /></Field>
+            <Field label="Police">
+              <SelectInput value={p.fontFamily || 'Nunito'} onChange={v => update({ fontFamily: v })} options={[
+                { value: 'Nunito', label: 'Nunito' }, { value: 'Roboto', label: 'Roboto' },
+                { value: 'Montserrat', label: 'Montserrat' }, { value: 'Poppins', label: 'Poppins' },
+                { value: 'Oswald', label: 'Oswald' }, { value: 'Pacifico', label: 'Pacifico' },
+              ]} />
+            </Field>
+            <Field label="Graisse"><SelectInput value={p.fontWeight || 'bold'} onChange={v => update({ fontWeight: v })} options={[{ value: 'normal', label: 'Normal' }, { value: 'semibold', label: 'Semi-gras' }, { value: 'bold', label: 'Gras' }]} /></Field>
+          </>}
         </>
       )}
 
@@ -791,7 +812,7 @@ function ComponentProperties({ comp }) {
           </select>
         </Field>
       )}
-      {'fontSize' in p && <Field label={`Taille (${p.fontSize}px)`}><RangeInput value={p.fontSize} onChange={v => update({ fontSize: v })} min={8} max={48} /></Field>}
+      {'fontSize' in p && <Field label={`Taille (${p.fontSize}px)`}><RangeInput value={p.fontSize} onChange={v => update({ fontSize: v })} min={8} max={120} /></Field>}
       {'fontWeight' in p && <Field label="Style"><SelectInput value={p.fontWeight} onChange={v => update({ fontWeight: v })} options={[{ value: 'normal', label: 'Normal' }, { value: 'semibold', label: 'Semi-gras' }, { value: 'bold', label: 'Gras' }]} /></Field>}
       {/* Text format: italic, underline, strikethrough */}
       {('fontStyle' in p || 'textDecoration' in p) && (

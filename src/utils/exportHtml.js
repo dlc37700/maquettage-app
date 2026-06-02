@@ -318,7 +318,13 @@ function compToHtml(comp) {
 
     case 'shape': {
       const svgInner = getShapeSvgInner(props.shape || 'circle', props.fillColor || '#6C63FF', props.strokeColor || 'transparent', props.strokeWidth ?? 0);
-      return `<svg${navOnclick} style="${base}${navOnclick ? ';cursor:pointer' : ''};overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${svgInner}</svg>`;
+      const shapeText = props.text || '';
+      const fc = props.textColor || '#FFFFFF';
+      const fs = props.fontSize || 16;
+      const ff = props.fontFamily || 'Nunito';
+      const fw = props.fontWeight === 'bold' ? 700 : props.fontWeight === 'semibold' ? 600 : 400;
+      const textHtml = shapeText ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:6px;pointer-events:none"><span style="color:${fc};font-size:${fs}px;font-family:${ff},sans-serif;font-weight:${fw};text-align:center;word-break:break-word;line-height:1.2">${escHtml(shapeText)}</span></div>` : '';
+      return `<div${navOnclick} style="${base}position:relative${navOnclick ? ';cursor:pointer' : ''}"><svg style="position:absolute;inset:0;width:100%;height:100%;overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${svgInner}</svg>${textHtml}</div>`;
     }
 
     case 'line': {
