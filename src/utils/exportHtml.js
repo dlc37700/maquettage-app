@@ -1,5 +1,6 @@
 import { getShapeSvgInner } from '../data/shapes';
 import { getFontworkSvg } from '../data/fontwork';
+import { renderChartSvg, DEFAULT_CHART_DATA_STR } from '../data/chartHelper';
 
 function getBgCss(bgColor, bgGradient) {
   if (bgGradient && bgGradient.from && bgGradient.to) {
@@ -315,6 +316,12 @@ function compToHtml(comp) {
         return `<tr style="${borderBottom}"><td style="width:44px;background:${rlBg};color:${rlTxt};font-weight:700;text-align:center;padding:3px 2px;font-size:${fs - 1}px;font-family:${ff},sans-serif;border-right:1px solid ${bc};line-height:1.2">${ROW_LABELS[ri]}</td>${cells}</tr>`;
       }).join('');
       return `<table${navOnclick} style="${base}border-collapse:collapse;border-radius:${br}px;overflow:hidden;border:1px solid ${bc};font-family:${ff},sans-serif;background:${props.bgColor||'#FFFFFF'}${navOnclick ? ';cursor:pointer' : ''}"><thead><tr><th style="width:44px;background:${hBg};border-right:1px solid ${bc};padding:4px 2px"></th>${headerCells}</tr></thead><tbody>${dataRows}</tbody></table>`;
+    }
+
+    case 'chart': {
+      const chartUid = `c${Math.random().toString(36).slice(2)}`;
+      const chartSvg = renderChartSvg(props.chartType || 'bar', props.chartData || DEFAULT_CHART_DATA_STR, props, chartUid);
+      return `<div${navOnclick} style="${base}border-radius:8px;overflow:hidden;${navOnclick ? 'cursor:pointer;' : ''}">${chartSvg}</div>`;
     }
 
     case 'fontwork': {

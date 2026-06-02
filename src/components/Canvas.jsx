@@ -5,6 +5,7 @@ import * as TablerIcons from '@tabler/icons-react';
 import DrawingRenderer from './DrawingRenderer';
 import { getShapeSvgInner } from '../data/shapes';
 import { getFontworkSvg } from '../data/fontwork';
+import { renderChartSvg, DEFAULT_CHART_DATA_STR } from '../data/chartHelper';
 
 const CANVAS_W = 390;
 const CANVAS_H = 844;
@@ -674,6 +675,16 @@ function FontworkRenderer({ comp }) {
   );
 }
 
+function ChartRenderer({ comp }) {
+  const p = comp.props;
+  const uid = `c${comp.id.replace(/[^a-zA-Z0-9]/g, '')}`;
+  const svgHtml = renderChartSvg(p.chartType || 'bar', p.chartData || DEFAULT_CHART_DATA_STR, p, uid);
+  return (
+    <div style={{ width: '100%', height: '100%', borderRadius: 8, overflow: 'hidden' }}
+      dangerouslySetInnerHTML={{ __html: svgHtml }} />
+  );
+}
+
 function ComponentRenderer({ comp, isReadOnly }) {
   const { type, props, position: pos } = comp;
   const iconSize = Math.min(pos.width, pos.height) * 0.55;
@@ -963,6 +974,8 @@ function ComponentRenderer({ comp, isReadOnly }) {
 
     case 'fontwork':
       return <FontworkRenderer comp={comp} />;
+    case 'chart':
+      return <ChartRenderer comp={comp} />;
 
     case 'line': {
       const w = pos.width;

@@ -5,6 +5,7 @@ import { COMPONENT_DEFINITIONS, THEMES, FONT_OPTIONS } from '../data/componentDe
 import IconPicker from './IconPicker';
 import { SHAPES_CATEGORIES, getShapeSvgInner } from '../data/shapes';
 import { getFontworkSvg, FONTWORK_STYLES } from '../data/fontwork';
+import { CHART_TYPES, DEFAULT_CHART_DATA_STR } from '../data/chartHelper';
 
 function Field({ label, children }) {
   return <div style={{ marginBottom: 12 }}><div style={{ color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>{label}</div>{children}</div>;
@@ -315,6 +316,102 @@ function NavbarProperties({ comp }) {
   );
 }
 
+function ChartProperties({ comp }) {
+  const { dispatch, state } = useProject();
+  const screen = useActiveScreen();
+  if (!comp || !screen) return null;
+  const update = (props) => dispatch({ type: 'UPDATE_COMPONENT_PROPS', id: comp.id, props });
+  const p = comp.props;
+  const pos = comp.position;
+  const maxZ = Math.max(1, ...screen.components.map(c => c.zIndex || 1));
+  const isPieOrDonut = p.chartType === 'pie' || p.chartType === 'donut';
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        <button onClick={() => dispatch({ type: 'DUPLICATE_COMPONENT', id: comp.id })} style={aBtnStyle('#EDE9FE', '#6C63FF')}>📋 Dupliquer</button>
+        <button onClick={() => dispatch({ type: 'DELETE_COMPONENT', id: comp.id })} style={aBtnStyle('#FEE2E2', '#DC2626')}>🗑️ Supprimer</button>
+      </div>
+
+      <SectionTitle>Position & Taille</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+        <Field label="X (px)"><NumberInput value={Math.round(pos.x)} onChange={v => dispatch({ type: 'COMMIT_MOVE', id: comp.id, x: v, y: pos.y })} max={390} /></Field>
+        <Field label="Y (px)"><NumberInput value={Math.round(pos.y)} onChange={v => dispatch({ type: 'COMMIT_MOVE', id: comp.id, x: pos.x, y: v })} max={844} /></Field>
+        <Field label="Largeur"><NumberInput value={Math.round(pos.width)} onChange={v => dispatch({ type: 'COMMIT_RESIZE', id: comp.id, x: pos.x, y: pos.y, width: v, height: pos.height })} min={60} max={390} /></Field>
+        <Field label="Hauteur"><NumberInput value={Math.round(pos.height)} onChange={v => dispatch({ type: 'COMMIT_RESIZE', id: comp.id, x: pos.x, y: pos.y, width: pos.width, height: v })} min={40} max={844} /></Field>
+      </div>
+
+      <SectionTitle>Type</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, marginBottom: 12 }}>
+        {CHART_TYPES.map(ct => {
+          const active = (p.chartType || 'bar') === ct.id;
+          return (
+            <button key={ct.id} onClick={() => update({ chartType: ct.id })}
+              style={{ padding: '6px 2px', borderRadius: 7, border: `2px solid ${active ? '#6C63FF' : '#E5E7EB'}`, backgroundColor: active ? '#EDE9FE' : '#F9FAFB', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <span style={{ fontSize: 16 }}>{ct.icon}</span>
+              <span style={{ fontSize: 9, fontFamily: 'Nunito, sans-serif', fontWeight: 700, color: active ? '#6C63FF' : '#6B7280' }}>{ct.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <SectionTitle>Données</SectionTitle>
+      <Field label="Label,Valeur (une ligne par point)">
+        <textarea
+          value={p.chartData || DEFAULT_CHART_DATA_STR}
+          onChange={e => update({ chartData: e.target.value })}
+          rows={7}
+          style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1.5px solid #E5E7EB', fontSize: 12, fontFamily: 'monospace', outline: 'none', color: '#1F2937', backgroundColor: '#F9FAFB', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 }}
+          placeholder={'Jan,30\nFév,55\nMar,40'}
+        />
+      </Field>
+
+      {!isPieOrDonut && (
+        <>
+          <SectionTitle>Couleurs</SectionTitle>
+          <Field label="Couleur principale"><ColorInput value={p.color || '#6C63FF'} onChange={v => update({ color: v })} /></Field>
+          <Field label="Couleur secondaire (points)"><ColorInput value={p.color2 || '#EC4899'} onChange={v => update({ color2: v })} /></Field>
+        </>
+      )}
+
+      <SectionTitle>Options</SectionTitle>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 12, color: '#374151', fontFamily: 'Nunito, sans-serif' }}>Grille</span>
+          <Toggle value={p.showGrid !== false} onChange={v => update({ showGrid: v })} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 12, color: '#374151', fontFamily: 'Nunito, sans-serif' }}>Étiquettes</span>
+          <Toggle value={p.showLabels !== false} onChange={v => update({ showLabels: v })} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 12, color: '#374151', fontFamily: 'Nunito, sans-serif' }}>Valeurs</span>
+          <Toggle value={p.showValues !== false} onChange={v => update({ showValues: v })} />
+        </div>
+        {p.chartType === 'line' && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 12, color: '#374151', fontFamily: 'Nunito, sans-serif' }}>Zone remplie</span>
+            <Toggle value={p.fillArea !== false} onChange={v => update({ fillArea: v })} />
+          </div>
+        )}
+      </div>
+
+      <SectionTitle>Opacité & Ordre</SectionTitle>
+      <Field label="Opacité"><RangeInput value={Math.round((p.opacity ?? 1) * 100)} min={10} max={100} onChange={v => update({ opacity: v / 100 })} /></Field>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 8 }}>
+        <button onClick={() => dispatch({ type: 'SET_ZINDEX', id: comp.id, zIndex: (comp.zIndex || 1) + 1 })} style={aBtnStyle('#F0FDF4', '#16A34A')}>↑ Avant</button>
+        <button onClick={() => dispatch({ type: 'SET_ZINDEX', id: comp.id, zIndex: Math.max(1, (comp.zIndex || 1) - 1) })} style={aBtnStyle('#FFF7ED', '#EA580C')}>↓ Arrière</button>
+      </div>
+
+      <SectionTitle>Navigation</SectionTitle>
+      <Field label="Aller à l'écran">
+        <SelectInput value={p.navigateTo || ''} onChange={v => update({ navigateTo: v })}
+          options={[{ value: '', label: '— Aucune —' }, ...state.screens.map(s => ({ value: s.id, label: s.name }))]} />
+      </Field>
+    </div>
+  );
+}
+
 function FontworkProperties({ comp }) {
   const { dispatch, state } = useProject();
   const screen = useActiveScreen();
@@ -471,6 +568,7 @@ function ComponentProperties({ comp }) {
   if (!comp || !screen) return null;
   if (comp.type === 'navbar') return <NavbarProperties comp={comp} />;
   if (comp.type === 'fontwork') return <FontworkProperties comp={comp} />;
+  if (comp.type === 'chart') return <ChartProperties comp={comp} />;
   const update = (props) => dispatch({ type: 'UPDATE_COMPONENT_PROPS', id: comp.id, props });
   const p = comp.props, pos = comp.position;
   const maxZ = Math.max(1, ...screen.components.map(c => c.zIndex || 1));
