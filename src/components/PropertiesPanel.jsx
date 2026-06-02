@@ -4,6 +4,7 @@ import { COMPONENT_DEFINITIONS, THEMES, FONT_OPTIONS } from '../data/componentDe
 // ICON_OPTIONS removed — now using IconPicker with iconLibraries
 import IconPicker from './IconPicker';
 import { SHAPES_CATEGORIES, getShapeSvgInner } from '../data/shapes';
+import { getFontworkSvg, FONTWORK_STYLES } from '../data/fontwork';
 
 function Field({ label, children }) {
   return <div style={{ marginBottom: 12 }}><div style={{ color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>{label}</div>{children}</div>;
@@ -314,11 +315,144 @@ function NavbarProperties({ comp }) {
   );
 }
 
+function FontworkProperties({ comp }) {
+  const { dispatch, state } = useProject();
+  const screen = useActiveScreen();
+  if (!comp || !screen) return null;
+  const update = (props) => dispatch({ type: 'UPDATE_COMPONENT_PROPS', id: comp.id, props });
+  const p = comp.props;
+  const pos = comp.position;
+  const maxZ = Math.max(1, ...screen.components.map(c => c.zIndex || 1));
+
+  const curStyle = p.style || 'fill';
+  const is3D = ['extrude', 'shadow', 'chrome', 'neon'].includes(curStyle);
+  const isGrad = ['gradient_v', 'gradient_h'].includes(curStyle);
+  const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.split('');
+  const prevProps = { fillColor: '#6C63FF', strokeColor: '#4C3FBF', strokeWidth: 0, extrudeColor: '#3B2FA0', extrudeDepth: 4, gradientFrom: '#6C63FF', gradientTo: '#EC4899', fontFamily: 'Impact' };
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        <button onClick={() => dispatch({ type: 'DUPLICATE_COMPONENT', id: comp.id })} style={aBtnStyle('#EDE9FE', '#6C63FF')}>📋 Dupliquer</button>
+        <button onClick={() => dispatch({ type: 'DELETE_COMPONENT', id: comp.id })} style={aBtnStyle('#FEE2E2', '#DC2626')}>🗑️ Supprimer</button>
+      </div>
+
+      <SectionTitle>Position & Taille</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+        <Field label="X (px)"><NumberInput value={Math.round(pos.x)} onChange={v => dispatch({ type: 'COMMIT_MOVE', id: comp.id, x: v, y: pos.y })} max={390} /></Field>
+        <Field label="Y (px)"><NumberInput value={Math.round(pos.y)} onChange={v => dispatch({ type: 'COMMIT_MOVE', id: comp.id, x: pos.x, y: v })} max={844} /></Field>
+        <Field label="Largeur"><NumberInput value={Math.round(pos.width)} onChange={v => dispatch({ type: 'COMMIT_RESIZE', id: comp.id, x: pos.x, y: pos.y, width: v, height: pos.height })} min={10} max={390} /></Field>
+        <Field label="Hauteur"><NumberInput value={Math.round(pos.height)} onChange={v => dispatch({ type: 'COMMIT_RESIZE', id: comp.id, x: pos.x, y: pos.y, width: pos.width, height: v })} min={10} max={844} /></Field>
+      </div>
+
+      <SectionTitle>Caractère</SectionTitle>
+      <Field label="Texte">
+        <TextInput value={p.letter || 'A'} onChange={v => update({ letter: v || 'A' })} placeholder="A, 1, Hello…" />
+      </Field>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginBottom: 10 }}>
+        {CHARS.map(ch => {
+          const isActive = (p.letter || 'A') === ch;
+          return (
+            <button key={ch} onClick={() => update({ letter: ch })}
+              style={{ width: 22, height: 22, borderRadius: 4, border: `1.5px solid ${isActive ? '#6C63FF' : '#E5E7EB'}`, backgroundColor: isActive ? '#EDE9FE' : '#F9FAFB', color: isActive ? '#6C63FF' : '#374151', fontSize: 11, fontFamily: 'monospace', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+              {ch}
+            </button>
+          );
+        })}
+      </div>
+
+      <SectionTitle>Style</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, marginBottom: 8 }}>
+        {FONTWORK_STYLES.map(s => {
+          const isActive = curStyle === s.id;
+          const svgContent = getFontworkSvg('A', s.id, prevProps, `pv${s.id.replace(/[^a-z]/g, '')}`);
+          return (
+            <button key={s.id} onClick={() => update({ style: s.id })}
+              style={{ padding: '4px 2px', borderRadius: 7, border: `2px solid ${isActive ? '#6C63FF' : '#E5E7EB'}`, backgroundColor: isActive ? '#EDE9FE' : '#F9FAFB', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+              <svg width="38" height="28" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ display: 'block', overflow: 'visible' }} dangerouslySetInnerHTML={{ __html: svgContent }} />
+              <span style={{ fontSize: 8, fontFamily: 'Nunito, sans-serif', fontWeight: 700, color: isActive ? '#6C63FF' : '#6B7280', lineHeight: 1 }}>{s.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <SectionTitle>Couleurs</SectionTitle>
+      {curStyle !== 'outline' && !isGrad && (
+        <Field label="Remplissage"><ColorInput value={p.fillColor || '#6C63FF'} onChange={v => update({ fillColor: v })} /></Field>
+      )}
+      {isGrad && (
+        <>
+          <Field label="Couleur début"><ColorInput value={p.gradientFrom || '#6C63FF'} onChange={v => update({ gradientFrom: v })} /></Field>
+          <Field label="Couleur fin"><ColorInput value={p.gradientTo || '#EC4899'} onChange={v => update({ gradientTo: v })} /></Field>
+        </>
+      )}
+      <Field label="Contour"><ColorInput value={p.strokeColor || '#4C3FBF'} onChange={v => update({ strokeColor: v })} /></Field>
+      <Field label={`Épaisseur contour (${p.strokeWidth ?? 0}px)`}>
+        <RangeInput value={p.strokeWidth ?? 0} min={0} max={20} onChange={v => update({ strokeWidth: v })} />
+      </Field>
+      {is3D && (
+        <>
+          <Field label="Couleur 3D"><ColorInput value={p.extrudeColor || '#3B2FA0'} onChange={v => update({ extrudeColor: v })} /></Field>
+          <Field label={`Profondeur 3D (${p.extrudeDepth ?? 6})`}>
+            <RangeInput value={p.extrudeDepth ?? 6} min={1} max={20} onChange={v => update({ extrudeDepth: v })} />
+          </Field>
+        </>
+      )}
+
+      <SectionTitle>Police</SectionTitle>
+      <Field label="Police">
+        <SelectInput value={p.fontFamily || 'Impact'} onChange={v => update({ fontFamily: v })} options={FONT_OPTIONS.map(f => ({ value: f.value, label: f.label }))} />
+      </Field>
+
+      <Field label={`Opacité (${Math.round((p.opacity ?? 1) * 100)}%)`}>
+        <RangeInput value={Math.round((p.opacity ?? 1) * 100)} onChange={v => update({ opacity: v / 100 })} />
+      </Field>
+
+      <SectionTitle>Transformation</SectionTitle>
+      <Field label={`Rotation (${p.rotation ?? 0}°)`}>
+        <RangeInput value={p.rotation ?? 0} min={0} max={359} onChange={v => update({ rotation: v })} />
+      </Field>
+      <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+        <button onClick={() => update({ rotation: 0 })} style={aBtnStyle('#F3F4F6', '#374151')}>○ Reset</button>
+        <button onClick={() => update({ rotation: (((p.rotation ?? 0) - 90) % 360 + 360) % 360 })} style={aBtnStyle('#F3F4F6', '#374151')}>↺ −90°</button>
+        <button onClick={() => update({ rotation: ((p.rotation ?? 0) + 90) % 360 })} style={aBtnStyle('#F3F4F6', '#374151')}>↻ +90°</button>
+      </div>
+      <Field label="Miroir">
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button onClick={() => update({ flipH: !(p.flipH) })} style={aBtnStyle(p.flipH ? '#EDE9FE' : '#F3F4F6', p.flipH ? '#6C63FF' : '#374151')}>↔ Horizontal</button>
+          <button onClick={() => update({ flipV: !(p.flipV) })} style={aBtnStyle(p.flipV ? '#EDE9FE' : '#F3F4F6', p.flipV ? '#6C63FF' : '#374151')}>↕ Vertical</button>
+        </div>
+      </Field>
+
+      <SectionTitle>Ordre</SectionTitle>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        <button onClick={() => dispatch({ type: 'SET_Z_INDEX', id: comp.id, zIndex: maxZ + 1 })} style={aBtnStyle('#EDE9FE', '#6C63FF')}>⬆️ Devant</button>
+        <button onClick={() => dispatch({ type: 'SET_Z_INDEX', id: comp.id, zIndex: Math.max(0, (comp.zIndex || 1) - 1) })} style={aBtnStyle('#F3F4F6', '#374151')}>⬇️ Derrière</button>
+      </div>
+
+      <SectionTitle>Navigation</SectionTitle>
+      <Field label="Lien vers écran">
+        <select
+          value={p.navigateTo || ''}
+          onChange={e => update({ navigateTo: e.target.value })}
+          style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1.5px solid #E5E7EB', fontSize: 13, fontFamily: 'Nunito, sans-serif', outline: 'none', color: '#1F2937', backgroundColor: '#F9FAFB', cursor: 'pointer' }}
+        >
+          <option value="">— Aucune navigation —</option>
+          {state.screens.map(s => (
+            <option key={s.id} value={s.id}>{s.name}</option>
+          ))}
+        </select>
+      </Field>
+    </div>
+  );
+}
+
 function ComponentProperties({ comp }) {
   const { dispatch, state } = useProject();
   const screen = useActiveScreen();
   if (!comp || !screen) return null;
   if (comp.type === 'navbar') return <NavbarProperties comp={comp} />;
+  if (comp.type === 'fontwork') return <FontworkProperties comp={comp} />;
   const update = (props) => dispatch({ type: 'UPDATE_COMPONENT_PROPS', id: comp.id, props });
   const p = comp.props, pos = comp.position;
   const maxZ = Math.max(1, ...screen.components.map(c => c.zIndex || 1));

@@ -4,6 +4,7 @@ import * as LucideIcons from 'lucide-react';
 import * as TablerIcons from '@tabler/icons-react';
 import DrawingRenderer from './DrawingRenderer';
 import { getShapeSvgInner } from '../data/shapes';
+import { getFontworkSvg } from '../data/fontwork';
 
 const CANVAS_W = 390;
 const CANVAS_H = 844;
@@ -651,6 +652,24 @@ function NavbarRenderer({ comp, isReadOnly }) {
   );
 }
 
+function FontworkRenderer({ comp }) {
+  const p = comp.props;
+  const uid = `fw${comp.id.replace(/[^a-zA-Z0-9]/g, '')}`;
+  const svgContent = getFontworkSvg(p.letter || 'A', p.style || 'fill', p, uid);
+  return (
+    <div style={{ width: '100%', height: '100%' }}>
+      <svg
+        width="100%"
+        height="100%"
+        viewBox="0 0 100 100"
+        preserveAspectRatio="none"
+        style={{ display: 'block', overflow: 'visible' }}
+        dangerouslySetInnerHTML={{ __html: svgContent }}
+      />
+    </div>
+  );
+}
+
 function ComponentRenderer({ comp, isReadOnly }) {
   const { type, props, position: pos } = comp;
   const iconSize = Math.min(pos.width, pos.height) * 0.55;
@@ -937,6 +956,9 @@ function ComponentRenderer({ comp, isReadOnly }) {
 
     case 'shape':
       return <ShapeWithText comp={comp} isReadOnly={isReadOnly} />;
+
+    case 'fontwork':
+      return <FontworkRenderer comp={comp} />;
 
     case 'line': {
       const w = pos.width;
