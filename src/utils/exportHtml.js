@@ -263,6 +263,18 @@ function compToHtml(comp) {
       return `<table${navOnclick} style="${base}border-collapse:collapse;border-radius:${br}px;overflow:hidden;border:1px solid ${borderColor};font-family:${ff},sans-serif${navOnclick ? ';cursor:pointer' : ''}">${rowsHtml}</table>`;
     }
 
+    case 'torch': {
+      const torchId = `torch-${Math.random().toString(36).slice(2, 8)}`;
+      const offC = props.offColor || '#1C1C1E';
+      const onC = props.onColor || '#FFD60A';
+      const iconC = props.iconColor || '#FFFFFF';
+      const br = props.borderRadius ?? 18;
+      const iconSz = Math.round(Math.min(pos.width, pos.height) * 0.42);
+      const svgOff = `<svg width="${iconSz}" height="${iconSz}" viewBox="0 0 24 24" fill="none"><rect x="9" y="1" width="6" height="7" rx="2" fill="${iconC}"/><path d="M8 8L5.5 22H18.5L16 8H8Z" fill="${iconC}"/><rect x="10.5" y="13" width="3" height="5" rx="1" fill="black" opacity="0.25"/></svg>`;
+      const svgOn = `<svg width="${iconSz}" height="${iconSz}" viewBox="0 0 24 24" fill="none"><rect x="9" y="1" width="6" height="7" rx="2" fill="#1C1C1E"/><path d="M8 8L5.5 22H18.5L16 8H8Z" fill="#1C1C1E"/><rect x="10.5" y="13" width="3" height="5" rx="1" fill="white" opacity="0.25"/></svg>`;
+      return `<button id="${torchId}" style="${base}background:${offC};border-radius:${br}px;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);transition:background .2s,box-shadow .3s" onclick="(function(btn){if(btn._ts){btn._ts.getTracks().forEach(t=>t.stop());btn._ts=null;btn.style.background='${offC}';btn.style.boxShadow='0 2px 8px rgba(0,0,0,0.3)';btn.innerHTML='${svgOff.replace(/'/g, "\\'")}'}else{navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}).then(s=>{var t=s.getVideoTracks()[0];t.applyConstraints({advanced:[{torch:true}]}).then(()=>{btn._ts=s;btn.style.background='${onC}';btn.style.boxShadow='0 0 24px 8px ${onC}66';btn.innerHTML='${svgOn.replace(/'/g, "\\'")}'})}).catch(()=>alert('Torche non disponible sur cet appareil'))}})(this)">${svgOff}</button>`;
+    }
+
     case 'drawing': {
       const src = props.showAiResult && props.aiImageUrl ? props.aiImageUrl : (props.drawingData || null);
       const br = props.borderRadius ?? 8;

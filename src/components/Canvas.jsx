@@ -37,6 +37,73 @@ function AnyIcon({ name, iconSet, size = 24, color = '#6C63FF', strokeWidth = 2 
   return L ? <L size={size} color={color} strokeWidth={strokeWidth} /> : null;
 }
 
+function TorchSvg({ color, size }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="9" y="1" width="6" height="7" rx="2" fill={color}/>
+      <path d="M8 8L5.5 22H18.5L16 8H8Z" fill={color}/>
+      <rect x="10.5" y="13" width="3" height="5" rx="1" fill="black" opacity="0.25"/>
+      <line x1="12" y1="1" x2="12" y2="-1" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+      <line x1="15.5" y1="2.5" x2="17" y2="1" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+      <line x1="8.5" y1="2.5" x2="7" y2="1" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function TorchButton({ comp, isReadOnly }) {
+  const p = comp.props;
+  const [on, setOn] = useState(false);
+  const streamRef = useRef(null);
+
+  useEffect(() => {
+    return () => { streamRef.current?.getTracks().forEach(t => t.stop()); };
+  }, []);
+
+  const toggle = async () => {
+    if (!isReadOnly) return;
+    if (on) {
+      streamRef.current?.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+      setOn(false);
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        const track = stream.getVideoTracks()[0];
+        await track.applyConstraints({ advanced: [{ torch: true }] });
+        streamRef.current = stream;
+        setOn(true);
+      } catch {
+        alert('Torche non disponible sur cet appareil.');
+      }
+    }
+  };
+
+  const w = comp.position.width;
+  const h = comp.position.height;
+  const br = p.borderRadius ?? 18;
+  const iconSize = Math.round(Math.min(w, h) * 0.42);
+  const bgColor = on ? (p.onColor || '#FFD60A') : (p.offColor || '#1C1C1E');
+  const iconColor = on ? '#1C1C1E' : (p.iconColor || '#FFFFFF');
+
+  return (
+    <div
+      onClick={toggle}
+      style={{
+        width: '100%', height: '100%',
+        backgroundColor: bgColor,
+        borderRadius: br,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        cursor: isReadOnly ? 'pointer' : 'default',
+        boxShadow: on ? `0 0 24px 8px ${p.onColor || '#FFD60A'}66` : '0 2px 8px rgba(0,0,0,0.3)',
+        transition: 'background-color 0.2s, box-shadow 0.3s',
+        userSelect: 'none',
+      }}
+    >
+      <TorchSvg color={iconColor} size={iconSize} />
+    </div>
+  );
+}
+
 function getBg(bgColor, bgGradient) {
   if (bgGradient && bgGradient.from && bgGradient.to) {
     return { background: `linear-gradient(${bgGradient.angle ?? 135}deg, ${bgGradient.from}, ${bgGradient.to})` };
@@ -805,6 +872,9 @@ function ComponentRenderer({ comp, isReadOnly }) {
 
     case 'drawing':
       return <DrawingRenderer comp={comp} isReadOnly={isReadOnly} />;
+
+    case 'torch':
+      return <TorchButton comp={comp} isReadOnly={isReadOnly} />;
 
     case 'table':
       return <TableRenderer comp={comp} isReadOnly={isReadOnly} />;

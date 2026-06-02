@@ -363,6 +363,22 @@ export const COMPONENT_DEFINITIONS = [
     defaultSize: { width: 120, height: 120 },
     tooltip: 'Formes géométriques (cercle, étoile, nuage, 3D…)',
   },
+  {
+    type: 'torch',
+    label: 'Torche',
+    icon: '🔦',
+    category: 'Contrôles',
+    defaultProps: {
+      offColor: '#1C1C1E',
+      onColor: '#FFD60A',
+      iconColor: '#FFFFFF',
+      borderRadius: 18,
+      opacity: 1,
+      navigateTo: '',
+    },
+    defaultSize: { width: 80, height: 80 },
+    tooltip: 'Bouton torche — active le flash de l\'appareil photo en preview',
+  },
 ];
 
 export const BUTTON_PRESETS = [

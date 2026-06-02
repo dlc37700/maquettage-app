@@ -712,6 +712,22 @@ function ComponentProperties({ comp }) {
         </>
       )}
 
+      {/* Torch specific */}
+      {comp.type === 'torch' && (
+        <>
+          <SectionTitle>Torche</SectionTitle>
+          <Field label="Couleur éteinte"><ColorInput value={p.offColor || '#1C1C1E'} onChange={v => update({ offColor: v })} /></Field>
+          <Field label="Couleur allumée"><ColorInput value={p.onColor || '#FFD60A'} onChange={v => update({ onColor: v })} /></Field>
+          <Field label="Couleur icône"><ColorInput value={p.iconColor || '#FFFFFF'} onChange={v => update({ iconColor: v })} /></Field>
+          <Field label="Arrondi">
+            <RangeInput value={p.borderRadius ?? 18} min={0} max={50} onChange={v => update({ borderRadius: v })} />
+          </Field>
+          <div style={{ fontSize: 11, color: '#6B7280', fontFamily: 'Nunito, sans-serif', lineHeight: 1.5, backgroundColor: '#FEF3C7', borderRadius: 8, padding: '8px 10px', marginTop: 4 }}>
+            💡 La torche s'active uniquement en mode <strong>Preview</strong>, sur un appareil avec flash (smartphone).
+          </div>
+        </>
+      )}
+
       {/* Button icon options */}
       {comp.type === 'button' && (
         <>
