@@ -92,6 +92,15 @@ export async function getAllSessions(teacherCode = null, includeOrphans = false)
   }
 }
 
+export async function setSessionSchoolName(code, schoolName) {
+  if (!db || !code) return;
+  try {
+    await update(ref(db, `sessions/${code}/meta`), { schoolName: schoolName || '', school: schoolName || '' });
+  } catch (err) {
+    console.error('[Admin] setSessionSchoolName error:', err);
+  }
+}
+
 export async function setSessionBlocked(code, blocked) {
   if (!db || !code) return;
   try {

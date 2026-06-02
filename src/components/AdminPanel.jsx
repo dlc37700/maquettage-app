@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { getShapeSvgInner } from '../data/shapes';
 import { isFirebaseConfigured } from '../services/firebase';
 import {
-  getAllSessions, setSessionBlocked, removeMember, deleteSession,
+  getAllSessions, setSessionBlocked, setSessionSchoolName, removeMember, deleteSession,
   getSessionMessages, sendAdminMessage, exportSessionAsJson, exportSessionAsHtml, exportMemberAsHtml,
 } from '../services/admin';
 import {
@@ -210,6 +210,7 @@ function SessionList({ sessions, onSelect, onBlock, onDelete }) {
     return <div style={{ textAlign: 'center', color: '#9CA3AF', fontSize: 14, marginTop: 40 }}>Aucune session trouvée.</div>;
   }
 
+  // Group by école
   const groupMap = {};
   const groupOrder = [];
   for (const s of sessions) {
@@ -218,7 +219,8 @@ function SessionList({ sessions, onSelect, onBlock, onDelete }) {
     groupMap[key].push(s);
   }
 
-  const isOpen = (key) => (key in openGroups ? openGroups[key] : true);
+  // Default: all closed
+  const isOpen = (key) => (key in openGroups ? openGroups[key] : false);
   const toggle = (key) => setOpenGroups(prev => ({ ...prev, [key]: !prev[key] }));
 
   return (
@@ -227,6 +229,17 @@ function SessionList({ sessions, onSelect, onBlock, onDelete }) {
         const groupSessions = groupMap[groupKey];
         const activeCount = groupSessions.filter(s => s.isActive).length;
         const open = isOpen(groupKey);
+
+        // Sub-group by className within this école
+        const classMap = {};
+        const classOrder = [];
+        for (const s of groupSessions) {
+          const cls = (s.className || '').trim() || 'Sans classe';
+          if (!classMap[cls]) { classMap[cls] = []; classOrder.push(cls); }
+          classMap[cls].push(s);
+        }
+        classOrder.sort((a, b) => a === 'Sans classe' ? 1 : b === 'Sans classe' ? -1 : a.localeCompare(b));
+
         return (
           <div key={groupKey} style={{ borderRadius: 12, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
             <button
@@ -239,9 +252,19 @@ function SessionList({ sessions, onSelect, onBlock, onDelete }) {
               {activeCount > 0 && <span style={{ backgroundColor: '#D1FAE5', color: '#065F46', borderRadius: 20, padding: '2px 10px', fontSize: 12, fontWeight: 700 }}>🟢 {activeCount} active{activeCount > 1 ? 's' : ''}</span>}
             </button>
             {open && (
-              <div style={{ padding: 12, backgroundColor: '#FAFAFA', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 10 }}>
-                {groupSessions.map(session => (
-                  <SessionCard key={session.code} session={session} onSelect={onSelect} onBlock={onBlock} onDelete={onDelete} />
+              <div style={{ padding: '10px 12px 12px', backgroundColor: '#FAFAFA' }}>
+                {classOrder.map(cls => (
+                  <div key={cls} style={{ marginBottom: 10 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, padding: '4px 2px' }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: '#7C3AED', textTransform: 'uppercase', letterSpacing: 0.5 }}>📚 {cls}</span>
+                      <span style={{ fontSize: 11, color: '#9CA3AF', fontWeight: 600 }}>— {classMap[cls].length} session{classMap[cls].length > 1 ? 's' : ''}</span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 8 }}>
+                      {classMap[cls].map(session => (
+                        <SessionCard key={session.code} session={session} onSelect={onSelect} onBlock={onBlock} onDelete={onDelete} />
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
@@ -262,8 +285,27 @@ function SessionDetail({ session, sessions, onBack, onClose, onRefreshSessions }
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [adminMsgText, setAdminMsgText] = useState('');
   const [sendingMsg, setSendingMsg] = useState(false);
+  const [editingSchool, setEditingSchool] = useState(false);
+  const [schoolInput, setSchoolInput] = useState('');
+  const [savingSchool, setSavingSchool] = useState(false);
 
   const currentSession = sessions.find(s => s.code === session.code) || session;
+
+  // Unique school names from all sessions for datalist autocomplete
+  const knownSchools = [...new Set(sessions.map(s => s.schoolName).filter(Boolean))].sort();
+
+  const handleEditSchool = () => {
+    setSchoolInput(currentSession.schoolName || '');
+    setEditingSchool(true);
+  };
+
+  const handleSaveSchool = async () => {
+    setSavingSchool(true);
+    await setSessionSchoolName(currentSession.code, schoolInput.trim());
+    await onRefreshSessions();
+    setSavingSchool(false);
+    setEditingSchool(false);
+  };
 
   const handleBlock = async () => {
     await setSessionBlocked(currentSession.code, !currentSession.blocked);
@@ -309,8 +351,40 @@ function SessionDetail({ session, sessions, onBack, onClose, onRefreshSessions }
         <button onClick={onBack} style={{ ...btn({ backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', fontSize: 13 }) }}>← Retour</button>
         <span style={{ color: 'white', fontWeight: 900, fontSize: 18, fontFamily: 'monospace', letterSpacing: 4 }}>{currentSession.code}</span>
         <StatusBadge session={currentSession} />
-        {currentSession.className && <span style={{ backgroundColor: 'rgba(167,139,250,0.25)', color: '#C4B5FD', borderRadius: 6, padding: '3px 10px', fontSize: 13, fontWeight: 800 }}>🏫 {currentSession.className}</span>}
-        {currentSession.schoolName && <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, fontWeight: 600 }}>{currentSession.schoolName}</span>}
+        {currentSession.className && <span style={{ backgroundColor: 'rgba(167,139,250,0.25)', color: '#C4B5FD', borderRadius: 6, padding: '3px 10px', fontSize: 13, fontWeight: 800 }}>📚 {currentSession.className}</span>}
+        {/* Établissement éditable */}
+        {editingSchool ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={e => e.stopPropagation()}>
+            <input
+              list="known-schools-list"
+              value={schoolInput}
+              onChange={e => setSchoolInput(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleSaveSchool(); if (e.key === 'Escape') setEditingSchool(false); }}
+              autoFocus
+              placeholder="Nom de l'établissement…"
+              style={{ padding: '5px 10px', borderRadius: 7, border: '1.5px solid #7C3AED', fontSize: 13, fontFamily: 'Nunito, sans-serif', outline: 'none', minWidth: 200 }}
+            />
+            <datalist id="known-schools-list">
+              {knownSchools.map(s => <option key={s} value={s} />)}
+            </datalist>
+            <button
+              onClick={handleSaveSchool}
+              disabled={savingSchool}
+              style={{ ...btn({ backgroundColor: '#10B981', color: 'white', fontSize: 12 }) }}
+            >
+              {savingSchool ? '⏳' : '✅ Sauver'}
+            </button>
+            <button onClick={() => setEditingSchool(false)} style={{ ...btn({ backgroundColor: 'rgba(255,255,255,0.15)', color: 'white', fontSize: 12 }) }}>✕</button>
+          </div>
+        ) : (
+          <button
+            onClick={handleEditSchool}
+            title="Modifier l'établissement"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px dashed rgba(255,255,255,0.3)', borderRadius: 6, padding: '3px 10px', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', fontSize: 13, fontFamily: 'Nunito, sans-serif', fontWeight: 600 }}
+          >
+            🏫 {currentSession.schoolName || 'Sans établissement'} <span style={{ fontSize: 11, opacity: 0.7 }}>✏️</span>
+          </button>
+        )}
         <div style={{ flex: 1 }} />
         <button onClick={handleBlock} style={{ ...btn({ backgroundColor: currentSession.blocked ? 'rgba(16,185,129,0.2)' : 'rgba(239,68,68,0.2)', color: currentSession.blocked ? '#10B981' : '#EF4444' }) }}>
           {currentSession.blocked ? '🔓 Débloquer' : '🔒 Bloquer'}
