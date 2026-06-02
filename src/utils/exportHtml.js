@@ -256,7 +256,7 @@ function compToHtml(comp) {
         const fw = isHeader ? 700 : 400;
         const cellsHtml = row.map((cell, ci) => {
           const borderRight = ci < row.length - 1 ? `border-right:1px solid ${borderColor};` : '';
-          return `<td style="flex:1;padding:4px 6px;background:${rowBg};color:${rowTxt};font-weight:${fw};font-size:${fs}px;font-family:${ff},sans-serif;text-align:center;${borderRight}border-bottom:1px solid ${borderColor};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(cell)}</td>`;
+          return `<td style="flex:1;padding:4px 6px;background:${rowBg};color:${rowTxt};font-weight:${fw};font-size:${fs}px;font-family:${ff},sans-serif;text-align:center;${borderRight}border-bottom:1px solid ${borderColor};overflow:hidden;white-space:pre-wrap;word-break:break-word">${escHtml(cell)}</td>`;
         }).join('');
         return `<tr>${cellsHtml}</tr>`;
       }).join('');
@@ -308,7 +308,7 @@ function compToHtml(comp) {
         const cells = DAYS.map((day, di) => {
           const val = escHtml(slots[day]?.[row] || '');
           const borderRight = di < DAYS.length - 1 ? `border-right:1px solid ${bc};` : '';
-          return `<td style="background:${cBg};color:${cTxt};text-align:center;padding:3px 2px;font-size:${fs}px;font-family:${ff},sans-serif;${borderRight}overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${val}</td>`;
+          return `<td style="background:${cBg};color:${cTxt};text-align:center;padding:3px 2px;font-size:${fs}px;font-family:${ff},sans-serif;${borderRight}overflow:hidden;white-space:pre-wrap;word-break:break-word">${val}</td>`;
         }).join('');
         const borderBottom = ri < ROWS.length - 1 ? `border-bottom:1px solid ${bc};` : '';
         return `<tr style="${borderBottom}"><td style="width:44px;background:${rlBg};color:${rlTxt};font-weight:700;text-align:center;padding:3px 2px;font-size:${fs - 1}px;font-family:${ff},sans-serif;border-right:1px solid ${bc};line-height:1.2">${ROW_LABELS[ri]}</td>${cells}</tr>`;
@@ -323,7 +323,7 @@ function compToHtml(comp) {
       const fs = props.fontSize || 16;
       const ff = props.fontFamily || 'Nunito';
       const fw = props.fontWeight === 'bold' ? 700 : props.fontWeight === 'semibold' ? 600 : 400;
-      const textHtml = shapeText ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:6px;pointer-events:none"><span style="color:${fc};font-size:${fs}px;font-family:${ff},sans-serif;font-weight:${fw};text-align:center;word-break:break-word;line-height:1.2">${escHtml(shapeText)}</span></div>` : '';
+      const textHtml = shapeText ? `<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:6px;pointer-events:none"><span style="color:${fc};font-size:${fs}px;font-family:${ff},sans-serif;font-weight:${fw};text-align:center;word-break:break-word;line-height:1.2;white-space:pre-wrap">${escHtml(shapeText)}</span></div>` : '';
       return `<div${navOnclick} style="${base}position:relative${navOnclick ? ';cursor:pointer' : ''}"><svg style="position:absolute;inset:0;width:100%;height:100%;overflow:visible" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">${svgInner}</svg>${textHtml}</div>`;
     }
 

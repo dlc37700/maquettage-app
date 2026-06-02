@@ -700,9 +700,26 @@ function ComponentProperties({ comp }) {
           ))}
 
           <SectionTitle>Couleurs</SectionTitle>
+          <Field label="Fond transparent">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Toggle
+                value={p.fillColor === 'transparent'}
+                onChange={v => update({
+                  fillColor: v ? 'transparent' : '#6C63FF',
+                  strokeColor: v && (p.strokeColor === 'transparent' || !p.strokeColor || p.strokeColor === 'transparent') ? '#6C63FF' : (p.strokeColor || '#6C63FF'),
+                  strokeWidth: v && (p.strokeWidth ?? 0) === 0 ? 2 : (p.strokeWidth ?? 0),
+                })}
+              />
+              <span style={{ fontSize: 11, color: '#6B7280', fontFamily: 'Nunito, sans-serif' }}>
+                {p.fillColor === 'transparent' ? 'Contour seulement' : 'Fond coloré'}
+              </span>
+            </div>
+          </Field>
+          {p.fillColor !== 'transparent' && (
           <Field label="Remplissage">
             <ColorInput value={p.fillColor || '#6C63FF'} onChange={v => update({ fillColor: v })} />
           </Field>
+          )}
           <Field label="Contour">
             <ColorInput value={p.strokeColor === 'transparent' ? '#000000' : (p.strokeColor || '#000000')} onChange={v => update({ strokeColor: v })} />
           </Field>
@@ -711,11 +728,12 @@ function ComponentProperties({ comp }) {
           </Field>
           <SectionTitle>Texte dans la forme</SectionTitle>
           <Field label="Texte">
-            <input
+            <textarea
               value={p.text || ''}
               onChange={e => update({ text: e.target.value })}
               placeholder="Écrire dans la forme…"
-              style={{ width: '100%', padding: '6px 10px', borderRadius: 8, border: '1.5px solid #E5E7EB', fontSize: 13, fontFamily: 'Nunito, sans-serif', boxSizing: 'border-box', outline: 'none' }}
+              rows={2}
+              style={{ width: '100%', padding: '6px 10px', borderRadius: 8, border: '1.5px solid #E5E7EB', fontSize: 13, fontFamily: 'Nunito, sans-serif', boxSizing: 'border-box', outline: 'none', resize: 'vertical', minHeight: 52 }}
             />
           </Field>
           {(p.text !== undefined) && <>
@@ -772,7 +790,21 @@ function ComponentProperties({ comp }) {
         </>
       )}
 
-      {'label' in p && comp.type !== 'switch' && <Field label="Texte"><TextInput value={p.label} onChange={v => update({ label: v })} /></Field>}
+      {'label' in p && comp.type !== 'switch' && (
+        comp.type === 'text' ? (
+          <Field label="Texte">
+            <textarea
+              value={p.label ?? ''}
+              onChange={e => update({ label: e.target.value })}
+              placeholder="Votre texte…"
+              rows={3}
+              style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1.5px solid #E5E7EB', fontSize: 13, fontFamily: 'Nunito, sans-serif', outline: 'none', color: '#1F2937', backgroundColor: '#F9FAFB', resize: 'vertical', minHeight: 60, boxSizing: 'border-box' }}
+            />
+          </Field>
+        ) : (
+          <Field label="Texte"><TextInput value={p.label} onChange={v => update({ label: v })} /></Field>
+        )
+      )}
       {'title' in p && <Field label="Titre"><TextInput value={p.title} onChange={v => update({ title: v })} /></Field>}
       {'placeholder' in p && <Field label="Placeholder"><TextInput value={p.placeholder} onChange={v => update({ placeholder: v })} /></Field>}
       {(comp.type === 'button' || comp.type === 'icon') && 'bgColor' in p && (

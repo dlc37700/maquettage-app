@@ -76,17 +76,17 @@ function ShapeWithText({ comp, isReadOnly }) {
       />
       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 6, pointerEvents: 'none' }}>
         {editing ? (
-          <input
+          <textarea
             ref={inputRef}
             value={editValue}
             onChange={e => setEditValue(e.target.value)}
             onBlur={commitEdit}
-            onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditing(false); }}
+            onKeyDown={e => { if (e.key === 'Escape') setEditing(false); e.stopPropagation(); }}
             onMouseDown={e => e.stopPropagation()}
-            style={{ pointerEvents: 'all', width: '100%', textAlign: 'center', background: 'transparent', border: 'none', outline: 'none', color: fc, fontSize: fs, fontFamily: ff, fontWeight: fw, caretColor: fc }}
+            style={{ pointerEvents: 'all', width: '100%', height: '100%', textAlign: 'center', background: 'transparent', border: 'none', outline: 'none', resize: 'none', color: fc, fontSize: fs, fontFamily: ff, fontWeight: fw, caretColor: fc, overflow: 'hidden', lineHeight: 1.3 }}
           />
         ) : (
-          p.text ? <span style={{ textAlign: 'center', color: fc, fontSize: fs, fontFamily: ff, fontWeight: fw, userSelect: 'none', wordBreak: 'break-word', lineHeight: 1.2 }}>{p.text}</span> : null
+          p.text ? <span style={{ textAlign: 'center', color: fc, fontSize: fs, fontFamily: ff, fontWeight: fw, userSelect: 'none', wordBreak: 'break-word', lineHeight: 1.2, whiteSpace: 'pre-wrap' }}>{p.text}</span> : null
         )}
       </div>
       {isSelected && !isReadOnly && !p.text && !editing && (
@@ -342,18 +342,18 @@ function WeeklyCalendarRenderer({ comp, isReadOnly }) {
               <div key={day} onClick={(e) => startEdit(e, day, row)}
                 style={{ backgroundColor: p.cellBgColor || '#FFFFFF', borderRight: di < DAYS.length - 1 ? border : 'none', borderBottom: ri < ROWS.length - 1 ? border : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 3px', cursor: 'text', position: 'relative', minWidth: 0 }}>
                 {isEditing ? (
-                  <input
+                  <textarea
                     autoFocus
                     value={editValue}
                     onChange={e => setEditValue(e.target.value)}
                     onBlur={commitEdit}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') commitEdit(); e.stopPropagation(); }}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitEdit(); } if (e.key === 'Escape') commitEdit(); e.stopPropagation(); }}
                     onMouseDown={e => e.stopPropagation()}
                     onTouchStart={e => e.stopPropagation()}
-                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', outline: `2px solid ${p.headerBgColor || '#6C63FF'}`, borderRadius: 2, background: p.cellBgColor || '#FFFFFF', color: p.cellTextColor || '#1F2937', fontSize: fs, fontFamily: ff, textAlign: 'center', padding: '0 2px', boxSizing: 'border-box', zIndex: 10 }}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', outline: `2px solid ${p.headerBgColor || '#6C63FF'}`, borderRadius: 2, background: p.cellBgColor || '#FFFFFF', color: p.cellTextColor || '#1F2937', fontSize: fs, fontFamily: ff, textAlign: 'center', padding: '2px', boxSizing: 'border-box', zIndex: 10, resize: 'none', overflow: 'auto' }}
                   />
                 ) : (
-                  <span style={{ color: p.cellTextColor || '#1F2937', fontSize: fs, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center', lineHeight: 1.2 }}>{val}</span>
+                  <span style={{ color: p.cellTextColor || '#1F2937', fontSize: fs, overflow: 'hidden', whiteSpace: 'pre-wrap', width: '100%', textAlign: 'center', lineHeight: 1.2, wordBreak: 'break-word' }}>{val}</span>
                 )}
               </div>
             );
@@ -558,18 +558,18 @@ function TableRenderer({ comp, isReadOnly }) {
               <div key={ci} onClick={(e) => startEdit(e, ri, ci)}
                 style={{ flex: 1, backgroundColor: bg, borderRight: ci < row.length - 1 ? border : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2px 4px', minWidth: 0, cursor: 'text', position: 'relative' }}>
                 {isEditing ? (
-                  <input
+                  <textarea
                     autoFocus
                     value={editValue}
                     onChange={e => setEditValue(e.target.value)}
                     onBlur={commitEdit}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === 'Escape') commitEdit(); e.stopPropagation(); }}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commitEdit(); } if (e.key === 'Escape') commitEdit(); e.stopPropagation(); }}
                     onMouseDown={e => e.stopPropagation()}
                     onTouchStart={e => e.stopPropagation()}
-                    style={{ width: '100%', height: '100%', border: 'none', outline: '2px solid #6C63FF', borderRadius: 2, background: bg, color: tc, fontSize: fs, fontFamily: ff, fontWeight: cellFw(ri), textAlign: 'center', padding: '0 2px', boxSizing: 'border-box' }}
+                    style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 'none', outline: '2px solid #6C63FF', borderRadius: 2, background: bg, color: tc, fontSize: fs, fontFamily: ff, fontWeight: cellFw(ri), textAlign: 'center', padding: '2px', boxSizing: 'border-box', resize: 'none', overflow: 'auto' }}
                   />
                 ) : (
-                  <span style={{ color: tc, fontWeight: cellFw(ri), overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%', textAlign: 'center' }}>{cell}</span>
+                  <span style={{ color: tc, fontWeight: cellFw(ri), overflow: 'hidden', whiteSpace: 'pre-wrap', width: '100%', textAlign: 'center', wordBreak: 'break-word', lineHeight: 1.2 }}>{cell}</span>
                 )}
               </div>
             );
