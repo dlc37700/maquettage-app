@@ -365,8 +365,8 @@ export const COMPONENT_DEFINITIONS = [
   },
   {
     type: 'torch',
-    label: 'Torche',
-    icon: '🔦',
+    label: 'Flash',
+    icon: '⚡',
     category: 'Contrôles',
     defaultProps: {
       offColor: '#1C1C1E',
@@ -377,7 +377,7 @@ export const COMPONENT_DEFINITIONS = [
       navigateTo: '',
     },
     defaultSize: { width: 80, height: 80 },
-    tooltip: 'Bouton torche — active le flash de l\'appareil photo en preview',
+    tooltip: 'Bouton flash — active le flash de l\'appareil photo en preview',
   },
 ];
 

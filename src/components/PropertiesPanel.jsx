@@ -715,7 +715,7 @@ function ComponentProperties({ comp }) {
       {/* Torch specific */}
       {comp.type === 'torch' && (
         <>
-          <SectionTitle>Torche</SectionTitle>
+          <SectionTitle>Flash</SectionTitle>
           <Field label="Couleur éteinte"><ColorInput value={p.offColor || '#1C1C1E'} onChange={v => update({ offColor: v })} /></Field>
           <Field label="Couleur allumée"><ColorInput value={p.onColor || '#FFD60A'} onChange={v => update({ onColor: v })} /></Field>
           <Field label="Couleur icône"><ColorInput value={p.iconColor || '#FFFFFF'} onChange={v => update({ iconColor: v })} /></Field>

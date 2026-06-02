@@ -37,15 +37,10 @@ function AnyIcon({ name, iconSet, size = 24, color = '#6C63FF', strokeWidth = 2 
   return L ? <L size={size} color={color} strokeWidth={strokeWidth} /> : null;
 }
 
-function TorchSvg({ color, size }) {
+function LightningBolt({ color, size }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect x="9" y="1" width="6" height="7" rx="2" fill={color}/>
-      <path d="M8 8L5.5 22H18.5L16 8H8Z" fill={color}/>
-      <rect x="10.5" y="13" width="3" height="5" rx="1" fill="black" opacity="0.25"/>
-      <line x1="12" y1="1" x2="12" y2="-1" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-      <line x1="15.5" y1="2.5" x2="17" y2="1" stroke={color} strokeWidth="2" strokeLinecap="round"/>
-      <line x1="8.5" y1="2.5" x2="7" y2="1" stroke={color} strokeWidth="2" strokeLinecap="round"/>
+      <path d="M13 2L3 14H11L9 22L19 10H11L13 2Z" fill={color}/>
     </svg>
   );
 }
@@ -99,7 +94,7 @@ function TorchButton({ comp, isReadOnly }) {
         userSelect: 'none',
       }}
     >
-      <TorchSvg color={iconColor} size={iconSize} />
+      <LightningBolt color={iconColor} size={iconSize} />
     </div>
   );
 }
