@@ -3,7 +3,7 @@ import { getShapeSvgInner } from '../data/shapes';
 import { isFirebaseConfigured } from '../services/firebase';
 import {
   getAllSessions, setSessionBlocked, setSessionSchoolName, removeMember, deleteSession,
-  getSessionMessages, sendAdminMessage, exportSessionAsJson, exportSessionAsHtml, exportMemberAsHtml,
+  getSessionMessages, sendAdminMessage, exportSessionAsJson, exportSessionAsHtml, exportMemberAsHtml, exportClassPinsAsHtml,
 } from '../services/admin';
 import {
   loginTeacher, createTeacher, getAllTeachers, deleteTeacher,
@@ -269,15 +269,24 @@ function SessionList({ sessions, onSelect, onBlock, onDelete }) {
                   const clsActive = clsSessions.filter(s => s.isActive).length;
                   return (
                     <div key={cls} style={{ borderRadius: 8, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
-                      <button
-                        onClick={() => toggleClass(clsKey)}
-                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', backgroundColor: clsOpen ? '#EDE9FE' : '#F9FAFB', border: 'none', borderBottom: clsOpen ? '1px solid #E5E7EB' : 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif', transition: 'background 0.15s' }}
-                      >
-                        <span style={{ fontSize: 11, display: 'inline-block', transform: clsOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s', color: '#A78BFA' }}>▶</span>
-                        <span style={{ fontWeight: 800, fontSize: 13, color: '#4C1D95', flex: 1, textAlign: 'left' }}>📚 {cls}</span>
-                        <span style={{ backgroundColor: '#F3F4F6', color: '#6B7280', borderRadius: 20, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>{clsSessions.length} session{clsSessions.length > 1 ? 's' : ''}</span>
-                        {clsActive > 0 && <span style={{ backgroundColor: '#D1FAE5', color: '#065F46', borderRadius: 20, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>🟢 {clsActive}</span>}
-                      </button>
+                      <div style={{ display: 'flex', alignItems: 'center', backgroundColor: clsOpen ? '#EDE9FE' : '#F9FAFB', borderBottom: clsOpen ? '1px solid #E5E7EB' : 'none', transition: 'background 0.15s' }}>
+                        <button
+                          onClick={() => toggleClass(clsKey)}
+                          style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'Nunito, sans-serif' }}
+                        >
+                          <span style={{ fontSize: 11, display: 'inline-block', transform: clsOpen ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s', color: '#A78BFA' }}>▶</span>
+                          <span style={{ fontWeight: 800, fontSize: 13, color: '#4C1D95', flex: 1, textAlign: 'left' }}>📚 {cls}</span>
+                          <span style={{ backgroundColor: '#F3F4F6', color: '#6B7280', borderRadius: 20, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>{clsSessions.length} session{clsSessions.length > 1 ? 's' : ''}</span>
+                          {clsActive > 0 && <span style={{ backgroundColor: '#D1FAE5', color: '#065F46', borderRadius: 20, padding: '1px 8px', fontSize: 11, fontWeight: 700 }}>🟢 {clsActive}</span>}
+                        </button>
+                        <button
+                          onClick={e => { e.stopPropagation(); exportClassPinsAsHtml(clsSessions, cls, groupKey); }}
+                          title="Exporter la liste des groupes et PINs (à afficher au tableau)"
+                          style={{ ...btn({ backgroundColor: 'rgba(108,99,255,0.12)', color: '#6C63FF', fontSize: 11 }), margin: '0 8px', flexShrink: 0 }}
+                        >
+                          🖨️ PINs
+                        </button>
+                      </div>
                       {clsOpen && (
                         <div style={{ padding: 10, backgroundColor: 'white', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 8 }}>
                           {clsSessions.map(session => (

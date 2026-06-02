@@ -92,6 +92,61 @@ export async function getAllSessions(teacherCode = null, includeOrphans = false)
   }
 }
 
+export function exportClassPinsAsHtml(sessions, className, schoolName) {
+  const date = new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+  const groups = sessions.map(s => {
+    const membersHtml = s.members.length === 0
+      ? `<p style="color:#9CA3AF;font-style:italic;font-size:13px;margin:6px 0">Aucun membre</p>`
+      : s.members.map(m => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid #F3F4F6">
+          <span style="font-size:14px;font-weight:600;color:#1F2937">👤 ${m.nickname}</span>
+          ${m.pin
+            ? `<span style="font-family:monospace;font-size:20px;font-weight:900;color:#6C63FF;background:#EDE9FE;padding:3px 10px;border-radius:8px;letter-spacing:3px">${m.pin}</span>`
+            : `<span style="font-size:12px;color:#9CA3AF;font-style:italic">pas de PIN</span>`
+          }
+        </div>`).join('');
+    return `
+      <div style="break-inside:avoid;border:2px solid #DDD6FE;border-radius:14px;padding:18px 20px;background:white;box-shadow:0 2px 8px rgba(108,99,255,0.08)">
+        <div style="font-size:17px;font-weight:900;color:#4C1D95;margin-bottom:2px">${s.projectName || '(sans nom de projet)'}</div>
+        <div style="font-family:monospace;font-size:22px;font-weight:900;color:#6C63FF;letter-spacing:5px;margin-bottom:12px;background:#F5F3FF;display:inline-block;padding:4px 12px;border-radius:8px">${s.code}</div>
+        <div>${membersHtml}</div>
+      </div>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Codes PIN — ${className} — ${schoolName || ''}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #F9FAFB; padding: 28px 32px; color: #1F2937; }
+  @media print {
+    body { background: white; padding: 16px; }
+    .no-print { display: none; }
+  }
+  h1 { font-size: 26px; color: #4C1D95; margin-bottom: 4px; }
+  .subtitle { font-size: 14px; color: #6B7280; margin-bottom: 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+</style>
+</head>
+<body>
+  <button class="no-print" onclick="window.print()" style="float:right;background:#6C63FF;color:white;border:none;border-radius:8px;padding:8px 18px;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:12px">🖨️ Imprimer</button>
+  <h1>📚 ${className}</h1>
+  <p class="subtitle">🏫 ${schoolName || 'Établissement non renseigné'} &nbsp;·&nbsp; ${sessions.length} groupe${sessions.length > 1 ? 's' : ''} &nbsp;·&nbsp; ${date}</p>
+  <div class="grid">${groups}</div>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pins-${className.replace(/\s+/g, '-')}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export async function setSessionSchoolName(code, schoolName) {
   if (!db || !code) return;
   try {
