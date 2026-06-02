@@ -77,46 +77,36 @@ async function removeBg(dataUrl) {
   });
 }
 
-// Load an image URL as a data URL using <img> element (bypasses CORS for display).
-// Tries crossOrigin="anonymous" first (for canvas pixel access), falls back without.
-// Returns { dataUrl, hasCors }
-function loadImageAsDataUrl(url, timeoutMs) {
+// Phase 1: Load image without CORS (always works for display — no cache poisoning).
+function loadImage(url, timeoutMs) {
   return new Promise((resolve, reject) => {
-    let settled = false;
-    const timer = setTimeout(() => {
-      if (!settled) { settled = true; reject(new Error('timeout')); }
-    }, timeoutMs);
+    const timer = setTimeout(() => reject(new Error('timeout')), timeoutMs);
+    const img = new Image();
+    img.onload = () => { clearTimeout(timer); resolve(img); };
+    img.onerror = () => { clearTimeout(timer); reject(new Error('load_error')); };
+    img.src = url;
+  });
+}
 
-    function tryLoad(withCors) {
-      const img = new Image();
-      if (withCors) img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        if (settled) return;
-        clearTimeout(timer);
-        settled = true;
-        if (withCors) {
-          try {
-            const c = document.createElement('canvas');
-            c.width = img.naturalWidth || 512;
-            c.height = img.naturalHeight || 512;
-            c.getContext('2d').drawImage(img, 0, 0);
-            resolve({ dataUrl: c.toDataURL('image/png'), hasCors: true });
-            return;
-          } catch { /* tainted canvas — CORS headers not sent */ }
-        }
-        resolve({ dataUrl: url, hasCors: false });
-      };
-      img.onerror = () => {
-        if (settled) return;
-        if (withCors) { tryLoad(false); return; } // retry without crossOrigin
-        clearTimeout(timer);
-        settled = true;
-        reject(new Error('load_error'));
-      };
-      img.src = url;
-    }
-
-    tryLoad(true);
+// Phase 2 (optional): Try to get pixel-accessible data URL via a separate CORS request.
+// Resolves with data URL on success, null on any failure (never rejects).
+function tryGetDataUrlCors(url) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), 15000);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      clearTimeout(timer);
+      try {
+        const c = document.createElement('canvas');
+        c.width = img.naturalWidth || 512;
+        c.height = img.naturalHeight || 512;
+        c.getContext('2d').drawImage(img, 0, 0);
+        resolve(c.toDataURL('image/png'));
+      } catch { resolve(null); }
+    };
+    img.onerror = () => { clearTimeout(timer); resolve(null); };
+    img.src = url;
   });
 }
 
@@ -172,17 +162,22 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
     lastUrlRef.current = url;
 
     try {
-      // <img> loading bypasses CORS; crossOrigin="anonymous" tried first for pixel access
-      const { dataUrl, hasCors } = await loadImageAsDataUrl(url, 90000);
+      // Phase 1: load without CORS — always succeeds if URL is reachable
+      await loadImage(url, 90000);
       if (cancelledRef.current) return;
 
-      let finalDataUrl = dataUrl;
-      if (removeBgOn && hasCors) {
+      let finalDataUrl = url; // default: show via URL directly
+
+      // Phase 2: optional bg removal — separate CORS request, silent fallback
+      if (removeBgOn) {
         setStep('removing');
-        finalDataUrl = await removeBg(dataUrl);
+        const dataUrl = await tryGetDataUrlCors(url);
+        if (!cancelledRef.current && dataUrl) {
+          finalDataUrl = await removeBg(dataUrl);
+        }
       }
-      if (cancelledRef.current) return;
 
+      if (cancelledRef.current) return;
       setResultDataUrl(finalDataUrl);
       setStep('done');
     } catch (e) {
@@ -190,7 +185,7 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
       setStep('error');
       setError(e.message === 'timeout'
         ? "L'image prend trop de temps à générer. Réessayez."
-        : "Impossible de générer l'image. Vérifiez votre connexion et réessayez.");
+        : "Impossible de charger l'image. Vérifiez votre connexion et réessayez.");
     } finally {
       clearInterval(timerRef.current);
     }
