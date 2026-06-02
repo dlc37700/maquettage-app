@@ -66,7 +66,7 @@ export async function getAllSessions(teacherCode = null, includeOrphans = false)
         teacherCode: meta.teacherCode || null,
         school: meta.school || '',
         blocked: meta.blocked || false,
-        projectName: meta.projectName || '',
+        projectName: meta.projectName || members.find(m => m.projectName)?.projectName || '',
         members,
         lastActivity,
         isActive,
