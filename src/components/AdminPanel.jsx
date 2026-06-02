@@ -30,6 +30,11 @@ function timeAgo(ts) {
   return `il y a ${d}j`;
 }
 
+function formatDateLong(ts) {
+  if (!ts) return '';
+  return new Date(ts).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
 function formatDate(ts) {
   if (!ts) return '?';
   return new Date(ts).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -186,7 +191,7 @@ function SessionCard({ session, onSelect, onBlock, onDelete }) {
       </div>
       {session.projectName && <p style={{ color: '#7C3AED', fontSize: 12, fontWeight: 700, margin: '0 0 4px' }}>📁 {session.projectName}</p>}
       <p style={{ color: '#6B7280', fontSize: 12, margin: '0 0 4px' }}>Créée le {formatDate(session.createdAt)} par <strong>{session.createdBy}</strong></p>
-      <p style={{ color: '#9CA3AF', fontSize: 12, margin: '0 0 8px' }}>Dernière activité : {timeAgo(session.lastActivity)}</p>
+      <p style={{ color: '#9CA3AF', fontSize: 12, margin: '0 0 8px' }}>Dernière activité : {timeAgo(session.lastActivity)}{session.lastActivity ? <span style={{ color: '#C4B5FD' }}> ({formatDateLong(session.lastActivity)})</span> : ''}</p>
       {session.members.length > 0 && (
         <p style={{ color: '#4B5563', fontSize: 12, margin: '0 0 12px' }}>
           👤 {session.members.map(m => m.nickname).join(', ')}
