@@ -28,6 +28,36 @@ export default function ComponentPalette({ mobile = false }) {
   const [openCategories, setOpenCategories] = useState({});
   const [openAvatars, setOpenAvatars] = useState(true);
   const [openImages, setOpenImages] = useState(true);
+  const [openWebImages, setOpenWebImages] = useState(true);
+  const [webQuery, setWebQuery] = useState('');
+  const [webImages, setWebImages] = useState([]);
+  const [webLoading, setWebLoading] = useState(false);
+  const [webError, setWebError] = useState('');
+
+  const searchWebImages = async (q) => {
+    const query = (q || webQuery).trim();
+    if (!query) return;
+    setWebLoading(true);
+    setWebError('');
+    setWebImages([]);
+    try {
+      const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrnamespace=6&prop=imageinfo&iiprop=url%7Cmime%7Cwidth%7Cheight&iiurlwidth=250&gsrlimit=24&format=json&origin=*`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      const pages = data.query?.pages;
+      if (!pages) { setWebImages([]); setWebLoading(false); return; }
+      const results = Object.values(pages)
+        .filter(p => p.imageinfo?.[0]?.mime?.startsWith('image/'))
+        .map(p => ({ thumbUrl: p.imageinfo[0].thumburl, fullUrl: p.imageinfo[0].url, title: p.title.replace('File:', '') }))
+        .filter(r => r.thumbUrl);
+      setWebImages(results);
+      if (results.length === 0) setWebError('Aucune image trouvée.');
+    } catch (e) {
+      setWebError('Erreur de recherche. Vérifiez votre connexion.');
+    }
+    setWebLoading(false);
+  };
 
   const filtered = COMPONENT_DEFINITIONS.filter(d => d.label.toLowerCase().includes(search.toLowerCase()));
   const groups = groupBy(filtered, 'category');
@@ -175,6 +205,67 @@ export default function ComponentPalette({ mobile = false }) {
                     >×</button>
                   </div>
                 ))}
+              </div>
+            )}
+            <div style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.1)', margin: '8px 0 6px' }} />
+          </div>
+        )}
+
+        {/* Web image search */}
+        {!search && (
+          <div style={{ marginBottom: 10 }}>
+            <button
+              onClick={() => setOpenWebImages(v => !v)}
+              style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', color: '#A78BFA', fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', padding: '4px 4px', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+            >
+              <span>🌐 Images Web</span>
+              <span style={{ fontSize: 9 }}>{openWebImages ? '▲' : '▼'}</span>
+            </button>
+            {openWebImages && (
+              <div>
+                <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+                  <input
+                    value={webQuery}
+                    onChange={e => setWebQuery(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && searchWebImages()}
+                    placeholder="Ex: cat, mountain…"
+                    style={{ flex: 1, padding: '5px 8px', borderRadius: 7, border: 'none', backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', fontSize: 11, fontFamily: 'Nunito, sans-serif', outline: 'none' }}
+                  />
+                  <button
+                    onClick={() => searchWebImages()}
+                    disabled={webLoading}
+                    style={{ padding: '5px 8px', borderRadius: 7, border: 'none', backgroundColor: '#6C63FF', color: 'white', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Nunito, sans-serif', opacity: webLoading ? 0.6 : 1 }}
+                  >
+                    {webLoading ? '…' : '🔍'}
+                  </button>
+                </div>
+                {webError && <div style={{ color: '#F87171', fontSize: 10, fontFamily: 'Nunito, sans-serif', marginBottom: 4 }}>{webError}</div>}
+                {webLoading && <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontFamily: 'Nunito, sans-serif', textAlign: 'center', padding: '10px 0' }}>Recherche…</div>}
+                {webImages.length > 0 && (
+                  <>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4, marginBottom: 4 }}>
+                      {webImages.map((img, i) => (
+                        <div
+                          key={i}
+                          className="palette-item"
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData('componentType', 'image');
+                            e.dataTransfer.setData('overrideProps', JSON.stringify({ frameless: false, imageData: img.fullUrl }));
+                            e.dataTransfer.setData('overrideSize', JSON.stringify({ width: 270, height: 160 }));
+                            e.dataTransfer.effectAllowed = 'copy';
+                          }}
+                          onClick={() => addComponent('image', { frameless: false, imageData: img.fullUrl }, { width: 270, height: 160 })}
+                          title={img.title}
+                          style={{ borderRadius: 7, overflow: 'hidden', cursor: 'grab', border: '1px solid rgba(255,255,255,0.12)', background: 'repeating-conic-gradient(#555 0% 25%, #333 0% 50%) 0 0 / 10px 10px' }}
+                        >
+                          <img src={img.thumbUrl} alt={img.title} style={{ width: '100%', height: 54, objectFit: 'cover', display: 'block' }} />
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: 9, fontFamily: 'Nunito, sans-serif', textAlign: 'center' }}>Source: Wikimedia Commons (CC)</div>
+                  </>
+                )}
               </div>
             )}
             <div style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.1)', margin: '8px 0 6px' }} />
