@@ -238,11 +238,11 @@ function SessionList({ sessions, onSelect, onBlock, onDelete }) {
         const classMap = {};
         const classOrder = [];
         for (const s of groupSessions) {
-          const cls = (s.className || '').trim() || 'Sans classe';
+          const cls = (s.className || '').trim().toUpperCase() || 'SANS CLASSE';
           if (!classMap[cls]) { classMap[cls] = []; classOrder.push(cls); }
           classMap[cls].push(s);
         }
-        classOrder.sort((a, b) => a === 'Sans classe' ? 1 : b === 'Sans classe' ? -1 : a.localeCompare(b));
+        classOrder.sort((a, b) => a === 'SANS CLASSE' ? 1 : b === 'SANS CLASSE' ? -1 : a.localeCompare(b));
 
         return (
           <div key={groupKey} style={{ borderRadius: 12, border: '1px solid #E5E7EB', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
