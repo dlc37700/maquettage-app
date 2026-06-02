@@ -77,12 +77,46 @@ async function removeBg(dataUrl) {
   });
 }
 
-function blobToDataUrl(blob) {
+// Load an image URL as a data URL using <img> element (bypasses CORS for display).
+// Tries crossOrigin="anonymous" first (for canvas pixel access), falls back without.
+// Returns { dataUrl, hasCors }
+function loadImageAsDataUrl(url, timeoutMs) {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (!settled) { settled = true; reject(new Error('timeout')); }
+    }, timeoutMs);
+
+    function tryLoad(withCors) {
+      const img = new Image();
+      if (withCors) img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        if (settled) return;
+        clearTimeout(timer);
+        settled = true;
+        if (withCors) {
+          try {
+            const c = document.createElement('canvas');
+            c.width = img.naturalWidth || 512;
+            c.height = img.naturalHeight || 512;
+            c.getContext('2d').drawImage(img, 0, 0);
+            resolve({ dataUrl: c.toDataURL('image/png'), hasCors: true });
+            return;
+          } catch { /* tainted canvas — CORS headers not sent */ }
+        }
+        resolve({ dataUrl: url, hasCors: false });
+      };
+      img.onerror = () => {
+        if (settled) return;
+        if (withCors) { tryLoad(false); return; } // retry without crossOrigin
+        clearTimeout(timer);
+        settled = true;
+        reject(new Error('load_error'));
+      };
+      img.src = url;
+    }
+
+    tryLoad(true);
   });
 }
 
@@ -105,81 +139,66 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
   const [animType, setAnimType] = useState('');
   const [removeBgOn, setRemoveBgOn] = useState(true);
   const inputRef = useRef(null);
-  const abortRef = useRef(null);
+  const cancelledRef = useRef(false);
   const timerRef = useRef(null);
   const lastUrlRef = useRef('');
 
   useEffect(() => { setTimeout(() => inputRef.current?.focus(), 60); }, []);
-
-  useEffect(() => {
-    return () => {
-      abortRef.current?.abort();
-      clearInterval(timerRef.current);
-    };
-  }, []);
+  useEffect(() => { return () => { cancelledRef.current = true; clearInterval(timerRef.current); }; }, []);
 
   const isWorking = step === 'fetching' || step === 'removing';
 
-  const stopTimer = () => { clearInterval(timerRef.current); timerRef.current = null; };
-
   const generate = async (urlOverride) => {
     if (isWorking) return;
-    const subject = (urlOverride ? prompt : prompt).trim();
+    const subject = prompt.trim();
     if (!subject && !urlOverride) return;
 
-    abortRef.current?.abort();
-    abortRef.current = new AbortController();
-
+    cancelledRef.current = false;
     setStep('fetching');
     setError('');
     setResultDataUrl('');
     setElapsed(0);
-
+    clearInterval(timerRef.current);
     timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
 
+    const seed = Math.floor(Math.random() * 99999);
     const enhanced = animType === 'spin3d'
       ? `rendu 3D photoréaliste de ${subject}, objet seul centré, vue légèrement de face en angle 3/4, fond blanc pur, éclairage studio, haute qualité`
       : `illustration vectorielle colorée de ${subject}, fond blanc pur uni, style flat design moderne, contours nets, objet centré`;
     const negative = animType === 'spin3d'
       ? `background, shadow, multiple objects, text, watermark, ugly, blurry`
       : `background texture, ugly, blurry, text, watermark, signature, multiple objects`;
-    const seed = Math.floor(Math.random() * 99999);
     const url = urlOverride || `https://image.pollinations.ai/prompt/${encodeURIComponent(enhanced)}?width=512&height=512&model=flux&nologo=true&seed=${seed}&negative=${encodeURIComponent(negative)}`;
     lastUrlRef.current = url;
 
-    const timeout = setTimeout(() => abortRef.current?.abort(), 90000);
-
     try {
-      const res = await fetch(url, { signal: abortRef.current.signal });
-      clearTimeout(timeout);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const blob = await res.blob();
-      const dataUrl = await blobToDataUrl(blob);
+      // <img> loading bypasses CORS; crossOrigin="anonymous" tried first for pixel access
+      const { dataUrl, hasCors } = await loadImageAsDataUrl(url, 90000);
+      if (cancelledRef.current) return;
 
-      if (removeBgOn) {
+      let finalDataUrl = dataUrl;
+      if (removeBgOn && hasCors) {
         setStep('removing');
-        const cleaned = await removeBg(dataUrl);
-        setResultDataUrl(cleaned);
-      } else {
-        setResultDataUrl(dataUrl);
+        finalDataUrl = await removeBg(dataUrl);
       }
+      if (cancelledRef.current) return;
+
+      setResultDataUrl(finalDataUrl);
       setStep('done');
     } catch (e) {
-      clearTimeout(timeout);
-      if (e.name === 'AbortError') {
-        setStep('idle');
-      } else {
-        setStep('error');
-        setError("Impossible de générer l'image. Vérifiez votre connexion et réessayez.");
-      }
+      if (cancelledRef.current) return;
+      setStep('error');
+      setError(e.message === 'timeout'
+        ? "L'image prend trop de temps à générer. Réessayez."
+        : "Impossible de générer l'image. Vérifiez votre connexion et réessayez.");
     } finally {
-      stopTimer();
+      clearInterval(timerRef.current);
     }
   };
 
   const cancel = () => {
-    abortRef.current?.abort();
-    stopTimer();
+    cancelledRef.current = true;
+    clearInterval(timerRef.current);
     setStep('idle');
     setElapsed(0);
   };
