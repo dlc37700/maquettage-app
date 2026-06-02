@@ -30,28 +30,35 @@ export default function ComponentPalette({ mobile = false }) {
   const [openImages, setOpenImages] = useState(true);
   const [openWebImages, setOpenWebImages] = useState(true);
   const [webQuery, setWebQuery] = useState('');
+  const [webFilter, setWebFilter] = useState('all');
   const [webImages, setWebImages] = useState([]);
   const [webLoading, setWebLoading] = useState(false);
   const [webError, setWebError] = useState('');
 
-  const searchWebImages = async (q) => {
-    const query = (q || webQuery).trim();
-    if (!query) return;
+  const searchWebImages = async (q, filter) => {
+    const base = (q !== undefined ? q : webQuery).trim();
+    if (!base) return;
+    const f = filter !== undefined ? filter : webFilter;
+    let finalQuery = base;
+    if (f === 'photos') finalQuery += ' photograph';
+    if (f === 'dessins') finalQuery += ' illustration OR drawing OR clipart OR cartoon OR vector';
     setWebLoading(true);
     setWebError('');
     setWebImages([]);
     try {
-      const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(query)}&gsrnamespace=6&prop=imageinfo&iiprop=url%7Cmime%7Cwidth%7Cheight&iiurlwidth=250&gsrlimit=24&format=json&origin=*`;
+      const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${encodeURIComponent(finalQuery)}&gsrnamespace=6&prop=imageinfo&iiprop=url%7Cmime%7Cwidth%7Cheight&iiurlwidth=250&gsrlimit=32&format=json&origin=*`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const pages = data.query?.pages;
       if (!pages) { setWebImages([]); setWebLoading(false); return; }
-      const results = Object.values(pages)
+      let results = Object.values(pages)
         .filter(p => p.imageinfo?.[0]?.mime?.startsWith('image/'))
-        .map(p => ({ thumbUrl: p.imageinfo[0].thumburl, fullUrl: p.imageinfo[0].url, title: p.title.replace('File:', '') }))
+        .map(p => ({ thumbUrl: p.imageinfo[0].thumburl, fullUrl: p.imageinfo[0].url, title: p.title.replace('File:', ''), isSvg: p.imageinfo[0].mime === 'image/svg+xml' }))
         .filter(r => r.thumbUrl);
-      setWebImages(results);
+      if (f === 'photos') results = results.filter(r => !r.isSvg);
+      if (f === 'dessins') results = [...results.filter(r => r.isSvg), ...results.filter(r => !r.isSvg)];
+      setWebImages(results.slice(0, 24));
       if (results.length === 0) setWebError('Aucune image trouvée.');
     } catch (e) {
       setWebError('Erreur de recherche. Vérifiez votre connexion.');
@@ -223,12 +230,12 @@ export default function ComponentPalette({ mobile = false }) {
             </button>
             {openWebImages && (
               <div>
-                <div style={{ display: 'flex', gap: 4, marginBottom: 6 }}>
+                <div style={{ display: 'flex', gap: 4, marginBottom: 5 }}>
                   <input
                     value={webQuery}
                     onChange={e => setWebQuery(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && searchWebImages()}
-                    placeholder="Ex: cat, mountain…"
+                    placeholder="Ex: chat, montagne…"
                     style={{ flex: 1, padding: '5px 8px', borderRadius: 7, border: 'none', backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', fontSize: 11, fontFamily: 'Nunito, sans-serif', outline: 'none' }}
                   />
                   <button
@@ -238,6 +245,15 @@ export default function ComponentPalette({ mobile = false }) {
                   >
                     {webLoading ? '…' : '🔍'}
                   </button>
+                </div>
+                <div style={{ display: 'flex', gap: 3, marginBottom: 6 }}>
+                  {[{ id: 'all', label: '🌐 Tout' }, { id: 'photos', label: '📷 Photos' }, { id: 'dessins', label: '🎨 Dessins' }].map(f => (
+                    <button
+                      key={f.id}
+                      onClick={() => { setWebFilter(f.id); if (webQuery.trim()) searchWebImages(webQuery, f.id); }}
+                      style={{ flex: 1, padding: '3px 2px', borderRadius: 6, border: webFilter === f.id ? '1px solid #A78BFA' : '1px solid rgba(255,255,255,0.15)', backgroundColor: webFilter === f.id ? 'rgba(167,139,250,0.25)' : 'rgba(255,255,255,0.05)', color: webFilter === f.id ? '#A78BFA' : 'rgba(255,255,255,0.55)', fontSize: 9, fontWeight: 700, cursor: 'pointer', fontFamily: 'Nunito, sans-serif' }}
+                    >{f.label}</button>
+                  ))}
                 </div>
                 {webError && <div style={{ color: '#F87171', fontSize: 10, fontFamily: 'Nunito, sans-serif', marginBottom: 4 }}>{webError}</div>}
                 {webLoading && <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontFamily: 'Nunito, sans-serif', textAlign: 'center', padding: '10px 0' }}>Recherche…</div>}
@@ -257,9 +273,10 @@ export default function ComponentPalette({ mobile = false }) {
                           }}
                           onClick={() => addComponent('image', { frameless: false, imageData: img.fullUrl }, { width: 270, height: 160 })}
                           title={img.title}
-                          style={{ borderRadius: 7, overflow: 'hidden', cursor: 'grab', border: '1px solid rgba(255,255,255,0.12)', background: 'repeating-conic-gradient(#555 0% 25%, #333 0% 50%) 0 0 / 10px 10px' }}
+                          style={{ position: 'relative', borderRadius: 7, overflow: 'hidden', cursor: 'grab', border: '1px solid rgba(255,255,255,0.12)', background: 'repeating-conic-gradient(#555 0% 25%, #333 0% 50%) 0 0 / 10px 10px' }}
                         >
                           <img src={img.thumbUrl} alt={img.title} style={{ width: '100%', height: 54, objectFit: 'cover', display: 'block' }} />
+                          {img.isSvg && <div style={{ position: 'absolute', top: 2, left: 2, backgroundColor: '#7C3AED', borderRadius: 3, fontSize: 8, padding: '1px 3px', color: 'white', fontWeight: 800 }}>SVG</div>}
                         </div>
                       ))}
                     </div>
