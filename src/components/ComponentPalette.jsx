@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { removeBg, waitForImage, imageUrlToDataUrl, pollinationsUrl } from '../utils/aiImageUtils';
+import { removeBg, waitForImage, imageUrlToDataUrl, pollinationsUrl, fetchImageAsDataUrl } from '../utils/aiImageUtils';
 import { COMPONENT_DEFINITIONS, BUTTON_PRESETS, AVATAR_PRESETS } from '../data/componentDefinitions';
 import { useProject } from '../hooks/useProject';
 import { useImageLibrary } from '../hooks/useImageLibrary';
@@ -51,21 +51,32 @@ export default function ComponentPalette({ mobile = false }) {
     aiTimerRef.current = setInterval(() => setAiElapsed(e => e + 1), 1000);
 
     const MAX = 3;
-    let lastErr = '';
     for (let i = 0; i < MAX; i++) {
       if (aiCancelledRef.current) break;
       if (i > 0) await new Promise(r => setTimeout(r, 3000 * i));
       if (aiCancelledRef.current) break;
       const url = pollinationsUrl(subject, Math.floor(Math.random() * 99999));
       try {
-        await waitForImage(url, 90000);
+        // Try fetch first (lets us read the real response/error)
+        let dataUrl;
+        try {
+          dataUrl = await fetchImageAsDataUrl(url, 90000);
+        } catch (fetchErr) {
+          if (fetchErr.message === 'timeout') throw fetchErr;
+          // CORS or opaque response — fall back to img tag
+          await waitForImage(url, 90000);
+          dataUrl = url; // URL only, can't get dataUrl
+        }
         if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
-        let finalResult = url;
-        if (aiRemoveBgOn) {
+        let finalResult = dataUrl;
+        if (aiRemoveBgOn && dataUrl !== url) {
           setAiStep('removing');
           if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
-          const dataUrl = await imageUrlToDataUrl(url);
-          if (dataUrl) finalResult = await removeBg(dataUrl);
+          finalResult = await removeBg(dataUrl);
+        } else if (aiRemoveBgOn && dataUrl === url) {
+          setAiStep('removing');
+          const d2 = await imageUrlToDataUrl(url);
+          if (d2) finalResult = await removeBg(d2);
         }
         if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
         setAiResult(finalResult);
@@ -73,7 +84,6 @@ export default function ComponentPalette({ mobile = false }) {
         clearInterval(aiTimerRef.current);
         return;
       } catch (e) {
-        lastErr = e.message;
         if (e.message === 'timeout' || aiCancelledRef.current) break;
       }
     }

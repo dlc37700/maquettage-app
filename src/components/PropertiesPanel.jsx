@@ -7,7 +7,7 @@ import { SHAPES_CATEGORIES, getShapeSvgInner } from '../data/shapes';
 import { getFontworkSvg, FONTWORK_STYLES } from '../data/fontwork';
 import { CHART_TYPES, DEFAULT_CHART_DATA_STR } from '../data/chartHelper';
 import { useImageLibrary } from '../hooks/useImageLibrary';
-import { removeBg, waitForImage, imageUrlToDataUrl, pollinationsUrl } from '../utils/aiImageUtils';
+import { removeBg, waitForImage, imageUrlToDataUrl, pollinationsUrl, fetchImageAsDataUrl } from '../utils/aiImageUtils';
 
 function Field({ label, children }) {
   return <div style={{ marginBottom: 12 }}><div style={{ color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>{label}</div>{children}</div>;
@@ -738,14 +738,21 @@ function AiImageProperties({ comp }) {
       if (cancelledRef.current) break;
       const url = pollinationsUrl(subject, Math.floor(Math.random() * 99999));
       try {
-        await waitForImage(url, 90000);
+        let dataUrl;
+        try {
+          dataUrl = await fetchImageAsDataUrl(url, 90000);
+        } catch (fetchErr) {
+          if (fetchErr.message === 'timeout') throw fetchErr;
+          await waitForImage(url, 90000);
+          dataUrl = url;
+        }
         if (cancelledRef.current) { clearInterval(timerRef.current); return; }
-        let finalResult = url;
+        let finalResult = dataUrl;
         if (removeBgOn) {
           setStep('removing');
           if (cancelledRef.current) { clearInterval(timerRef.current); return; }
-          const dataUrl = await imageUrlToDataUrl(url);
-          if (dataUrl) finalResult = await removeBg(dataUrl);
+          const d2 = dataUrl === url ? await imageUrlToDataUrl(url) : dataUrl;
+          if (d2 && d2 !== url) finalResult = await removeBg(d2);
         }
         if (cancelledRef.current) { clearInterval(timerRef.current); return; }
         update({ imageData: finalResult });

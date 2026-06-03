@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useProject } from '../hooks/useProject';
 import { useImageLibrary } from '../hooks/useImageLibrary';
-import { removeBg, waitForImage, imageUrlToDataUrl, pollinationsUrl } from '../utils/aiImageUtils';
+import { removeBg, waitForImage, imageUrlToDataUrl, pollinationsUrl, fetchImageAsDataUrl } from '../utils/aiImageUtils';
 
 const ANIM_TYPES = [
   { id: '',        label: '— Aucune',        icon: '○' },
@@ -60,14 +60,21 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
       const url = urlOverride || pollinationsUrl(promptStr, seed);
       lastUrlRef.current = url;
       try {
-        await waitForImage(url, 90000);
+        let dataUrl;
+        try {
+          dataUrl = await fetchImageAsDataUrl(url, 90000);
+        } catch (fetchErr) {
+          if (fetchErr.message === 'timeout') throw fetchErr;
+          await waitForImage(url, 90000);
+          dataUrl = url;
+        }
         if (cancelledRef.current) { clearInterval(timerRef.current); return; }
-        let finalDataUrl = url;
+        let finalDataUrl = dataUrl;
         if (removeBgOn) {
           setStep('removing');
           if (cancelledRef.current) { clearInterval(timerRef.current); return; }
-          const dataUrl = await imageUrlToDataUrl(url);
-          if (dataUrl) finalDataUrl = await removeBg(dataUrl);
+          const d2 = dataUrl === url ? await imageUrlToDataUrl(url) : dataUrl;
+          if (d2 && d2 !== url) finalDataUrl = await removeBg(d2);
         }
         if (cancelledRef.current) { clearInterval(timerRef.current); return; }
         setResultDataUrl(finalDataUrl);
