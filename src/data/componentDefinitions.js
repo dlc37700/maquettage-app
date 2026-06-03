@@ -292,7 +292,7 @@ export const COMPONENT_DEFINITIONS = [
     label: 'Calendrier',
     icon: '📅',
     category: 'Données',
-    defaultProps: { bgColor: '#FFFFFF', accentColor: '#6C63FF', textColor: '#1F2937', headerBgColor: '#6C63FF', borderRadius: 12, fontFamily: 'Nunito', opacity: 1, events: {}, navigateTo: '' },
+    defaultProps: { bgColor: '#FFFFFF', accentColor: '#6C63FF', textColor: '#1F2937', headerBgColor: '#6C63FF', borderRadius: 12, fontFamily: 'Nunito', fontSize: 11, opacity: 1, events: {}, navigateTo: '' },
     defaultSize: { width: 320, height: 340 },
     tooltip: 'Un calendrier mensuel navigable',
   },

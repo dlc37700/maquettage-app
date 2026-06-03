@@ -655,6 +655,7 @@ function ComponentProperties({ comp }) {
             <Field label="Fond cellule paire"><ColorInput value={p.cellBgColor || '#FFFFFF'} onChange={v => update({ cellBgColor: v })} /></Field>
             <Field label="Fond cellule impaire"><ColorInput value={p.altRowColor || '#F3F4F6'} onChange={v => update({ altRowColor: v })} /></Field>
             <Field label="Couleur bordure"><ColorInput value={p.borderColor || '#E5E7EB'} onChange={v => update({ borderColor: v })} /></Field>
+            <Field label={`Taille du texte (${p.fontSize || 13}px)`}><RangeInput value={p.fontSize || 13} min={8} max={24} onChange={v => update({ fontSize: v })} /></Field>
           </>
         );
       })()}
@@ -669,7 +670,10 @@ function ComponentProperties({ comp }) {
 
       {/* Calendar specific */}
       {comp.type === 'calendar' && (
-        <Field label="Fond en-tête"><ColorInput value={p.headerBgColor || '#6C63FF'} onChange={v => update({ headerBgColor: v })} /></Field>
+        <>
+          <Field label="Fond en-tête"><ColorInput value={p.headerBgColor || '#6C63FF'} onChange={v => update({ headerBgColor: v })} /></Field>
+          <Field label={`Taille du texte (${p.fontSize || 11}px)`}><RangeInput value={p.fontSize || 11} min={7} max={20} onChange={v => update({ fontSize: v })} /></Field>
+        </>
       )}
 
       {/* Search bar specific */}
@@ -677,6 +681,7 @@ function ComponentProperties({ comp }) {
         <>
           <Field label="Couleur icône"><ColorInput value={p.iconColor || '#9CA3AF'} onChange={v => update({ iconColor: v })} /></Field>
           <Field label="Bouton effacer"><Toggle value={!!p.showClearBtn} onChange={v => update({ showClearBtn: v })} /></Field>
+          <Field label={`Taille du texte (${p.fontSize || 14}px)`}><RangeInput value={p.fontSize || 14} min={8} max={24} onChange={v => update({ fontSize: v })} /></Field>
         </>
       )}
 
@@ -753,6 +758,7 @@ function ComponentProperties({ comp }) {
           <Field label="Fond cellule"><ColorInput value={p.cellBgColor || '#FFFFFF'} onChange={v => update({ cellBgColor: v })} /></Field>
           <Field label="Texte cellule"><ColorInput value={p.cellTextColor || '#1F2937'} onChange={v => update({ cellTextColor: v })} /></Field>
           <Field label="Couleur bordure"><ColorInput value={p.borderColor || '#E5E7EB'} onChange={v => update({ borderColor: v })} /></Field>
+          <Field label={`Taille du texte (${p.fontSize || 11}px)`}><RangeInput value={p.fontSize || 11} min={7} max={20} onChange={v => update({ fontSize: v })} /></Field>
         </>
       )}
 
@@ -1100,7 +1106,7 @@ function ComponentProperties({ comp }) {
           </select>
         </Field>
       )}
-      {'fontSize' in p && <Field label={`Taille (${p.fontSize}px)`}><RangeInput value={p.fontSize} onChange={v => update({ fontSize: v })} min={8} max={120} /></Field>}
+      {'fontSize' in p && !['searchbar','table','calendar','weekcalendar'].includes(comp.type) && <Field label={`Taille (${p.fontSize}px)`}><RangeInput value={p.fontSize} onChange={v => update({ fontSize: v })} min={8} max={120} /></Field>}
       {'fontWeight' in p && <Field label="Style"><SelectInput value={p.fontWeight} onChange={v => update({ fontWeight: v })} options={[{ value: 'normal', label: 'Normal' }, { value: 'semibold', label: 'Semi-gras' }, { value: 'bold', label: 'Gras' }]} /></Field>}
       {/* Text format: italic, underline, strikethrough */}
       {('fontStyle' in p || 'textDecoration' in p) && (

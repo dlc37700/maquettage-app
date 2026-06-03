@@ -202,10 +202,11 @@ function CalendarRenderer({ comp, isReadOnly }) {
   const textColor = p.textColor || '#1F2937';
   const br = p.borderRadius ?? 12;
   const fontFamily = `${p.fontFamily || 'Nunito'}, sans-serif`;
-  const headerFs = Math.max(10, Math.min(14, comp.position.height * 0.042));
-  const dayLabelFs = Math.max(7, Math.min(11, comp.position.width / 50));
-  const dayNumFs = Math.max(8, Math.min(13, comp.position.width / 40));
-  const eventFs = Math.max(6, Math.min(9, comp.position.width / 52));
+  const baseFs = p.fontSize || 11;
+  const headerFs = baseFs + 2;
+  const dayLabelFs = Math.max(6, baseFs - 1);
+  const dayNumFs = baseFs;
+  const eventFs = Math.max(5, baseFs - 3);
 
   const prevMonth = (e) => {
     e.stopPropagation();

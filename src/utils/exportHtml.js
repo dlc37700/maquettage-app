@@ -233,16 +233,18 @@ function compToHtml(comp) {
       for (let i = 0; i < firstDay; i++) cells.push(null);
       for (let d = 1; d <= daysInMonth; d++) cells.push(d);
       while (cells.length % 7 !== 0) cells.push(null);
-      const dayLabels = DAYS_FR.map(d => `<div style="text-align:center;font-size:9px;font-weight:700;color:#9CA3AF">${d}</div>`).join('');
+      const bfs = props.fontSize || 11;
+      const headerFs = bfs + 2, dayLabelFs = Math.max(6, bfs - 1), dayNumFs = bfs, eventFs = Math.max(5, bfs - 3);
+      const dayLabels = DAYS_FR.map(d => `<div style="text-align:center;font-size:${dayLabelFs}px;font-weight:700;color:#9CA3AF">${d}</div>`).join('');
       const dayCells = cells.map(d => {
         const ev = d ? events[`${year}-${month}-${d}`] : null;
         const isToday = d === now.getDate();
         const bg = isToday ? accent : 'transparent';
         const color = isToday ? 'white' : d ? tc : 'transparent';
-        const evHtml = ev ? `<div style="width:90%;background:${accent}33;border-radius:2px;font-size:7px;color:${accent};font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center">${escHtml(ev)}</div>` : '';
-        return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;aspect-ratio:1;background:${bg};border-radius:4px;overflow:hidden"><span style="font-size:10px;font-weight:${isToday?800:400};color:${color};line-height:1.1">${d||''}</span>${evHtml}</div>`;
+        const evHtml = ev ? `<div style="width:90%;background:${accent}33;border-radius:2px;font-size:${eventFs}px;color:${accent};font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center">${escHtml(ev)}</div>` : '';
+        return `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;aspect-ratio:1;background:${bg};border-radius:4px;overflow:hidden"><span style="font-size:${dayNumFs}px;font-weight:${isToday?800:400};color:${color};line-height:1.1">${d||''}</span>${evHtml}</div>`;
       }).join('');
-      return `<div${navOnclick} style="${base}background:${calBg};border-radius:${br}px;overflow:hidden;font-family:Nunito,sans-serif;display:flex;flex-direction:column${navOnclick ? ';cursor:pointer' : ''}"><div style="background:${hBg};padding:6px 10px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="color:white;font-weight:800;font-size:13px">${MONTHS_FR[month]} ${year}</span></div><div style="display:grid;grid-template-columns:repeat(7,1fr);padding:4px 6px 2px;flex-shrink:0">${dayLabels}</div><div style="flex:1;display:grid;grid-template-columns:repeat(7,1fr);padding:0 6px 4px;align-content:start;gap:1px">${dayCells}</div></div>`;
+      return `<div${navOnclick} style="${base}background:${calBg};border-radius:${br}px;overflow:hidden;font-family:Nunito,sans-serif;display:flex;flex-direction:column${navOnclick ? ';cursor:pointer' : ''}"><div style="background:${hBg};padding:6px 10px;display:flex;align-items:center;justify-content:center;flex-shrink:0"><span style="color:white;font-weight:800;font-size:${headerFs}px">${MONTHS_FR[month]} ${year}</span></div><div style="display:grid;grid-template-columns:repeat(7,1fr);padding:4px 6px 2px;flex-shrink:0">${dayLabels}</div><div style="flex:1;display:grid;grid-template-columns:repeat(7,1fr);padding:0 6px 4px;align-content:start;gap:1px">${dayCells}</div></div>`;
     }
 
     case 'table': {
