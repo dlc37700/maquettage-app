@@ -333,6 +333,13 @@ function compToHtml(comp) {
       return `<div${navOnclick} style="${base}${fwAnim}${navOnclick ? 'cursor:pointer;' : ''}"><svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">${fwSvg}</svg></div>`;
     }
 
+    case 'textwork': {
+      const twUid = `tw${Math.random().toString(36).slice(2)}`;
+      const twSvg = getFontworkSvg(props.text || 'Mon Texte', props.style || 'fill', props, twUid);
+      const twAnim = props.animationType ? `animation:maquetapp-${props.animationType} ${props.animationType === 'float' ? '2s ease-in-out' : props.animationType === 'pulse' ? '1.5s ease-in-out' : '3s linear'} infinite;transform-origin:center center;` : '';
+      return `<div${navOnclick} style="${base}${twAnim}${navOnclick ? 'cursor:pointer;' : ''}"><svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">${twSvg}</svg></div>`;
+    }
+
     case 'shape': {
       const svgInner = getShapeSvgInner(props.shape || 'circle', props.fillColor || '#6C63FF', props.strokeColor || 'transparent', props.strokeWidth ?? 0);
       const shapeText = props.text || '';

@@ -676,6 +676,21 @@ function FontworkRenderer({ comp }) {
   );
 }
 
+function TextworkRenderer({ comp }) {
+  const p = comp.props;
+  const uid = `tw${comp.id.replace(/[^a-zA-Z0-9]/g, '')}`;
+  const svgContent = getFontworkSvg(p.text || 'Mon Texte', p.style || 'fill', p, uid);
+  const animType = p.animationType || '';
+  const animStyle = animType ? { animation: `maquetapp-${animType} ${animType === 'float' ? '2s ease-in-out' : animType === 'pulse' ? '1.5s ease-in-out' : '3s linear'} infinite`, transformOrigin: 'center center' } : {};
+  return (
+    <div style={{ width: '100%', height: '100%', ...animStyle }}>
+      <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"
+        style={{ display: 'block', overflow: 'visible' }}
+        dangerouslySetInnerHTML={{ __html: svgContent }} />
+    </div>
+  );
+}
+
 function ChartRenderer({ comp }) {
   const p = comp.props;
   const uid = `c${comp.id.replace(/[^a-zA-Z0-9]/g, '')}`;
@@ -975,6 +990,8 @@ function ComponentRenderer({ comp, isReadOnly }) {
 
     case 'fontwork':
       return <FontworkRenderer comp={comp} />;
+    case 'textwork':
+      return <TextworkRenderer comp={comp} />;
     case 'chart':
       return <ChartRenderer comp={comp} />;
 
