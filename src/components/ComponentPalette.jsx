@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { removeBg, blobToDataUrl, loadImageForDisplay } from '../utils/aiImageUtils';
+import { removeBg, waitForImage, imageUrlToDataUrl } from '../utils/aiImageUtils';
 import { COMPONENT_DEFINITIONS, BUTTON_PRESETS, AVATAR_PRESETS } from '../data/componentDefinitions';
 import { useProject } from '../hooks/useProject';
 import { useImageLibrary } from '../hooks/useImageLibrary';
@@ -49,41 +49,36 @@ export default function ComponentPalette({ mobile = false }) {
     setAiElapsed(0);
     clearInterval(aiTimerRef.current);
     aiTimerRef.current = setInterval(() => setAiElapsed(e => e + 1), 1000);
-    for (let attempt = 0; attempt < 3; attempt++) {
-      if (aiCancelledRef.current) break;
-      if (attempt > 0) { await new Promise(r => setTimeout(r, 4000)); if (aiCancelledRef.current) break; }
-      const seed = Math.floor(Math.random() * 99999);
-      const enhanced = `${subject}, flat design illustration, white background, centered, colorful, clean`;
-      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhanced)}?width=512&height=512&nologo=true&seed=${seed}`;
-      try {
-        let finalDataUrl;
-        try {
-          const ctrl = new AbortController();
-          const ft = setTimeout(() => ctrl.abort(), 60000);
-          const res = await fetch(url, { signal: ctrl.signal });
-          clearTimeout(ft);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const blob = await res.blob();
-          const dataUrl = await blobToDataUrl(blob);
-          if (aiRemoveBgOn) { setAiStep('removing'); if (aiCancelledRef.current) return; finalDataUrl = await removeBg(dataUrl); }
-          else finalDataUrl = dataUrl;
-        } catch (fe) {
-          if (fe.name === 'AbortError') throw new Error('timeout');
-          if (fe.message?.startsWith('HTTP')) throw fe;
-          await loadImageForDisplay(url, 60000);
-          finalDataUrl = url;
+
+    const seed = Math.floor(Math.random() * 99999);
+    const enhanced = `${subject}, flat design illustration, white background, centered, colorful, clean`;
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhanced)}?width=512&height=512&nologo=true&seed=${seed}`;
+
+    try {
+      // Use <img> tag — no CORS restriction for display, works even without CORS headers
+      await waitForImage(url, 90000);
+      if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
+
+      let finalResult = url;
+      if (aiRemoveBgOn) {
+        setAiStep('removing');
+        if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
+        // Try to get a dataUrl for canvas processing (needs CORS headers from server)
+        const dataUrl = await imageUrlToDataUrl(url);
+        if (dataUrl) {
+          finalResult = await removeBg(dataUrl);
         }
-        if (aiCancelledRef.current) return;
-        setAiResult(finalDataUrl);
-        setAiStep('done');
-        clearInterval(aiTimerRef.current);
-        return;
-      } catch (e) {
-        if (e.message === 'timeout' || aiCancelledRef.current) break;
+        // If imageUrlToDataUrl returned null (no CORS), we keep the URL as-is
       }
+
+      if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
+      setAiResult(finalResult);
+      setAiStep('done');
+    } catch {
+      if (!aiCancelledRef.current) setAiStep('error');
+    } finally {
+      clearInterval(aiTimerRef.current);
     }
-    if (!aiCancelledRef.current) setAiStep('error');
-    clearInterval(aiTimerRef.current);
   };
 
   const [openWebImages, setOpenWebImages] = useState(true);

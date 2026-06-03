@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useProject } from '../hooks/useProject';
 import { useImageLibrary } from '../hooks/useImageLibrary';
-import { removeBg, blobToDataUrl, loadImageForDisplay } from '../utils/aiImageUtils';
+import { removeBg, waitForImage, imageUrlToDataUrl } from '../utils/aiImageUtils';
 
 const ANIM_TYPES = [
   { id: '',        label: '— Aucune',        icon: '○' },
@@ -47,66 +47,40 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
     clearInterval(timerRef.current);
     timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
 
-    const MAX_ATTEMPTS = 3;
+    attemptRef.current = 1;
+    const seed = Math.floor(Math.random() * 99999);
+    const enhanced = animType === 'spin3d'
+      ? `3D render of ${subject}, centered object, white background, studio lighting, high quality`
+      : `${subject}, flat design illustration, white background, centered, colorful, clean`;
+    const url = urlOverride || `https://image.pollinations.ai/prompt/${encodeURIComponent(enhanced)}?width=512&height=512&nologo=true&seed=${seed}`;
+    lastUrlRef.current = url;
 
-    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-      if (cancelledRef.current) break;
-      attemptRef.current = attempt + 1;
+    try {
+      // Use <img> tag — no CORS restriction for display, works even without CORS headers
+      await waitForImage(url, 90000);
+      if (cancelledRef.current) { clearInterval(timerRef.current); return; }
 
-      if (attempt > 0) {
-        await new Promise(r => setTimeout(r, 4000));
-        if (cancelledRef.current) break;
-      }
-
-      const seed = Math.floor(Math.random() * 99999);
-      const enhanced = animType === 'spin3d'
-        ? `3D render of ${subject}, centered object, white background, studio lighting, high quality`
-        : `${subject}, flat design illustration, white background, centered, colorful, clean`;
-      const url = urlOverride || `https://image.pollinations.ai/prompt/${encodeURIComponent(enhanced)}?width=512&height=512&nologo=true&seed=${seed}`;
-      lastUrlRef.current = url;
-
-      try {
-        let finalDataUrl;
-
-        try {
-          const ctrl = new AbortController();
-          const fetchTimer = setTimeout(() => ctrl.abort(), 60000);
-          const res = await fetch(url, { signal: ctrl.signal });
-          clearTimeout(fetchTimer);
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          const blob = await res.blob();
-          const dataUrl = await blobToDataUrl(blob);
-
-          if (removeBgOn) {
-            setStep('removing');
-            if (cancelledRef.current) return;
-            finalDataUrl = await removeBg(dataUrl);
-          } else {
-            finalDataUrl = dataUrl;
-          }
-        } catch (fetchErr) {
-          if (fetchErr.name === 'AbortError') throw new Error('timeout');
-          if (fetchErr.message && fetchErr.message.startsWith('HTTP')) throw fetchErr;
-          // TypeError (CORS bloqué) → fallback display-only via <img>
-          await loadImageForDisplay(url, 60000);
-          finalDataUrl = url;
+      let finalDataUrl = url;
+      if (removeBgOn) {
+        setStep('removing');
+        if (cancelledRef.current) { clearInterval(timerRef.current); return; }
+        const dataUrl = await imageUrlToDataUrl(url);
+        if (dataUrl) {
+          finalDataUrl = await removeBg(dataUrl);
         }
-
-        if (cancelledRef.current) return;
-        setResultDataUrl(finalDataUrl);
-        setStep('done');
-        clearInterval(timerRef.current);
-        return;
-      } catch (e) {
-        if (e.message === 'timeout' || cancelledRef.current) break;
       }
-    }
 
-    if (!cancelledRef.current) {
-      setStep('error');
-      setError("Le service IA est temporairement indisponible. Réessayez dans quelques instants.");
+      if (cancelledRef.current) { clearInterval(timerRef.current); return; }
+      setResultDataUrl(finalDataUrl);
+      setStep('done');
+    } catch {
+      if (!cancelledRef.current) {
+        setStep('error');
+        setError("Le service IA est temporairement indisponible. Réessayez dans quelques instants.");
+      }
+    } finally {
+      clearInterval(timerRef.current);
     }
-    clearInterval(timerRef.current);
   };
 
   const cancel = () => {

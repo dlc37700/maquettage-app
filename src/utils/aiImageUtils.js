@@ -78,13 +78,45 @@ export function blobToDataUrl(blob) {
   });
 }
 
-export function loadImageForDisplay(url, timeoutMs) {
+// Wait for an external image URL to load (no CORS restriction for <img> display).
+// Returns the url on success, throws on timeout.
+export function waitForImage(url, timeoutMs = 90000) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('timeout')), timeoutMs);
     const img = new Image();
-    img.referrerPolicy = 'no-referrer';
-    img.onload = () => { clearTimeout(timer); resolve(); };
+    img.onload = () => { clearTimeout(timer); resolve(url); };
     img.onerror = () => { clearTimeout(timer); reject(new Error('load_error')); };
     img.src = url;
   });
+}
+
+// Try to load a cross-origin image into a canvas to get a dataUrl.
+// Requires the server to send Access-Control-Allow-Origin headers.
+// Returns dataUrl on success, null on CORS/canvas error.
+export function imageUrlToDataUrl(url, timeoutMs = 30000) {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(null), timeoutMs);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      clearTimeout(timer);
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth || 512;
+        canvas.height = img.naturalHeight || 512;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      } catch {
+        resolve(null); // canvas tainted (no CORS headers on server)
+      }
+    };
+    img.onerror = () => { clearTimeout(timer); resolve(null); };
+    img.src = url + (url.includes('?') ? '&' : '?') + '_cb=' + Date.now();
+  });
+}
+
+// Legacy alias kept for DrawingRenderer compatibility
+export function loadImageForDisplay(url, timeoutMs) {
+  return waitForImage(url, timeoutMs);
 }
