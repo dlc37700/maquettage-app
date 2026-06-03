@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { removeBg, blobToDataUrl, loadImageForDisplay } from '../utils/aiImageUtils';
 import { COMPONENT_DEFINITIONS, BUTTON_PRESETS, AVATAR_PRESETS } from '../data/componentDefinitions';
 import { useProject } from '../hooks/useProject';
 import { useImageLibrary } from '../hooks/useImageLibrary';
@@ -28,6 +29,63 @@ export default function ComponentPalette({ mobile = false }) {
   const [openCategories, setOpenCategories] = useState({});
   const [openAvatars, setOpenAvatars] = useState(true);
   const [openImages, setOpenImages] = useState(true);
+  const [openAiImages, setOpenAiImages] = useState(true);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiStep, setAiStep] = useState('idle'); // idle | fetching | removing | done | error
+  const [aiResult, setAiResult] = useState('');
+  const [aiElapsed, setAiElapsed] = useState(0);
+  const [aiRemoveBgOn, setAiRemoveBgOn] = useState(true);
+  const aiCancelledRef = useRef(false);
+  const aiTimerRef = useRef(null);
+
+  useEffect(() => () => { aiCancelledRef.current = true; clearInterval(aiTimerRef.current); }, []);
+
+  const generateAiImage = async () => {
+    const subject = aiPrompt.trim();
+    if (!subject || aiStep === 'fetching' || aiStep === 'removing') return;
+    aiCancelledRef.current = false;
+    setAiStep('fetching');
+    setAiResult('');
+    setAiElapsed(0);
+    clearInterval(aiTimerRef.current);
+    aiTimerRef.current = setInterval(() => setAiElapsed(e => e + 1), 1000);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (aiCancelledRef.current) break;
+      if (attempt > 0) { await new Promise(r => setTimeout(r, 4000)); if (aiCancelledRef.current) break; }
+      const seed = Math.floor(Math.random() * 99999);
+      const enhanced = `${subject}, flat design illustration, white background, centered, colorful, clean`;
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhanced)}?width=512&height=512&nologo=true&seed=${seed}`;
+      try {
+        let finalDataUrl;
+        try {
+          const ctrl = new AbortController();
+          const ft = setTimeout(() => ctrl.abort(), 60000);
+          const res = await fetch(url, { signal: ctrl.signal });
+          clearTimeout(ft);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const blob = await res.blob();
+          const dataUrl = await blobToDataUrl(blob);
+          if (aiRemoveBgOn) { setAiStep('removing'); if (aiCancelledRef.current) return; finalDataUrl = await removeBg(dataUrl); }
+          else finalDataUrl = dataUrl;
+        } catch (fe) {
+          if (fe.name === 'AbortError') throw new Error('timeout');
+          if (fe.message?.startsWith('HTTP')) throw fe;
+          await loadImageForDisplay(url, 60000);
+          finalDataUrl = url;
+        }
+        if (aiCancelledRef.current) return;
+        setAiResult(finalDataUrl);
+        setAiStep('done');
+        clearInterval(aiTimerRef.current);
+        return;
+      } catch (e) {
+        if (e.message === 'timeout' || aiCancelledRef.current) break;
+      }
+    }
+    if (!aiCancelledRef.current) setAiStep('error');
+    clearInterval(aiTimerRef.current);
+  };
+
   const [openWebImages, setOpenWebImages] = useState(true);
   const [webQuery, setWebQuery] = useState('');
   const [webFilter, setWebFilter] = useState('all');
@@ -212,6 +270,73 @@ export default function ComponentPalette({ mobile = false }) {
                     >×</button>
                   </div>
                 ))}
+              </div>
+            )}
+            <div style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.1)', margin: '8px 0 6px' }} />
+          </div>
+        )}
+
+        {/* AI image generation */}
+        {!search && (
+          <div style={{ marginBottom: 10 }}>
+            <button onClick={() => setOpenAiImages(v => !v)} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', color: '#A78BFA', fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', padding: '4px 4px', marginBottom: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span>🤖 IA Images</span>
+              <span style={{ fontSize: 9 }}>{openAiImages ? '▲' : '▼'}</span>
+            </button>
+            {openAiImages && (
+              <div>
+                <div style={{ display: 'flex', gap: 4, marginBottom: 5 }}>
+                  <input
+                    value={aiPrompt}
+                    onChange={e => setAiPrompt(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && generateAiImage()}
+                    placeholder="Décris une image…"
+                    style={{ flex: 1, padding: '5px 8px', borderRadius: 7, border: 'none', backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', fontSize: 11, fontFamily: 'Nunito, sans-serif', outline: 'none' }}
+                  />
+                  <button
+                    onClick={aiStep === 'fetching' || aiStep === 'removing'
+                      ? () => { aiCancelledRef.current = true; clearInterval(aiTimerRef.current); setAiStep('idle'); }
+                      : generateAiImage}
+                    style={{ padding: '5px 8px', borderRadius: 7, border: 'none', backgroundColor: aiStep === 'fetching' || aiStep === 'removing' ? '#EF4444' : '#6C63FF', color: 'white', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: 'Nunito, sans-serif' }}
+                  >
+                    {aiStep === 'fetching' || aiStep === 'removing' ? '✕' : '✨'}
+                  </button>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  <div onClick={() => setAiRemoveBgOn(v => !v)} style={{ width: 32, height: 18, backgroundColor: aiRemoveBgOn ? '#6C63FF' : '#6B7280', borderRadius: 9, position: 'relative', cursor: 'pointer', flexShrink: 0 }}>
+                    <div style={{ position: 'absolute', top: 2, left: aiRemoveBgOn ? 15 : 2, width: 14, height: 14, backgroundColor: 'white', borderRadius: '50%', transition: 'left 0.15s' }} />
+                  </div>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)', fontFamily: 'Nunito, sans-serif' }}>Supprimer fond</span>
+                </div>
+                {(aiStep === 'fetching' || aiStep === 'removing') && (
+                  <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontFamily: 'Nunito, sans-serif', textAlign: 'center', padding: '8px 0' }}>
+                    {aiStep === 'removing' ? '✂️ Suppression du fond…' : `🎨 Génération… ${aiElapsed}s`}
+                  </div>
+                )}
+                {aiStep === 'error' && (
+                  <div style={{ color: '#F87171', fontSize: 10, fontFamily: 'Nunito, sans-serif', marginBottom: 4 }}>Service IA indisponible. Réessayez.</div>
+                )}
+                {aiStep === 'done' && aiResult && (
+                  <div>
+                    <div
+                      className="palette-item"
+                      draggable
+                      onDragStart={e => {
+                        e.dataTransfer.setData('componentType', 'image');
+                        e.dataTransfer.setData('overrideProps', JSON.stringify({ frameless: true, imageData: aiResult }));
+                        e.dataTransfer.effectAllowed = 'copy';
+                      }}
+                      onClick={() => addComponent('image', { frameless: true, imageData: aiResult })}
+                      style={{ borderRadius: 8, overflow: 'hidden', cursor: 'grab', border: '2px solid #6C63FF', background: 'repeating-conic-gradient(#555 0% 25%, #333 0% 50%) 0 0 / 10px 10px', marginBottom: 4 }}
+                    >
+                      <img src={aiResult} alt="IA" style={{ width: '100%', height: 90, objectFit: 'contain', display: 'block' }} />
+                    </div>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <button onClick={() => { setAiStep('idle'); setAiResult(''); }} style={{ flex: 1, padding: '4px', borderRadius: 6, border: 'none', backgroundColor: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.7)', fontSize: 10, cursor: 'pointer', fontFamily: 'Nunito, sans-serif' }}>Effacer</button>
+                      <button onClick={generateAiImage} style={{ flex: 1, padding: '4px', borderRadius: 6, border: 'none', backgroundColor: 'rgba(108,99,255,0.4)', color: 'white', fontSize: 10, cursor: 'pointer', fontFamily: 'Nunito, sans-serif', fontWeight: 700 }}>🔄 Regénérer</button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
             <div style={{ height: 1, backgroundColor: 'rgba(255,255,255,0.1)', margin: '8px 0 6px' }} />

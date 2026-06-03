@@ -48,7 +48,7 @@ export const COMPONENT_DEFINITIONS = [
     label: 'Champ texte',
     icon: '✏️',
     category: 'Bases',
-    defaultProps: { placeholder: 'Saisir ici…', label: 'Label', bgColor: '#F9FAFB', textColor: '#6B7280', fontFamily: 'Nunito', borderRadius: 8, opacity: 1, navigateTo: '' },
+    defaultProps: { placeholder: 'Saisir ici…', label: 'Label', bgColor: '#F9FAFB', textColor: '#6B7280', fontFamily: 'Nunito', borderRadius: 8, fontSize: 14, labelFontSize: 12, opacity: 1, navigateTo: '' },
     defaultSize: { width: 270, height: 52 },
     tooltip: 'Un champ de saisie avec placeholder',
   },

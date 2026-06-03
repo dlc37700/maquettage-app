@@ -1057,6 +1057,12 @@ function ComponentProperties({ comp }) {
       )}
       {'title' in p && <Field label="Titre"><TextInput value={p.title} onChange={v => update({ title: v })} /></Field>}
       {'placeholder' in p && <Field label="Placeholder"><TextInput value={p.placeholder} onChange={v => update({ placeholder: v })} /></Field>}
+      {comp.type === 'input' && 'labelFontSize' in p && (
+        <Field label={`Taille label (${p.labelFontSize || 12}px)`}><RangeInput value={p.labelFontSize || 12} min={8} max={28} onChange={v => update({ labelFontSize: v })} /></Field>
+      )}
+      {comp.type === 'input' && 'fontSize' in p && (
+        <Field label={`Taille texte (${p.fontSize || 14}px)`}><RangeInput value={p.fontSize || 14} min={8} max={28} onChange={v => update({ fontSize: v })} /></Field>
+      )}
       {(comp.type === 'button' || comp.type === 'icon') && 'bgColor' in p && (
         <Field label="Fond transparent">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

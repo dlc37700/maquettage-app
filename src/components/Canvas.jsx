@@ -724,8 +724,8 @@ function ComponentRenderer({ comp, isReadOnly }) {
     case 'input':
       return (
         <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 3 }}>
-          {props.label && <div style={{ fontSize: 11, color: '#6B7280', fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif`, fontWeight: 600 }}>{props.label}</div>}
-          <div style={{ flex: 1, ...getBg(props.bgColor, props.bgGradient), border: '1.5px solid #D1D5DB', borderRadius: props.borderRadius, color: props.textColor, fontSize: 14, padding: '0 12px', display: 'flex', alignItems: 'center', fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif` }}>{props.placeholder}</div>
+          {props.label && <div style={{ fontSize: props.labelFontSize || 12, color: '#6B7280', fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif`, fontWeight: 600 }}>{props.label}</div>}
+          <div style={{ flex: 1, ...getBg(props.bgColor, props.bgGradient), border: '1.5px solid #D1D5DB', borderRadius: props.borderRadius, color: props.textColor, fontSize: props.fontSize || 14, padding: '0 12px', display: 'flex', alignItems: 'center', fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif` }}>{props.placeholder}</div>
         </div>
       );
 

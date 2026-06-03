@@ -55,8 +55,8 @@ function compToHtml(comp) {
 
     case 'input':
       return `<div style="${base}display:flex;flex-direction:column;gap:4px">
-  <label style="font-size:12px;color:#6B7280;font-family:${props.fontFamily || 'Nunito'},sans-serif;font-weight:600">${escHtml(props.label)}</label>
-  <input type="text" placeholder="${escHtml(props.placeholder)}" style="flex:1;${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};border-radius:${props.borderRadius || 8}px;border:1.5px solid #E5E7EB;padding:0 12px;font-size:14px;font-family:${props.fontFamily || 'Nunito'},sans-serif;outline:none;width:100%;box-sizing:border-box">
+  <label style="font-size:${props.labelFontSize || 12}px;color:#6B7280;font-family:${props.fontFamily || 'Nunito'},sans-serif;font-weight:600">${escHtml(props.label)}</label>
+  <input type="text" placeholder="${escHtml(props.placeholder)}" style="flex:1;${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};border-radius:${props.borderRadius || 8}px;border:1.5px solid #E5E7EB;padding:0 12px;font-size:${props.fontSize || 14}px;font-family:${props.fontFamily || 'Nunito'},sans-serif;outline:none;width:100%;box-sizing:border-box">
 </div>`;
 
     case 'searchbar': {
