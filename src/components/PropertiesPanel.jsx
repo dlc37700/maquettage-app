@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useProject, useActiveScreen } from '../hooks/useProject';
 import { COMPONENT_DEFINITIONS, THEMES, FONT_OPTIONS } from '../data/componentDefinitions';
 // ICON_OPTIONS removed — now using IconPicker with iconLibraries
@@ -6,6 +6,8 @@ import IconPicker from './IconPicker';
 import { SHAPES_CATEGORIES, getShapeSvgInner } from '../data/shapes';
 import { getFontworkSvg, FONTWORK_STYLES } from '../data/fontwork';
 import { CHART_TYPES, DEFAULT_CHART_DATA_STR } from '../data/chartHelper';
+import { useImageLibrary } from '../hooks/useImageLibrary';
+import { removeBg, blobToDataUrl } from '../utils/aiImageUtils';
 
 function Field({ label, children }) {
   return <div style={{ marginBottom: 12 }}><div style={{ color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>{label}</div>{children}</div>;
@@ -702,6 +704,190 @@ function TextworkProperties({ comp }) {
   );
 }
 
+function AiImageProperties({ comp }) {
+  const { dispatch, state } = useProject();
+  const screen = useActiveScreen();
+  const { save: saveToLibrary, isFull } = useImageLibrary();
+  if (!comp || !screen) return null;
+  const update = (props) => dispatch({ type: 'UPDATE_COMPONENT_PROPS', id: comp.id, props });
+  const p = comp.props;
+  const pos = comp.position;
+  const maxZ = Math.max(1, ...screen.components.map(c => c.zIndex || 1));
+
+  const [step, setStep] = useState('idle'); // idle | fetching | removing | done | error
+  const [elapsed, setElapsed] = useState(0);
+  const [removeBgOn, setRemoveBgOn] = useState(false);
+  const cancelledRef = useRef(false);
+  const timerRef = useRef(null);
+
+  useEffect(() => () => clearInterval(timerRef.current), []);
+
+  const generate = async () => {
+    const subject = (p.prompt || '').trim();
+    if (!subject || step === 'fetching' || step === 'removing') return;
+    cancelledRef.current = false;
+    setStep('fetching');
+    setElapsed(0);
+    clearInterval(timerRef.current);
+    timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (cancelledRef.current) break;
+      if (attempt > 0) { await new Promise(r => setTimeout(r, 4000)); if (cancelledRef.current) break; }
+      const seed = Math.floor(Math.random() * 99999);
+      const enhanced = `${subject}, flat design illustration, white background, centered, colorful, clean`;
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhanced)}?width=512&height=512&nologo=true&seed=${seed}`;
+      try {
+        let finalDataUrl;
+        try {
+          const ctrl = new AbortController();
+          const ft = setTimeout(() => ctrl.abort(), 60000);
+          const res = await fetch(url, { signal: ctrl.signal });
+          clearTimeout(ft);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const blob = await res.blob();
+          const dataUrl = await blobToDataUrl(blob);
+          if (removeBgOn) { setStep('removing'); if (cancelledRef.current) { clearInterval(timerRef.current); return; } finalDataUrl = await removeBg(dataUrl); }
+          else finalDataUrl = dataUrl;
+        } catch (fe) {
+          if (fe.name === 'AbortError') throw new Error('timeout');
+          if (fe.message?.startsWith('HTTP')) throw fe;
+          finalDataUrl = url;
+        }
+        if (cancelledRef.current) { clearInterval(timerRef.current); return; }
+        update({ imageData: finalDataUrl });
+        setStep('done');
+        clearInterval(timerRef.current);
+        return;
+      } catch (e) {
+        if (e.message === 'timeout' || cancelledRef.current) break;
+      }
+    }
+    clearInterval(timerRef.current);
+    if (!cancelledRef.current) setStep('error');
+  };
+
+  const cancel = () => {
+    cancelledRef.current = true;
+    clearInterval(timerRef.current);
+    setStep('idle');
+  };
+
+  const saveToLib = () => {
+    if (!p.imageData) return;
+    if (isFull) { alert('Bibliothèque pleine (20 images max). Supprimez une image d\'abord.'); return; }
+    saveToLibrary(p.imageData, p.prompt || 'IA image', { source: 'aiimage' });
+  };
+
+  const busy = step === 'fetching' || step === 'removing';
+
+  return (
+    <div>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        <button onClick={() => dispatch({ type: 'DUPLICATE_COMPONENT', id: comp.id })} style={aBtnStyle('#EDE9FE', '#6C63FF')}>📋 Dupliquer</button>
+        <button onClick={() => dispatch({ type: 'DELETE_COMPONENT', id: comp.id })} style={aBtnStyle('#FEE2E2', '#DC2626')}>🗑️ Supprimer</button>
+      </div>
+
+      <SectionTitle>Position & Taille</SectionTitle>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
+        <Field label="X (px)"><NumberInput value={Math.round(pos.x)} onChange={v => dispatch({ type: 'COMMIT_MOVE', id: comp.id, x: v, y: pos.y })} max={390} /></Field>
+        <Field label="Y (px)"><NumberInput value={Math.round(pos.y)} onChange={v => dispatch({ type: 'COMMIT_MOVE', id: comp.id, x: pos.x, y: v })} max={844} /></Field>
+        <Field label="Largeur"><NumberInput value={Math.round(pos.width)} onChange={v => dispatch({ type: 'COMMIT_RESIZE', id: comp.id, x: pos.x, y: pos.y, width: v, height: pos.height })} min={10} max={390} /></Field>
+        <Field label="Hauteur"><NumberInput value={Math.round(pos.height)} onChange={v => dispatch({ type: 'COMMIT_RESIZE', id: comp.id, x: pos.x, y: pos.y, width: pos.width, height: v })} min={10} max={844} /></Field>
+      </div>
+
+      <SectionTitle>Génération IA</SectionTitle>
+      <Field label="Description">
+        <textarea
+          value={p.prompt || ''}
+          onChange={e => update({ prompt: e.target.value })}
+          rows={3}
+          placeholder="Ex: un chat astronaute dans l'espace…"
+          style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1.5px solid #E5E7EB', fontSize: 12, fontFamily: 'Nunito, sans-serif', outline: 'none', color: '#1F2937', backgroundColor: '#F9FAFB', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.4 }}
+        />
+      </Field>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <Toggle value={removeBgOn} onChange={setRemoveBgOn} />
+        <span style={{ fontSize: 11, color: '#6B7280', fontFamily: 'Nunito, sans-serif' }}>Supprimer le fond</span>
+      </div>
+
+      <button
+        onClick={busy ? cancel : generate}
+        disabled={!busy && !(p.prompt || '').trim()}
+        style={{ width: '100%', padding: '9px', borderRadius: 8, border: 'none', backgroundColor: busy ? '#EF4444' : '#6C63FF', color: 'white', fontSize: 13, fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', marginBottom: 8, opacity: (!busy && !(p.prompt || '').trim()) ? 0.5 : 1 }}
+      >
+        {busy ? `✕ Annuler${step === 'removing' ? ' (suppression fond…)' : ` (${elapsed}s…)`}` : '✨ Générer'}
+      </button>
+
+      {step === 'error' && (
+        <div style={{ fontSize: 11, color: '#EF4444', fontFamily: 'Nunito, sans-serif', marginBottom: 8, padding: '6px 10px', backgroundColor: '#FEF2F2', borderRadius: 6 }}>
+          Échec de génération. Vérifiez la connexion et réessayez.
+        </div>
+      )}
+
+      {p.imageData && (
+        <>
+          <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', marginBottom: 6, backgroundColor: '#F5F3FF' }}>
+            <img src={p.imageData} alt="" style={{ width: '100%', maxHeight: 140, objectFit: 'contain', display: 'block' }} />
+          </div>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+            <button onClick={generate} disabled={busy} style={{ flex: 1, padding: '7px 4px', borderRadius: 8, border: 'none', backgroundColor: '#EDE9FE', color: '#6C63FF', fontSize: 12, fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer' }}>🔄 Regénérer</button>
+            <button onClick={saveToLib} style={{ flex: 1, padding: '7px 4px', borderRadius: 8, border: 'none', backgroundColor: '#D1FAE5', color: '#065F46', fontSize: 12, fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer' }}>💾 Mes images</button>
+            <button onClick={() => update({ imageData: '' })} style={{ flex: 1, padding: '7px 4px', borderRadius: 8, border: 'none', backgroundColor: '#FEE2E2', color: '#DC2626', fontSize: 12, fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer' }}>🗑️ Effacer</button>
+          </div>
+        </>
+      )}
+
+      <SectionTitle>Apparence</SectionTitle>
+      <Field label="Image flottante (sans fond)">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Toggle value={!!p.frameless} onChange={v => update({ frameless: v })} />
+          <span style={{ fontSize: 11, color: '#6B7280', fontFamily: 'Nunito, sans-serif', lineHeight: 1.3 }}>
+            {p.frameless ? 'Image flottante sans découpe' : 'Image avec cadre'}
+          </span>
+        </div>
+      </Field>
+
+      <SectionTitle>Animation</SectionTitle>
+      <Field label="Type">
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          {[
+            { id: '', label: 'Aucune' },
+            { id: 'spin3d', label: '🔄 3D' },
+            { id: 'spinz', label: '🌀 Z' },
+            { id: 'float', label: '🕊️ Float' },
+            { id: 'pulse', label: '💫 Pulse' },
+          ].map(a => (
+            <button key={a.id} onClick={() => update({ animationType: a.id })}
+              style={{ padding: '4px 8px', borderRadius: 6, fontSize: 11, fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${(p.animationType || '') === a.id ? '#6C63FF' : '#E5E7EB'}`, backgroundColor: (p.animationType || '') === a.id ? '#EDE9FE' : '#F9FAFB', color: (p.animationType || '') === a.id ? '#6C63FF' : '#6B7280' }}>
+              {a.label}
+            </button>
+          ))}
+        </div>
+      </Field>
+
+      <Field label={`Opacité (${Math.round((p.opacity ?? 1) * 100)}%)`}>
+        <RangeInput value={Math.round((p.opacity ?? 1) * 100)} onChange={v => update({ opacity: v / 100 })} />
+      </Field>
+
+      <SectionTitle>Ordre</SectionTitle>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+        <button onClick={() => dispatch({ type: 'SET_Z_INDEX', id: comp.id, zIndex: maxZ + 1 })} style={aBtnStyle('#EDE9FE', '#6C63FF')}>⬆️ Devant</button>
+        <button onClick={() => dispatch({ type: 'SET_Z_INDEX', id: comp.id, zIndex: Math.max(0, (comp.zIndex || 1) - 1) })} style={aBtnStyle('#F3F4F6', '#374151')}>⬇️ Derrière</button>
+      </div>
+
+      <SectionTitle>Navigation</SectionTitle>
+      <Field label="Lien vers écran">
+        <select value={p.navigateTo || ''} onChange={e => update({ navigateTo: e.target.value })}
+          style={{ width: '100%', padding: '7px 10px', borderRadius: 8, border: '1.5px solid #E5E7EB', fontSize: 13, fontFamily: 'Nunito, sans-serif', outline: 'none', color: '#1F2937', backgroundColor: '#F9FAFB', cursor: 'pointer' }}>
+          <option value="">— Aucune navigation —</option>
+          {state.screens.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+      </Field>
+    </div>
+  );
+}
+
 function ComponentProperties({ comp }) {
   const { dispatch, state } = useProject();
   const screen = useActiveScreen();
@@ -710,6 +896,7 @@ function ComponentProperties({ comp }) {
   if (comp.type === 'fontwork') return <FontworkProperties comp={comp} />;
   if (comp.type === 'textwork') return <TextworkProperties comp={comp} />;
   if (comp.type === 'chart') return <ChartProperties comp={comp} />;
+  if (comp.type === 'aiimage') return <AiImageProperties comp={comp} />;
   const update = (props) => dispatch({ type: 'UPDATE_COMPONENT_PROPS', id: comp.id, props });
   const p = comp.props, pos = comp.position;
   const maxZ = Math.max(1, ...screen.components.map(c => c.zIndex || 1));

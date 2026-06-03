@@ -691,6 +691,26 @@ function TextworkRenderer({ comp }) {
   );
 }
 
+function AiImageRenderer({ comp }) {
+  const p = comp.props;
+  const animType = p.animationType || '';
+  const animStyle = animType ? { animation: `maquetapp-${animType} ${animType === 'float' ? '2s ease-in-out' : animType === 'pulse' ? '1.5s ease-in-out' : '3s linear'} infinite`, transformOrigin: 'center center' } : {};
+  if (!p.imageData) {
+    return (
+      <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backgroundColor: '#F5F3FF', border: '2px dashed #A78BFA', borderRadius: 8, gap: 6, userSelect: 'none' }}>
+        <span style={{ fontSize: 28 }}>🤖</span>
+        <span style={{ color: '#6C63FF', fontSize: 11, fontFamily: 'Nunito, sans-serif', fontWeight: 700 }}>Génération IA</span>
+        {p.prompt && <span style={{ color: '#A78BFA', fontSize: 9, fontFamily: 'Nunito, sans-serif', textAlign: 'center', padding: '0 8px', lineHeight: 1.3 }}>{p.prompt.substring(0, 50)}{p.prompt.length > 50 ? '…' : ''}</span>}
+      </div>
+    );
+  }
+  return (
+    <div style={{ width: '100%', height: '100%', ...animStyle }}>
+      <img src={p.imageData} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+    </div>
+  );
+}
+
 function ChartRenderer({ comp }) {
   const p = comp.props;
   const uid = `c${comp.id.replace(/[^a-zA-Z0-9]/g, '')}`;
@@ -994,6 +1014,8 @@ function ComponentRenderer({ comp, isReadOnly }) {
       return <TextworkRenderer comp={comp} />;
     case 'chart':
       return <ChartRenderer comp={comp} />;
+    case 'aiimage':
+      return <AiImageRenderer comp={comp} />;
 
     case 'line': {
       const w = pos.width;

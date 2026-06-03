@@ -340,6 +340,14 @@ function compToHtml(comp) {
       return `<div${navOnclick} style="${base}${twAnim}${navOnclick ? 'cursor:pointer;' : ''}"><svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" style="display:block;overflow:visible">${twSvg}</svg></div>`;
     }
 
+    case 'aiimage': {
+      if (!props.imageData) {
+        return `<div${navOnclick} style="${base}display:flex;flex-direction:column;align-items:center;justify-content:center;background-color:#F5F3FF;border:2px dashed #A78BFA;border-radius:8px;gap:6px"><span style="font-size:28px">🤖</span><span style="color:#6C63FF;font-size:11px;font-family:Nunito,sans-serif;font-weight:700">Génération IA</span></div>`;
+      }
+      const aiAnim = props.animationType ? `animation:maquetapp-${props.animationType} ${props.animationType === 'float' ? '2s ease-in-out' : props.animationType === 'pulse' ? '1.5s ease-in-out' : '3s linear'} infinite;transform-origin:center center;` : '';
+      return `<div${navOnclick} style="${base}${aiAnim}${navOnclick ? 'cursor:pointer;' : ''}"><img src="${props.imageData}" alt="" style="width:100%;height:100%;object-fit:contain;display:block" /></div>`;
+    }
+
     case 'shape': {
       const svgInner = getShapeSvgInner(props.shape || 'circle', props.fillColor || '#6C63FF', props.strokeColor || 'transparent', props.strokeWidth ?? 0);
       const shapeText = props.text || '';
