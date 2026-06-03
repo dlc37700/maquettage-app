@@ -7,7 +7,7 @@ import { SHAPES_CATEGORIES, getShapeSvgInner } from '../data/shapes';
 import { getFontworkSvg, FONTWORK_STYLES } from '../data/fontwork';
 import { CHART_TYPES, DEFAULT_CHART_DATA_STR } from '../data/chartHelper';
 import { useImageLibrary } from '../hooks/useImageLibrary';
-import { removeBg, waitForImage, imageUrlToDataUrl } from '../utils/aiImageUtils';
+import { removeBg, waitForImage, imageUrlToDataUrl, pollinationsUrl } from '../utils/aiImageUtils';
 
 function Field({ label, children }) {
   return <div style={{ marginBottom: 12 }}><div style={{ color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>{label}</div>{children}</div>;
@@ -731,33 +731,33 @@ function AiImageProperties({ comp }) {
     clearInterval(timerRef.current);
     timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
 
-    const seed = Math.floor(Math.random() * 99999);
-    const enhanced = `${subject}, flat design illustration, white background, centered, colorful, clean`;
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhanced)}?width=512&height=512&nologo=true&seed=${seed}`;
-
-    try {
-      // Use <img> tag — no CORS restriction for display, works even without CORS headers
-      await waitForImage(url, 90000);
-      if (cancelledRef.current) { clearInterval(timerRef.current); return; }
-
-      let finalResult = url;
-      if (removeBgOn) {
-        setStep('removing');
+    const MAX = 3;
+    for (let i = 0; i < MAX; i++) {
+      if (cancelledRef.current) break;
+      if (i > 0) await new Promise(r => setTimeout(r, 3000 * i));
+      if (cancelledRef.current) break;
+      const url = pollinationsUrl(subject, Math.floor(Math.random() * 99999));
+      try {
+        await waitForImage(url, 90000);
         if (cancelledRef.current) { clearInterval(timerRef.current); return; }
-        const dataUrl = await imageUrlToDataUrl(url);
-        if (dataUrl) {
-          finalResult = await removeBg(dataUrl);
+        let finalResult = url;
+        if (removeBgOn) {
+          setStep('removing');
+          if (cancelledRef.current) { clearInterval(timerRef.current); return; }
+          const dataUrl = await imageUrlToDataUrl(url);
+          if (dataUrl) finalResult = await removeBg(dataUrl);
         }
+        if (cancelledRef.current) { clearInterval(timerRef.current); return; }
+        update({ imageData: finalResult });
+        setStep('done');
+        clearInterval(timerRef.current);
+        return;
+      } catch (e) {
+        if (e.message === 'timeout' || cancelledRef.current) break;
       }
-
-      if (cancelledRef.current) { clearInterval(timerRef.current); return; }
-      update({ imageData: finalResult });
-      setStep('done');
-    } catch {
-      if (!cancelledRef.current) setStep('error');
-    } finally {
-      clearInterval(timerRef.current);
     }
+    clearInterval(timerRef.current);
+    if (!cancelledRef.current) setStep('error');
   };
 
   const cancel = () => {

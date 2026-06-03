@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { removeBg, waitForImage, imageUrlToDataUrl } from '../utils/aiImageUtils';
+import { removeBg, waitForImage, imageUrlToDataUrl, pollinationsUrl } from '../utils/aiImageUtils';
 import { COMPONENT_DEFINITIONS, BUTTON_PRESETS, AVATAR_PRESETS } from '../data/componentDefinitions';
 import { useProject } from '../hooks/useProject';
 import { useImageLibrary } from '../hooks/useImageLibrary';
@@ -50,35 +50,35 @@ export default function ComponentPalette({ mobile = false }) {
     clearInterval(aiTimerRef.current);
     aiTimerRef.current = setInterval(() => setAiElapsed(e => e + 1), 1000);
 
-    const seed = Math.floor(Math.random() * 99999);
-    const enhanced = `${subject}, flat design illustration, white background, centered, colorful, clean`;
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhanced)}?width=512&height=512&nologo=true&seed=${seed}`;
-
-    try {
-      // Use <img> tag — no CORS restriction for display, works even without CORS headers
-      await waitForImage(url, 90000);
-      if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
-
-      let finalResult = url;
-      if (aiRemoveBgOn) {
-        setAiStep('removing');
+    const MAX = 3;
+    let lastErr = '';
+    for (let i = 0; i < MAX; i++) {
+      if (aiCancelledRef.current) break;
+      if (i > 0) await new Promise(r => setTimeout(r, 3000 * i));
+      if (aiCancelledRef.current) break;
+      const url = pollinationsUrl(subject, Math.floor(Math.random() * 99999));
+      try {
+        await waitForImage(url, 90000);
         if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
-        // Try to get a dataUrl for canvas processing (needs CORS headers from server)
-        const dataUrl = await imageUrlToDataUrl(url);
-        if (dataUrl) {
-          finalResult = await removeBg(dataUrl);
+        let finalResult = url;
+        if (aiRemoveBgOn) {
+          setAiStep('removing');
+          if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
+          const dataUrl = await imageUrlToDataUrl(url);
+          if (dataUrl) finalResult = await removeBg(dataUrl);
         }
-        // If imageUrlToDataUrl returned null (no CORS), we keep the URL as-is
+        if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
+        setAiResult(finalResult);
+        setAiStep('done');
+        clearInterval(aiTimerRef.current);
+        return;
+      } catch (e) {
+        lastErr = e.message;
+        if (e.message === 'timeout' || aiCancelledRef.current) break;
       }
-
-      if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
-      setAiResult(finalResult);
-      setAiStep('done');
-    } catch {
-      if (!aiCancelledRef.current) setAiStep('error');
-    } finally {
-      clearInterval(aiTimerRef.current);
     }
+    if (!aiCancelledRef.current) setAiStep('error');
+    clearInterval(aiTimerRef.current);
   };
 
   const [openWebImages, setOpenWebImages] = useState(true);

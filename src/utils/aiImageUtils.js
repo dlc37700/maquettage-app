@@ -78,8 +78,14 @@ export function blobToDataUrl(blob) {
   });
 }
 
+// Build a Pollinations.ai image URL with the given prompt and seed.
+export function pollinationsUrl(prompt, seed) {
+  const enhanced = `${prompt}, flat design illustration, white background, centered, colorful, clean`;
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(enhanced)}?model=flux&width=512&height=512&nologo=true&seed=${seed}`;
+}
+
 // Wait for an external image URL to load (no CORS restriction for <img> display).
-// Returns the url on success, throws on timeout.
+// Returns the url on success, throws on timeout or load error.
 export function waitForImage(url, timeoutMs = 90000) {
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => reject(new Error('timeout')), timeoutMs);
