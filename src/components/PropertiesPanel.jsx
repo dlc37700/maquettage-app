@@ -7,7 +7,7 @@ import { SHAPES_CATEGORIES, getShapeSvgInner } from '../data/shapes';
 import { getFontworkSvg, FONTWORK_STYLES } from '../data/fontwork';
 import { CHART_TYPES, DEFAULT_CHART_DATA_STR } from '../data/chartHelper';
 import { useImageLibrary } from '../hooks/useImageLibrary';
-import { removeBg, waitForImage, imageUrlToDataUrl, pollinationsUrl, fetchImageAsDataUrl } from '../utils/aiImageUtils';
+import { removeBg, generateWithHorde } from '../utils/aiImageUtils';
 
 function Field({ label, children }) {
   return <div style={{ marginBottom: 12 }}><div style={{ color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>{label}</div>{children}</div>;
@@ -716,6 +716,7 @@ function AiImageProperties({ comp }) {
 
   const [step, setStep] = useState('idle'); // idle | fetching | removing | done | error
   const [elapsed, setElapsed] = useState(0);
+  const [queuePos, setQueuePos] = useState(null);
   const [removeBgOn, setRemoveBgOn] = useState(false);
   const cancelledRef = useRef(false);
   const timerRef = useRef(null);
@@ -731,40 +732,28 @@ function AiImageProperties({ comp }) {
     clearInterval(timerRef.current);
     timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
 
-    const MAX = 3;
-    for (let i = 0; i < MAX; i++) {
-      if (cancelledRef.current) break;
-      if (i > 0) await new Promise(r => setTimeout(r, 3000 * i));
-      if (cancelledRef.current) break;
-      const url = pollinationsUrl(subject, Math.floor(Math.random() * 99999));
-      try {
-        let dataUrl;
-        try {
-          dataUrl = await fetchImageAsDataUrl(url, 90000);
-        } catch (fetchErr) {
-          if (fetchErr.message === 'timeout') throw fetchErr;
-          await waitForImage(url, 90000);
-          dataUrl = url;
-        }
+    try {
+      const dataUrl = await generateWithHorde(
+        subject,
+        (status) => { setQueuePos(status.queue_position ?? null); },
+        cancelledRef,
+        300000
+      );
+      if (cancelledRef.current) { clearInterval(timerRef.current); return; }
+      let finalResult = dataUrl;
+      if (removeBgOn) {
+        setStep('removing');
         if (cancelledRef.current) { clearInterval(timerRef.current); return; }
-        let finalResult = dataUrl;
-        if (removeBgOn) {
-          setStep('removing');
-          if (cancelledRef.current) { clearInterval(timerRef.current); return; }
-          const d2 = dataUrl === url ? await imageUrlToDataUrl(url) : dataUrl;
-          if (d2 && d2 !== url) finalResult = await removeBg(d2);
-        }
-        if (cancelledRef.current) { clearInterval(timerRef.current); return; }
-        update({ imageData: finalResult });
-        setStep('done');
-        clearInterval(timerRef.current);
-        return;
-      } catch (e) {
-        if (e.message === 'timeout' || cancelledRef.current) break;
+        finalResult = await removeBg(dataUrl);
       }
+      if (cancelledRef.current) { clearInterval(timerRef.current); return; }
+      update({ imageData: finalResult });
+      setStep('done');
+    } catch {
+      if (!cancelledRef.current) setStep('error');
+    } finally {
+      clearInterval(timerRef.current);
     }
-    clearInterval(timerRef.current);
-    if (!cancelledRef.current) setStep('error');
   };
 
   const cancel = () => {
@@ -817,7 +806,7 @@ function AiImageProperties({ comp }) {
         disabled={!busy && !(p.prompt || '').trim()}
         style={{ width: '100%', padding: '9px', borderRadius: 8, border: 'none', backgroundColor: busy ? '#EF4444' : '#6C63FF', color: 'white', fontSize: 13, fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer', marginBottom: 8, opacity: (!busy && !(p.prompt || '').trim()) ? 0.5 : 1 }}
       >
-        {busy ? `✕ Annuler${step === 'removing' ? ' (suppression fond…)' : ` (${elapsed}s…)`}` : '✨ Générer'}
+        {busy ? `✕ Annuler${step === 'removing' ? ' (suppression fond…)' : queuePos != null ? ` (file: ${queuePos} — ${elapsed}s)` : ` (${elapsed}s…)`}` : '✨ Générer'}
       </button>
 
       {step === 'error' && (

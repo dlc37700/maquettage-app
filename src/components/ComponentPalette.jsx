@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { removeBg, waitForImage, imageUrlToDataUrl, pollinationsUrl, fetchImageAsDataUrl } from '../utils/aiImageUtils';
+import { removeBg, imageUrlToDataUrl, generateWithHorde } from '../utils/aiImageUtils';
 import { COMPONENT_DEFINITIONS, BUTTON_PRESETS, AVATAR_PRESETS } from '../data/componentDefinitions';
 import { useProject } from '../hooks/useProject';
 import { useImageLibrary } from '../hooks/useImageLibrary';
@@ -34,6 +34,7 @@ export default function ComponentPalette({ mobile = false }) {
   const [aiStep, setAiStep] = useState('idle'); // idle | fetching | removing | done | error
   const [aiResult, setAiResult] = useState('');
   const [aiElapsed, setAiElapsed] = useState(0);
+  const [aiQueuePos, setAiQueuePos] = useState(null);
   const [aiRemoveBgOn, setAiRemoveBgOn] = useState(true);
   const aiCancelledRef = useRef(false);
   const aiTimerRef = useRef(null);
@@ -50,45 +51,31 @@ export default function ComponentPalette({ mobile = false }) {
     clearInterval(aiTimerRef.current);
     aiTimerRef.current = setInterval(() => setAiElapsed(e => e + 1), 1000);
 
-    const MAX = 3;
-    for (let i = 0; i < MAX; i++) {
-      if (aiCancelledRef.current) break;
-      if (i > 0) await new Promise(r => setTimeout(r, 3000 * i));
-      if (aiCancelledRef.current) break;
-      const url = pollinationsUrl(subject, Math.floor(Math.random() * 99999));
-      try {
-        // Try fetch first (lets us read the real response/error)
-        let dataUrl;
-        try {
-          dataUrl = await fetchImageAsDataUrl(url, 90000);
-        } catch (fetchErr) {
-          if (fetchErr.message === 'timeout') throw fetchErr;
-          // CORS or opaque response — fall back to img tag
-          await waitForImage(url, 90000);
-          dataUrl = url; // URL only, can't get dataUrl
-        }
+    try {
+      const dataUrl = await generateWithHorde(
+        subject,
+        (status) => {
+          setAiQueuePos(status.queue_position ?? null);
+          if (status.wait_time) setAiElapsed(e => e); // keep timer going
+        },
+        aiCancelledRef,
+        300000
+      );
+      if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
+      let finalResult = dataUrl;
+      if (aiRemoveBgOn) {
+        setAiStep('removing');
         if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
-        let finalResult = dataUrl;
-        if (aiRemoveBgOn && dataUrl !== url) {
-          setAiStep('removing');
-          if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
-          finalResult = await removeBg(dataUrl);
-        } else if (aiRemoveBgOn && dataUrl === url) {
-          setAiStep('removing');
-          const d2 = await imageUrlToDataUrl(url);
-          if (d2) finalResult = await removeBg(d2);
-        }
-        if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
-        setAiResult(finalResult);
-        setAiStep('done');
-        clearInterval(aiTimerRef.current);
-        return;
-      } catch (e) {
-        if (e.message === 'timeout' || aiCancelledRef.current) break;
+        finalResult = await removeBg(dataUrl);
       }
+      if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
+      setAiResult(finalResult);
+      setAiStep('done');
+    } catch (e) {
+      if (!aiCancelledRef.current) setAiStep('error');
+    } finally {
+      clearInterval(aiTimerRef.current);
     }
-    if (!aiCancelledRef.current) setAiStep('error');
-    clearInterval(aiTimerRef.current);
   };
 
   const [openWebImages, setOpenWebImages] = useState(true);
@@ -315,7 +302,7 @@ export default function ComponentPalette({ mobile = false }) {
                 </div>
                 {(aiStep === 'fetching' || aiStep === 'removing') && (
                   <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontFamily: 'Nunito, sans-serif', textAlign: 'center', padding: '8px 0' }}>
-                    {aiStep === 'removing' ? '✂️ Suppression du fond…' : `🎨 Génération… ${aiElapsed}s`}
+                    {aiStep === 'removing' ? '✂️ Suppression du fond…' : aiQueuePos != null ? `🎨 File d'attente: ${aiQueuePos} — ${aiElapsed}s…` : `🎨 Génération… ${aiElapsed}s`}
                   </div>
                 )}
                 {aiStep === 'error' && (

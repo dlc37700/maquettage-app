@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useProject } from '../hooks/useProject';
 import { useImageLibrary } from '../hooks/useImageLibrary';
-import { removeBg, waitForImage, imageUrlToDataUrl, pollinationsUrl, fetchImageAsDataUrl } from '../utils/aiImageUtils';
+import { removeBg, generateWithHorde } from '../utils/aiImageUtils';
 
 const ANIM_TYPES = [
   { id: '',        label: '— Aucune',        icon: '○' },
@@ -20,6 +20,7 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
   const [step, setStep] = useState('idle'); // idle | fetching | removing | done | error
   const [error, setError] = useState('');
   const [elapsed, setElapsed] = useState(0);
+  const [queuePos, setQueuePos] = useState(null);
   const [animType, setAnimType] = useState('');
   const [removeBgOn, setRemoveBgOn] = useState(true);
   const inputRef = useRef(null);
@@ -31,7 +32,6 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
   useEffect(() => { return () => { cancelledRef.current = true; clearInterval(timerRef.current); }; }, []);
 
   const isWorking = step === 'fetching' || step === 'removing';
-  const attemptRef = useRef(0);
 
   const generate = async (urlOverride) => {
     if (isWorking) return;
@@ -47,49 +47,35 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
     clearInterval(timerRef.current);
     timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
 
-    const MAX = 3;
-    for (let i = 0; i < MAX; i++) {
-      if (cancelledRef.current) break;
-      if (i > 0) await new Promise(r => setTimeout(r, 3000 * i));
-      if (cancelledRef.current) break;
-      attemptRef.current = i + 1;
-      const seed = Math.floor(Math.random() * 99999);
-      const promptStr = animType === 'spin3d'
-        ? `3D render of ${subject}, centered object, white background, studio lighting, high quality`
-        : subject;
-      const url = urlOverride || pollinationsUrl(promptStr, seed);
-      lastUrlRef.current = url;
-      try {
-        let dataUrl;
-        try {
-          dataUrl = await fetchImageAsDataUrl(url, 90000);
-        } catch (fetchErr) {
-          if (fetchErr.message === 'timeout') throw fetchErr;
-          await waitForImage(url, 90000);
-          dataUrl = url;
-        }
+    const promptStr = animType === 'spin3d'
+      ? `3D render of ${subject}, centered object, white background, studio lighting, high quality`
+      : subject;
+    lastUrlRef.current = promptStr;
+    try {
+      const dataUrl = await generateWithHorde(
+        promptStr,
+        (status) => { setQueuePos(status.queue_position ?? null); },
+        cancelledRef,
+        300000
+      );
+      if (cancelledRef.current) { clearInterval(timerRef.current); return; }
+      let finalDataUrl = dataUrl;
+      if (removeBgOn) {
+        setStep('removing');
         if (cancelledRef.current) { clearInterval(timerRef.current); return; }
-        let finalDataUrl = dataUrl;
-        if (removeBgOn) {
-          setStep('removing');
-          if (cancelledRef.current) { clearInterval(timerRef.current); return; }
-          const d2 = dataUrl === url ? await imageUrlToDataUrl(url) : dataUrl;
-          if (d2 && d2 !== url) finalDataUrl = await removeBg(d2);
-        }
-        if (cancelledRef.current) { clearInterval(timerRef.current); return; }
-        setResultDataUrl(finalDataUrl);
-        setStep('done');
-        clearInterval(timerRef.current);
-        return;
-      } catch (e) {
-        if (e.message === 'timeout' || cancelledRef.current) break;
+        finalDataUrl = await removeBg(dataUrl);
       }
+      if (cancelledRef.current) { clearInterval(timerRef.current); return; }
+      setResultDataUrl(finalDataUrl);
+      setStep('done');
+    } catch {
+      if (!cancelledRef.current) {
+        setStep('error');
+        setError("Le service IA est temporairement indisponible. Réessayez dans quelques instants.");
+      }
+    } finally {
+      clearInterval(timerRef.current);
     }
-    if (!cancelledRef.current) {
-      setStep('error');
-      setError("Le service IA est temporairement indisponible. Réessayez dans quelques instants.");
-    }
-    clearInterval(timerRef.current);
   };
 
   const cancel = () => {
@@ -101,10 +87,10 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
 
   const retry = () => generate(lastUrlRef.current);
 
-  const progressPct = Math.min(100, (elapsed / 30) * 100);
-  const attemptLabel = attemptRef.current > 1 ? ` (tentative ${attemptRef.current}/3)` : '';
+  const progressPct = Math.min(100, (elapsed / 60) * 100);
+  const queueLabel = queuePos != null ? ` — file: ${queuePos}` : '';
   const statusLabel = step === 'fetching'
-    ? (animType === 'spin3d' ? `🎨 Rendu 3D… ${elapsed}s${attemptLabel}` : `🎨 L'IA dessine… ${elapsed}s${attemptLabel}`)
+    ? (animType === 'spin3d' ? `🎨 Rendu 3D… ${elapsed}s${queueLabel}` : `🎨 L'IA dessine… ${elapsed}s${queueLabel}`)
     : step === 'removing' ? '✂️ Suppression du fond…' : null;
 
   return createPortal(
