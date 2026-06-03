@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { removeBg, imageUrlToDataUrl, generateWithHorde, generateWithCraiyon } from '../utils/aiImageUtils';
+import { removeBg, imageUrlToDataUrl, generateWithHorde, generateWithHuggingFace, getHfToken, setHfToken } from '../utils/aiImageUtils';
 import { COMPONENT_DEFINITIONS, BUTTON_PRESETS, AVATAR_PRESETS } from '../data/componentDefinitions';
 import { useProject } from '../hooks/useProject';
 import { useImageLibrary } from '../hooks/useImageLibrary';
@@ -35,6 +35,8 @@ export default function ComponentPalette({ mobile = false }) {
   const [aiResult, setAiResult] = useState('');
   const [aiElapsed, setAiElapsed] = useState(0);
   const [aiQueuePos, setAiQueuePos] = useState(null);
+  const [hfTokenInput, setHfTokenInput] = useState(getHfToken);
+  const [showHfToken, setShowHfToken] = useState(!getHfToken());
   const [aiRemoveBgOn, setAiRemoveBgOn] = useState(true);
   const aiCancelledRef = useRef(false);
   const aiTimerRef = useRef(null);
@@ -53,14 +55,13 @@ export default function ComponentPalette({ mobile = false }) {
 
     try {
       let dataUrl;
-      // Try Craiyon first (fast ~30-60s), then fall back to AI Horde
-      try {
-        console.log('[AI] Trying Craiyon...');
-        dataUrl = await generateWithCraiyon(subject, aiCancelledRef, 90000);
-        console.log('[AI] Craiyon success');
-      } catch (craiyonErr) {
-        if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
-        console.warn('[AI] Craiyon failed, trying Horde:', craiyonErr.message);
+      const hfToken = getHfToken();
+      if (hfToken) {
+        console.log('[AI] Using Hugging Face (FLUX)...');
+        dataUrl = await generateWithHuggingFace(subject, hfToken, aiCancelledRef, 120000);
+        console.log('[AI] HF success');
+      } else {
+        console.log('[AI] No HF token — using AI Horde (slow for anonymous users)');
         setAiQueuePos(null);
         dataUrl = await generateWithHorde(
           subject,
@@ -288,6 +289,33 @@ export default function ComponentPalette({ mobile = false }) {
             </button>
             {openAiImages && (
               <div>
+                {/* HF token config */}
+                {showHfToken ? (
+                  <div style={{ marginBottom: 6, padding: '6px 8px', backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 8, border: '1px solid rgba(167,139,250,0.4)' }}>
+                    <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 9, fontFamily: 'Nunito, sans-serif', marginBottom: 4, lineHeight: 1.4 }}>
+                      🔑 Token Hugging Face gratuit (obligatoire) :<br/>
+                      <span style={{ color: '#A78BFA' }}>huggingface.co → Settings → Access Tokens</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: 4 }}>
+                      <input
+                        value={hfTokenInput}
+                        onChange={e => setHfTokenInput(e.target.value)}
+                        placeholder="hf_xxxxxxxxxxxx"
+                        type="password"
+                        style={{ flex: 1, padding: '4px 7px', borderRadius: 6, border: 'none', backgroundColor: 'rgba(255,255,255,0.15)', color: 'white', fontSize: 10, fontFamily: 'Nunito, sans-serif', outline: 'none' }}
+                      />
+                      <button
+                        onClick={() => { setHfToken(hfTokenInput); if (hfTokenInput.trim()) setShowHfToken(false); }}
+                        style={{ padding: '4px 8px', borderRadius: 6, border: 'none', backgroundColor: '#6C63FF', color: 'white', fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'Nunito, sans-serif' }}
+                      >OK</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                    <span style={{ color: '#A78BFA', fontSize: 9, fontFamily: 'Nunito, sans-serif' }}>✅ Token HF configuré</span>
+                    <button onClick={() => setShowHfToken(true)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 9, cursor: 'pointer', fontFamily: 'Nunito, sans-serif' }}>Modifier</button>
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: 4, marginBottom: 5 }}>
                   <input
                     value={aiPrompt}
@@ -317,7 +345,9 @@ export default function ComponentPalette({ mobile = false }) {
                   </div>
                 )}
                 {aiStep === 'error' && (
-                  <div style={{ color: '#F87171', fontSize: 10, fontFamily: 'Nunito, sans-serif', marginBottom: 4 }}>Service IA indisponible. Réessayez.</div>
+                  <div style={{ color: '#F87171', fontSize: 10, fontFamily: 'Nunito, sans-serif', marginBottom: 4 }}>
+                    Échec. {!getHfToken() ? 'Configurez un token HF gratuit ci-dessus.' : 'Vérifiez votre token HF. Voir console F12.'}
+                  </div>
                 )}
                 {aiStep === 'done' && aiResult && (
                   <div>

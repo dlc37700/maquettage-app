@@ -7,7 +7,7 @@ import { SHAPES_CATEGORIES, getShapeSvgInner } from '../data/shapes';
 import { getFontworkSvg, FONTWORK_STYLES } from '../data/fontwork';
 import { CHART_TYPES, DEFAULT_CHART_DATA_STR } from '../data/chartHelper';
 import { useImageLibrary } from '../hooks/useImageLibrary';
-import { removeBg, imageUrlToDataUrl, generateWithHorde, generateWithCraiyon } from '../utils/aiImageUtils';
+import { removeBg, imageUrlToDataUrl, generateWithHorde, generateWithHuggingFace, getHfToken } from '../utils/aiImageUtils';
 
 function Field({ label, children }) {
   return <div style={{ marginBottom: 12 }}><div style={{ color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>{label}</div>{children}</div>;
@@ -734,13 +734,13 @@ function AiImageProperties({ comp }) {
 
     try {
       let dataUrl;
-      try {
-        console.log('[AI] Trying Craiyon...');
-        dataUrl = await generateWithCraiyon(subject, cancelledRef, 90000);
-        console.log('[AI] Craiyon success');
-      } catch (craiyonErr) {
-        if (cancelledRef.current) { clearInterval(timerRef.current); return; }
-        console.warn('[AI] Craiyon failed, trying Horde:', craiyonErr.message);
+      const hfToken = getHfToken();
+      if (hfToken) {
+        console.log('[AI] Using Hugging Face (FLUX)...');
+        dataUrl = await generateWithHuggingFace(subject, hfToken, cancelledRef, 120000);
+        console.log('[AI] HF success');
+      } else {
+        console.log('[AI] No HF token — using AI Horde (slow for anonymous)');
         setQueuePos(null);
         dataUrl = await generateWithHorde(
           subject,

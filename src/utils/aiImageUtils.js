@@ -78,6 +78,48 @@ export function blobToDataUrl(blob) {
   });
 }
 
+const HF_TOKEN_KEY = 'maquetapp-hf-token';
+export const getHfToken = () => localStorage.getItem(HF_TOKEN_KEY) || '';
+export const setHfToken = (t) => { if (t) localStorage.setItem(HF_TOKEN_KEY, t.trim()); else localStorage.removeItem(HF_TOKEN_KEY); };
+
+/**
+ * Generate an image via Hugging Face Inference API (FLUX.1-schnell).
+ * Requires a free HF token: huggingface.co → Settings → Access Tokens.
+ * Returns a dataUrl.
+ */
+export async function generateWithHuggingFace(prompt, token, cancelledRef, timeoutMs = 120000) {
+  const model = 'black-forest-labs/FLUX.1-schnell';
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch(`https://router.huggingface.co/hf-inference/models/${model}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ inputs: prompt }),
+      signal: ctrl.signal
+    });
+    clearTimeout(timer);
+    if (res.status === 503) {
+      const info = await res.json().catch(() => ({}));
+      const wait = Math.min((info.estimated_time || 20), 40) * 1000;
+      await new Promise(r => setTimeout(r, wait));
+      if (cancelledRef?.current) throw new Error('cancelled');
+      return generateWithHuggingFace(prompt, token, cancelledRef, timeoutMs);
+    }
+    if (res.status === 401 || res.status === 403) throw new Error('Token HF invalide ou expiré');
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      throw new Error(`HF ${res.status}: ${txt.substring(0, 80)}`);
+    }
+    const blob = await res.blob();
+    return await blobToDataUrl(blob);
+  } catch (e) {
+    clearTimeout(timer);
+    if (e.name === 'AbortError') throw new Error('timeout');
+    throw e;
+  }
+}
+
 // Try to load a cross-origin image into a canvas to get a dataUrl (needs CORS headers).
 export function imageUrlToDataUrl(url, timeoutMs = 30000) {
   return new Promise((resolve) => {
