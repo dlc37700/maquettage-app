@@ -78,8 +78,9 @@ export function blobToDataUrl(blob) {
   });
 }
 
+const DEFAULT_HF_TOKEN = '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';
 const HF_TOKEN_KEY = 'maquetapp-hf-token';
-export const getHfToken = () => localStorage.getItem(HF_TOKEN_KEY) || '';
+export const getHfToken = () => localStorage.getItem(HF_TOKEN_KEY) || DEFAULT_HF_TOKEN;
 export const setHfToken = (t) => { if (t) localStorage.setItem(HF_TOKEN_KEY, t.trim()); else localStorage.removeItem(HF_TOKEN_KEY); };
 
 /**
