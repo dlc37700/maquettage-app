@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useProject } from '../hooks/useProject';
 import { useImageLibrary } from '../hooks/useImageLibrary';
-import { removeBg, generateWithHorde } from '../utils/aiImageUtils';
+import { removeBg, imageUrlToDataUrl, generateWithHorde, generateWithCraiyon } from '../utils/aiImageUtils';
 
 const ANIM_TYPES = [
   { id: '',        label: '— Aucune',        icon: '○' },
@@ -52,26 +52,39 @@ function AiModal({ sketchDataUrl, onClose, onApply }) {
       : subject;
     lastUrlRef.current = promptStr;
     try {
-      const dataUrl = await generateWithHorde(
-        promptStr,
-        (status) => { setQueuePos(status.queue_position ?? null); },
-        cancelledRef,
-        300000
-      );
+      let dataUrl;
+      try {
+        console.log('[AI] Trying Craiyon...');
+        dataUrl = await generateWithCraiyon(promptStr, cancelledRef, 90000);
+        console.log('[AI] Craiyon success');
+      } catch (craiyonErr) {
+        if (cancelledRef.current) { clearInterval(timerRef.current); return; }
+        console.warn('[AI] Craiyon failed, trying Horde:', craiyonErr.message);
+        setQueuePos(null);
+        dataUrl = await generateWithHorde(
+          promptStr,
+          (status) => { setQueuePos(status.queue_position ?? null); },
+          cancelledRef,
+          300000
+        );
+        console.log('[AI] Horde success');
+      }
       if (cancelledRef.current) { clearInterval(timerRef.current); return; }
       let finalDataUrl = dataUrl;
       if (removeBgOn) {
         setStep('removing');
         if (cancelledRef.current) { clearInterval(timerRef.current); return; }
-        finalDataUrl = await removeBg(dataUrl);
+        const d2 = dataUrl.startsWith('data:') ? dataUrl : (await imageUrlToDataUrl(dataUrl) || dataUrl);
+        finalDataUrl = await removeBg(d2);
       }
       if (cancelledRef.current) { clearInterval(timerRef.current); return; }
       setResultDataUrl(finalDataUrl);
       setStep('done');
-    } catch {
+    } catch (e) {
+      console.error('[AI] All services failed:', e.message);
       if (!cancelledRef.current) {
         setStep('error');
-        setError("Le service IA est temporairement indisponible. Réessayez dans quelques instants.");
+        setError("Service IA indisponible. Vérifiez la console (F12) pour les détails.");
       }
     } finally {
       clearInterval(timerRef.current);

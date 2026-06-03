@@ -7,7 +7,7 @@ import { SHAPES_CATEGORIES, getShapeSvgInner } from '../data/shapes';
 import { getFontworkSvg, FONTWORK_STYLES } from '../data/fontwork';
 import { CHART_TYPES, DEFAULT_CHART_DATA_STR } from '../data/chartHelper';
 import { useImageLibrary } from '../hooks/useImageLibrary';
-import { removeBg, generateWithHorde } from '../utils/aiImageUtils';
+import { removeBg, imageUrlToDataUrl, generateWithHorde, generateWithCraiyon } from '../utils/aiImageUtils';
 
 function Field({ label, children }) {
   return <div style={{ marginBottom: 12 }}><div style={{ color: '#6B7280', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 4 }}>{label}</div>{children}</div>;
@@ -733,23 +733,36 @@ function AiImageProperties({ comp }) {
     timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
 
     try {
-      const dataUrl = await generateWithHorde(
-        subject,
-        (status) => { setQueuePos(status.queue_position ?? null); },
-        cancelledRef,
-        300000
-      );
+      let dataUrl;
+      try {
+        console.log('[AI] Trying Craiyon...');
+        dataUrl = await generateWithCraiyon(subject, cancelledRef, 90000);
+        console.log('[AI] Craiyon success');
+      } catch (craiyonErr) {
+        if (cancelledRef.current) { clearInterval(timerRef.current); return; }
+        console.warn('[AI] Craiyon failed, trying Horde:', craiyonErr.message);
+        setQueuePos(null);
+        dataUrl = await generateWithHorde(
+          subject,
+          (status) => { setQueuePos(status.queue_position ?? null); },
+          cancelledRef,
+          300000
+        );
+        console.log('[AI] Horde success');
+      }
       if (cancelledRef.current) { clearInterval(timerRef.current); return; }
       let finalResult = dataUrl;
       if (removeBgOn) {
         setStep('removing');
         if (cancelledRef.current) { clearInterval(timerRef.current); return; }
-        finalResult = await removeBg(dataUrl);
+        const d2 = dataUrl.startsWith('data:') ? dataUrl : (await imageUrlToDataUrl(dataUrl) || dataUrl);
+        finalResult = await removeBg(d2);
       }
       if (cancelledRef.current) { clearInterval(timerRef.current); return; }
       update({ imageData: finalResult });
       setStep('done');
-    } catch {
+    } catch (e) {
+      console.error('[AI] All services failed:', e.message);
       if (!cancelledRef.current) setStep('error');
     } finally {
       clearInterval(timerRef.current);

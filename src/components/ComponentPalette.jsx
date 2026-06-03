@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { removeBg, imageUrlToDataUrl, generateWithHorde } from '../utils/aiImageUtils';
+import { removeBg, imageUrlToDataUrl, generateWithHorde, generateWithCraiyon } from '../utils/aiImageUtils';
 import { COMPONENT_DEFINITIONS, BUTTON_PRESETS, AVATAR_PRESETS } from '../data/componentDefinitions';
 import { useProject } from '../hooks/useProject';
 import { useImageLibrary } from '../hooks/useImageLibrary';
@@ -52,26 +52,37 @@ export default function ComponentPalette({ mobile = false }) {
     aiTimerRef.current = setInterval(() => setAiElapsed(e => e + 1), 1000);
 
     try {
-      const dataUrl = await generateWithHorde(
-        subject,
-        (status) => {
-          setAiQueuePos(status.queue_position ?? null);
-          if (status.wait_time) setAiElapsed(e => e); // keep timer going
-        },
-        aiCancelledRef,
-        300000
-      );
+      let dataUrl;
+      // Try Craiyon first (fast ~30-60s), then fall back to AI Horde
+      try {
+        console.log('[AI] Trying Craiyon...');
+        dataUrl = await generateWithCraiyon(subject, aiCancelledRef, 90000);
+        console.log('[AI] Craiyon success');
+      } catch (craiyonErr) {
+        if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
+        console.warn('[AI] Craiyon failed, trying Horde:', craiyonErr.message);
+        setAiQueuePos(null);
+        dataUrl = await generateWithHorde(
+          subject,
+          (status) => { setAiQueuePos(status.queue_position ?? null); },
+          aiCancelledRef,
+          300000
+        );
+        console.log('[AI] Horde success');
+      }
       if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
       let finalResult = dataUrl;
       if (aiRemoveBgOn) {
         setAiStep('removing');
         if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
-        finalResult = await removeBg(dataUrl);
+        const d2 = dataUrl.startsWith('data:') ? dataUrl : (await imageUrlToDataUrl(dataUrl) || dataUrl);
+        finalResult = await removeBg(d2);
       }
       if (aiCancelledRef.current) { clearInterval(aiTimerRef.current); return; }
       setAiResult(finalResult);
       setAiStep('done');
     } catch (e) {
+      console.error('[AI] All services failed:', e.message);
       if (!aiCancelledRef.current) setAiStep('error');
     } finally {
       clearInterval(aiTimerRef.current);

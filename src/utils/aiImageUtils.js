@@ -121,12 +121,9 @@ const HORDE_API = 'https://aihorde.net/api/v2';
 
 /**
  * Generate an image via AI Horde (free, no login, community GPUs).
- * onStatus({ wait_time, queue_position, done, faulted }) — called periodically during wait.
- * cancelledRef.current = true to abort.
  * Returns a dataUrl string.
  */
 export async function generateWithHorde(prompt, onStatus, cancelledRef, timeoutMs = 300000) {
-  // Submit generation job
   const submitRes = await fetch(`${HORDE_API}/generate/async`, {
     method: 'POST',
     headers: {
@@ -136,22 +133,25 @@ export async function generateWithHorde(prompt, onStatus, cancelledRef, timeoutM
     },
     body: JSON.stringify({
       prompt,
-      params: { width: 512, height: 512, n: 1, steps: 20, sampler_name: 'k_euler' },
+      params: { width: 512, height: 512, n: 1, steps: 15, sampler_name: 'k_euler' },
       nsfw: false,
       censor_nsfw: true,
-      r2: false,
-      shared: false
+      r2: true,         // store in R2 → URL result (more worker support than inline base64)
+      shared: true,     // allow sharing → faster queue
+      slow_workers: true, // include slow workers for more availability
+      trusted_workers: false
     })
   });
 
   if (!submitRes.ok) {
     const txt = await submitRes.text().catch(() => '');
-    throw new Error(`Horde submit: ${submitRes.status} ${txt.substring(0, 80)}`);
+    throw new Error(`Horde submit ${submitRes.status}: ${txt.substring(0, 80)}`);
   }
-  const { id } = await submitRes.json();
-  if (!id) throw new Error('No job ID from Horde');
+  const body = await submitRes.json();
+  const id = body.id;
+  if (!id) throw new Error(`Horde: no job ID — ${JSON.stringify(body).substring(0, 100)}`);
+  console.log('[Horde] job submitted:', id);
 
-  // Poll until done or timeout
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (cancelledRef?.current) throw new Error('cancelled');
@@ -159,21 +159,52 @@ export async function generateWithHorde(prompt, onStatus, cancelledRef, timeoutM
     if (cancelledRef?.current) throw new Error('cancelled');
 
     const checkRes = await fetch(`${HORDE_API}/generate/check/${id}`).catch(() => null);
-    if (!checkRes || !checkRes.ok) continue;
+    if (!checkRes?.ok) continue;
     const status = await checkRes.json().catch(() => null);
     if (!status) continue;
-
+    console.log('[Horde] status:', status);
     onStatus?.(status);
 
-    if (status.faulted) throw new Error('Horde generation failed');
+    if (status.faulted) throw new Error('Horde job faulted (no available workers)');
     if (status.done) {
       const resultRes = await fetch(`${HORDE_API}/generate/status/${id}`);
-      if (!resultRes.ok) throw new Error('Horde result error');
+      if (!resultRes.ok) throw new Error(`Horde result ${resultRes.status}`);
       const result = await resultRes.json();
-      const img = result.generations?.[0]?.img;
-      if (!img) throw new Error('No image returned');
-      return img.startsWith('http') ? img : `data:image/webp;base64,${img}`;
+      console.log('[Horde] result:', result);
+      const gen = result.generations?.find(g => g.state === 'ok') || result.generations?.[0];
+      if (!gen?.img) throw new Error(`Horde: no image — ${JSON.stringify(result).substring(0, 120)}`);
+      return gen.img; // URL to R2-stored image
     }
   }
   throw new Error('timeout');
+}
+
+/**
+ * Generate an image via Craiyon (free, no login).
+ * Returns a dataUrl (data:image/jpeg;base64,...).
+ */
+export async function generateWithCraiyon(prompt, cancelledRef, timeoutMs = 120000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetch('https://api.craiyon.com/v3', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, token: null, model: 'art', negative_prompt: '' }),
+      signal: ctrl.signal
+    });
+    clearTimeout(timer);
+    if (!res.ok) {
+      const txt = await res.text().catch(() => '');
+      throw new Error(`Craiyon ${res.status}: ${txt.substring(0, 80)}`);
+    }
+    const data = await res.json();
+    console.log('[Craiyon] response keys:', Object.keys(data));
+    if (!data.images?.length) throw new Error('Craiyon: no images in response');
+    return `data:image/jpeg;base64,${data.images[0]}`;
+  } catch (e) {
+    clearTimeout(timer);
+    if (e.name === 'AbortError') throw new Error('timeout');
+    throw e;
+  }
 }
