@@ -1034,6 +1034,11 @@ function ComponentRenderer({ comp, isReadOnly }) {
       const color = props.color || '#374151';
       const thick = props.thickness ?? 2;
       const style = props.lineStyle || 'solid';
+      const lineType = props.lineType || 'straight';
+      const cx1 = (props.cx1abs ?? 0.5) * CANVAS_W - pos.x;
+      const cy1 = (props.cy1abs ?? 0.15) * CANVAS_H - pos.y;
+      const cx2 = (props.cx2abs ?? 0.5) * CANVAS_W - pos.x;
+      const cy2 = (props.cy2abs ?? 0.85) * CANVAS_H - pos.y;
       let dashArray;
       if (style === 'dashed') dashArray = `${thick*4},${thick*2}`;
       else if (style === 'dotted') dashArray = `${thick},${thick*2}`;
@@ -1042,6 +1047,16 @@ function ComponentRenderer({ comp, isReadOnly }) {
       const uid = comp.id.slice(-6);
       const aSize = Math.max(6, thick * 5);
       const hasArrows = props.arrowStart !== 'none' || props.arrowEnd !== 'none';
+      const pathD = lineType === 'curve'
+        ? `M ${lx1} ${ly1} Q ${cx1} ${cy1} ${lx2} ${ly2}`
+        : lineType === 'cubic'
+        ? `M ${lx1} ${ly1} C ${cx1} ${cy1} ${cx2} ${cy2} ${lx2} ${ly2}`
+        : null;
+      const strokeProps = { stroke: color, strokeWidth: thick, strokeDasharray: dashArray, strokeLinecap: 'round' };
+      const markerProps = {
+        markerStart: props.arrowStart !== 'none' ? `url(#as${uid})` : undefined,
+        markerEnd: props.arrowEnd !== 'none' ? `url(#ae${uid})` : undefined,
+      };
       return (
         <svg width="100%" height="100%" viewBox={`0 0 ${w} ${h}`} style={{ display: 'block', overflow: 'visible' }} xmlns="http://www.w3.org/2000/svg">
           {hasArrows && (
@@ -1052,14 +1067,11 @@ function ComponentRenderer({ comp, isReadOnly }) {
               {props.arrowEnd === 'dot' && <marker id={`ae${uid}`} markerWidth={aSize} markerHeight={aSize} refX={aSize/2} refY={aSize/2} orient="auto"><circle cx={aSize/2} cy={aSize/2} r={aSize/2 - 0.5} fill={color} /></marker>}
             </defs>
           )}
-          <line
-            x1={lx1} y1={ly1} x2={lx2} y2={ly2}
-            stroke={color} strokeWidth={thick}
-            strokeDasharray={dashArray}
-            strokeLinecap="round"
-            markerStart={props.arrowStart !== 'none' ? `url(#as${uid})` : undefined}
-            markerEnd={props.arrowEnd !== 'none' ? `url(#ae${uid})` : undefined}
-          />
+          {pathD ? (
+            <path d={pathD} fill="none" {...strokeProps} {...markerProps} />
+          ) : (
+            <line x1={lx1} y1={ly1} x2={lx2} y2={ly2} {...strokeProps} {...markerProps} />
+          )}
         </svg>
       );
     }
@@ -1221,6 +1233,10 @@ export default function Canvas({ canvasRef }) {
       origAy: pos.y + (p.y1f ?? 0.5) * pos.height,
       origBx: pos.x + (p.x2f ?? 0.95) * pos.width,
       origBy: pos.y + (p.y2f ?? 0.5) * pos.height,
+      origCx1: (p.cx1abs ?? 0.5) * CANVAS_W,
+      origCy1: (p.cy1abs ?? 0.15) * CANVAS_H,
+      origCx2: (p.cx2abs ?? 0.5) * CANVAS_W,
+      origCy2: (p.cy2abs ?? 0.85) * CANVAS_H,
     };
   }, [state, getScale]);
 
@@ -1272,6 +1288,16 @@ export default function Canvas({ canvasRef }) {
       if (ds.type === 'moveLineEndpoint') {
         const dx = (e.clientX - ds.startMouseX) * ds.scaleX;
         const dy = (e.clientY - ds.startMouseY) * ds.scaleY;
+        if (ds.endpoint === 'c1' || ds.endpoint === 'c2') {
+          const isC1 = ds.endpoint === 'c1';
+          const ox = isC1 ? ds.origCx1 : ds.origCx2;
+          const oy = isC1 ? ds.origCy1 : ds.origCy2;
+          const nx = Math.max(0, Math.min(CANVAS_W, ox + dx)) / CANVAS_W;
+          const ny = Math.max(0, Math.min(CANVAS_H, oy + dy)) / CANVAS_H;
+          const upd = isC1 ? { cx1abs: nx, cy1abs: ny } : { cx2abs: nx, cy2abs: ny };
+          dispatch({ type: 'MOVE_LINE_ENDPOINT', id: ds.compId, ...upd, commit: false });
+          return;
+        }
         let ax = ds.origAx, ay = ds.origAy, bx = ds.origBx, by = ds.origBy;
         if (ds.endpoint === 'a') { ax += dx; ay += dy; } else { bx += dx; by += dy; }
         const pad = 10;
@@ -1315,6 +1341,17 @@ export default function Canvas({ canvasRef }) {
       if (ds.type === 'moveLineEndpoint') {
         const dx = (e.clientX - ds.startMouseX) * ds.scaleX;
         const dy = (e.clientY - ds.startMouseY) * ds.scaleY;
+        if (ds.endpoint === 'c1' || ds.endpoint === 'c2') {
+          const isC1 = ds.endpoint === 'c1';
+          const ox = isC1 ? ds.origCx1 : ds.origCx2;
+          const oy = isC1 ? ds.origCy1 : ds.origCy2;
+          const nx = Math.max(0, Math.min(CANVAS_W, ox + dx)) / CANVAS_W;
+          const ny = Math.max(0, Math.min(CANVAS_H, oy + dy)) / CANVAS_H;
+          const upd = isC1 ? { cx1abs: nx, cy1abs: ny } : { cx2abs: nx, cy2abs: ny };
+          dispatch({ type: 'MOVE_LINE_ENDPOINT', id: ds.compId, ...upd, commit: true });
+          dragState.current = null;
+          return;
+        }
         let ax = ds.origAx, ay = ds.origAy, bx = ds.origBx, by = ds.origBy;
         if (ds.endpoint === 'a') { ax += dx; ay += dy; } else { bx += dx; by += dy; }
         const pad = 10;
@@ -1446,14 +1483,33 @@ export default function Canvas({ canvasRef }) {
               >↻</div>
             )}
             {isSelected && comp.type === 'line' && (() => {
+              const lineType = comp.props.lineType || 'straight';
               const lx1 = (comp.props.x1f ?? 0.05) * width;
               const ly1 = (comp.props.y1f ?? 0.5) * height;
               const lx2 = (comp.props.x2f ?? 0.95) * width;
               const ly2 = (comp.props.y2f ?? 0.5) * height;
+              const cx1_l = (comp.props.cx1abs ?? 0.5) * CANVAS_W - x;
+              const cy1_l = (comp.props.cy1abs ?? 0.15) * CANVAS_H - y;
+              const cx2_l = (comp.props.cx2abs ?? 0.5) * CANVAS_W - x;
+              const cy2_l = (comp.props.cy2abs ?? 0.85) * CANVAS_H - y;
+              const HS = 14;
               return (
                 <>
-                  <div onMouseDown={(e) => handleLineEndpointMouseDown(e, comp.id, 'a')} style={{ position: 'absolute', left: lx1 - 7, top: ly1 - 7, width: 14, height: 14, borderRadius: '50%', backgroundColor: '#6C63FF', border: '2px solid white', cursor: 'move', zIndex: 15, boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} title="Point A" />
-                  <div onMouseDown={(e) => handleLineEndpointMouseDown(e, comp.id, 'b')} style={{ position: 'absolute', left: lx2 - 7, top: ly2 - 7, width: 14, height: 14, borderRadius: '50%', backgroundColor: '#EC4899', border: '2px solid white', cursor: 'move', zIndex: 15, boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} title="Point B" />
+                  {(lineType === 'curve' || lineType === 'cubic') && (
+                    <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'visible', pointerEvents: 'none', zIndex: 13 }} viewBox={`0 0 ${width} ${height}`}>
+                      <line x1={lx1} y1={ly1} x2={cx1_l} y2={cy1_l} stroke="#10B981" strokeWidth={1} strokeDasharray="4,3" opacity={0.7} />
+                      {lineType === 'curve' && <line x1={lx2} y1={ly2} x2={cx1_l} y2={cy1_l} stroke="#10B981" strokeWidth={1} strokeDasharray="4,3" opacity={0.7} />}
+                      {lineType === 'cubic' && <line x1={lx2} y1={ly2} x2={cx2_l} y2={cy2_l} stroke="#F59E0B" strokeWidth={1} strokeDasharray="4,3" opacity={0.7} />}
+                    </svg>
+                  )}
+                  <div onMouseDown={(e) => handleLineEndpointMouseDown(e, comp.id, 'a')} style={{ position: 'absolute', left: lx1 - HS/2, top: ly1 - HS/2, width: HS, height: HS, borderRadius: '50%', backgroundColor: '#6C63FF', border: '2px solid white', cursor: 'move', zIndex: 15, boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} title="Point A" />
+                  <div onMouseDown={(e) => handleLineEndpointMouseDown(e, comp.id, 'b')} style={{ position: 'absolute', left: lx2 - HS/2, top: ly2 - HS/2, width: HS, height: HS, borderRadius: '50%', backgroundColor: '#EC4899', border: '2px solid white', cursor: 'move', zIndex: 15, boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} title="Point B" />
+                  {(lineType === 'curve' || lineType === 'cubic') && (
+                    <div onMouseDown={(e) => handleLineEndpointMouseDown(e, comp.id, 'c1')} style={{ position: 'absolute', left: cx1_l - HS/2, top: cy1_l - HS/2, width: HS, height: HS, borderRadius: 3, backgroundColor: '#10B981', border: '2px solid white', cursor: 'move', zIndex: 15, boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} title="Contrôle courbe" />
+                  )}
+                  {lineType === 'cubic' && (
+                    <div onMouseDown={(e) => handleLineEndpointMouseDown(e, comp.id, 'c2')} style={{ position: 'absolute', left: cx2_l - HS/2, top: cy2_l - HS/2, width: HS, height: HS, borderRadius: 3, backgroundColor: '#F59E0B', border: '2px solid white', cursor: 'move', zIndex: 15, boxShadow: '0 1px 4px rgba(0,0,0,0.3)' }} title="Contrôle courbe 2" />
+                  )}
                 </>
               );
             })()}

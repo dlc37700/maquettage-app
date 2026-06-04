@@ -341,12 +341,20 @@ function reducer(state, action) {
       return { ...state, highlightTexts: !state.highlightTexts };
 
     case 'MOVE_LINE_ENDPOINT': {
-      // Updates both position and endpoint fractions atomically
       const screens = updateScreenComponents(state.screens, state.activeScreenId, comps =>
         comps.map(c => c.id === action.id ? {
           ...c,
-          position: { x: action.x, y: action.y, width: action.width, height: action.height },
-          props: { ...c.props, x1f: action.x1f, y1f: action.y1f, x2f: action.x2f, y2f: action.y2f },
+          position: action.x !== undefined
+            ? { x: action.x, y: action.y, width: action.width, height: action.height }
+            : c.position,
+          props: {
+            ...c.props,
+            ...(action.x !== undefined && { x1f: action.x1f, y1f: action.y1f, x2f: action.x2f, y2f: action.y2f }),
+            ...(action.cx1abs !== undefined && { cx1abs: action.cx1abs }),
+            ...(action.cy1abs !== undefined && { cy1abs: action.cy1abs }),
+            ...(action.cx2abs !== undefined && { cx2abs: action.cx2abs }),
+            ...(action.cy2abs !== undefined && { cy2abs: action.cy2abs }),
+          },
         } : c)
       );
       if (action.commit) return pushHistory(state, { screens });

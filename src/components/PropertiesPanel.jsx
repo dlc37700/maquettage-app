@@ -1161,6 +1161,42 @@ function ComponentProperties({ comp }) {
               ))}
             </div>
           </Field>
+          <Field label="Type de courbe">
+            <div style={{ display: 'flex', gap: 4 }}>
+              {[
+                { id: 'straight', label: '╱ Droite' },
+                { id: 'curve', label: '⌒ Courbe' },
+                { id: 'cubic', label: '∿ S-Courbe' },
+              ].map(lt => (
+                <button key={lt.id}
+                  onClick={() => {
+                    if (lt.id === 'straight') { update({ lineType: 'straight' }); return; }
+                    const ax = comp.position.x + (p.x1f ?? 0.05) * comp.position.width;
+                    const ay = comp.position.y + (p.y1f ?? 0.5) * comp.position.height;
+                    const bx = comp.position.x + (p.x2f ?? 0.95) * comp.position.width;
+                    const by = comp.position.y + (p.y2f ?? 0.5) * comp.position.height;
+                    const dx = bx - ax, dy = by - ay;
+                    const len = Math.sqrt(dx*dx + dy*dy) || 1;
+                    const px = -dy / len * 70, py = dx / len * 70;
+                    const mx = (ax + bx) / 2, my = (ay + by) / 2;
+                    const CW = 390, CH = 844;
+                    const clamp = (v, max) => Math.max(0, Math.min(1, v / max));
+                    if (lt.id === 'curve') {
+                      update({ lineType: 'curve', cx1abs: clamp(mx + px, CW), cy1abs: clamp(my + py, CH) });
+                    } else {
+                      update({
+                        lineType: 'cubic',
+                        cx1abs: clamp(ax + dx/3 + px, CW), cy1abs: clamp(ay + dy/3 + py, CH),
+                        cx2abs: clamp(ax + 2*dx/3 - px, CW), cy2abs: clamp(ay + 2*dy/3 - py, CH),
+                      });
+                    }
+                  }}
+                  style={{ flex: 1, padding: '5px 4px', borderRadius: 6, border: `1.5px solid ${(p.lineType || 'straight') === lt.id ? '#6C63FF' : '#E5E7EB'}`, backgroundColor: (p.lineType || 'straight') === lt.id ? '#EDE9FE' : '#F9FAFB', color: (p.lineType || 'straight') === lt.id ? '#6C63FF' : '#6B7280', fontSize: 12, fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer' }}>
+                  {lt.label}
+                </button>
+              ))}
+            </div>
+          </Field>
           <SectionTitle>Direction</SectionTitle>
           <Field label="Présets">
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 }}>

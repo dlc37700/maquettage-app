@@ -391,13 +391,26 @@ function compToHtml(comp) {
         };
         defs = `<defs>${hasA ? mkr(`${uid}s`, props.arrowStart, true) : ''}${hasB ? mkr(`${uid}e`, props.arrowEnd, false) : ''}</defs>`;
       }
+      const lineType = props.lineType || 'straight';
+      const CW = 390, CH = 844;
+      const cx1 = (props.cx1abs ?? 0.5) * CW - pos.x;
+      const cy1 = (props.cy1abs ?? 0.15) * CH - pos.y;
+      const cx2 = (props.cx2abs ?? 0.5) * CW - pos.x;
+      const cy2 = (props.cy2abs ?? 0.85) * CH - pos.y;
+      const pathD = lineType === 'curve'
+        ? `M ${lx1} ${ly1} Q ${cx1} ${cy1} ${lx2} ${ly2}`
+        : lineType === 'cubic'
+        ? `M ${lx1} ${ly1} C ${cx1} ${cy1} ${cx2} ${cy2} ${lx2} ${ly2}`
+        : null;
       let lineEl;
-      if (style === 'double') {
+      if (style === 'double' && !pathD) {
         const offset = thick + 1;
         const angle = Math.atan2(ly2 - ly1, lx2 - lx1);
         const dx = Math.sin(angle) * offset;
         const dy = -Math.cos(angle) * offset;
         lineEl = `<line x1="${lx1+dx}" y1="${ly1+dy}" x2="${lx2+dx}" y2="${ly2+dy}" stroke="${color}" stroke-width="${thick}" stroke-linecap="round"/><line x1="${lx1-dx}" y1="${ly1-dy}" x2="${lx2-dx}" y2="${ly2-dy}" stroke="${color}" stroke-width="${thick}" stroke-linecap="round"/>`;
+      } else if (pathD) {
+        lineEl = `<path d="${pathD}" fill="none" stroke="${color}" stroke-width="${thick}" stroke-linecap="round" ${da} ${hasA ? `marker-start="url(#${uid}s)"` : ''} ${hasB ? `marker-end="url(#${uid}e)"` : ''}/>`;
       } else {
         lineEl = `<line x1="${lx1}" y1="${ly1}" x2="${lx2}" y2="${ly2}" stroke="${color}" stroke-width="${thick}" stroke-linecap="round" ${da} ${hasA ? `marker-start="url(#${uid}s)"` : ''} ${hasB ? `marker-end="url(#${uid}e)"` : ''}/>`;
       }
