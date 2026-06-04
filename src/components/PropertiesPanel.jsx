@@ -718,6 +718,7 @@ function AiImageProperties({ comp }) {
   const [elapsed, setElapsed] = useState(0);
   const [queuePos, setQueuePos] = useState(null);
   const [removeBgOn, setRemoveBgOn] = useState(false);
+  const [mode3d, setMode3d] = useState(false);
   const cancelledRef = useRef(false);
   const timerRef = useRef(null);
 
@@ -734,16 +735,19 @@ function AiImageProperties({ comp }) {
 
     try {
       let dataUrl;
+      const finalPrompt = mode3d
+        ? subject + ', 3D render, photorealistic, blender style, studio lighting, white background, high quality'
+        : subject;
       const hfToken = getHfToken();
       if (hfToken) {
         console.log('[AI] Using Hugging Face (FLUX)...');
-        dataUrl = await generateWithHuggingFace(subject, hfToken, cancelledRef, 120000);
+        dataUrl = await generateWithHuggingFace(finalPrompt, hfToken, cancelledRef, 120000);
         console.log('[AI] HF success');
       } else {
         console.log('[AI] No HF token — using AI Horde (slow for anonymous)');
         setQueuePos(null);
         dataUrl = await generateWithHorde(
-          subject,
+          finalPrompt,
           (status) => { setQueuePos(status.queue_position ?? null); },
           cancelledRef,
           300000
@@ -809,9 +813,13 @@ function AiImageProperties({ comp }) {
         />
       </Field>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <Toggle value={removeBgOn} onChange={setRemoveBgOn} />
         <span style={{ fontSize: 11, color: '#6B7280', fontFamily: 'Nunito, sans-serif' }}>Supprimer le fond</span>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <Toggle value={mode3d} onChange={setMode3d} />
+        <span style={{ fontSize: 11, color: mode3d ? '#6C63FF' : '#6B7280', fontFamily: 'Nunito, sans-serif', fontWeight: mode3d ? 700 : 400 }}>🧊 Mode 3D (rendu photoréaliste)</span>
       </div>
 
       <button

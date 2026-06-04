@@ -15,7 +15,7 @@ if (typeof document !== 'undefined' && !document.getElementById('maquetapp-anims
   const s = document.createElement('style');
   s.id = 'maquetapp-anims';
   s.textContent = `
-    @keyframes maquetapp-spin3d { from{transform:perspective(500px) rotateY(0deg)} to{transform:perspective(500px) rotateY(360deg)} }
+    @keyframes maquetapp-spin3d { from{transform:rotateY(0deg) rotateX(10deg)} to{transform:rotateY(360deg) rotateX(10deg)} }
     @keyframes maquetapp-spinz  { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
     @keyframes maquetapp-float  { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8%)} }
     @keyframes maquetapp-pulse  { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
@@ -704,9 +704,12 @@ function AiImageRenderer({ comp }) {
       </div>
     );
   }
+  const perspectiveStyle = animType === 'spin3d' ? { perspective: '600px', perspectiveOrigin: 'center center' } : {};
   return (
-    <div style={{ width: '100%', height: '100%', ...animStyle }}>
-      <img src={p.imageData} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+    <div style={{ width: '100%', height: '100%', ...perspectiveStyle }}>
+      <div style={{ width: '100%', height: '100%', ...animStyle }}>
+        <img src={p.imageData} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+      </div>
     </div>
   );
 }

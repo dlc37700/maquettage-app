@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { removeBg, imageUrlToDataUrl, generateWithHorde, generateWithHuggingFace, getHfToken, setHfToken } from '../utils/aiImageUtils';
+import { removeBg, imageUrlToDataUrl, generateWithHorde, generateWithHuggingFace, getHfToken } from '../utils/aiImageUtils';
 import { COMPONENT_DEFINITIONS, BUTTON_PRESETS, AVATAR_PRESETS } from '../data/componentDefinitions';
 import { useProject } from '../hooks/useProject';
 import { useImageLibrary } from '../hooks/useImageLibrary';
@@ -35,9 +35,8 @@ export default function ComponentPalette({ mobile = false }) {
   const [aiResult, setAiResult] = useState('');
   const [aiElapsed, setAiElapsed] = useState(0);
   const [aiQueuePos, setAiQueuePos] = useState(null);
-  const [hfTokenInput, setHfTokenInput] = useState(getHfToken);
-  const [showHfToken, setShowHfToken] = useState(!getHfToken());
   const [aiRemoveBgOn, setAiRemoveBgOn] = useState(true);
+  const [ai3dMode, setAi3dMode] = useState(false);
   const aiCancelledRef = useRef(false);
   const aiTimerRef = useRef(null);
 
@@ -55,16 +54,19 @@ export default function ComponentPalette({ mobile = false }) {
 
     try {
       let dataUrl;
+      const finalPrompt = ai3dMode
+        ? subject + ', 3D render, photorealistic, blender style, studio lighting, white background, high quality'
+        : subject;
       const hfToken = getHfToken();
       if (hfToken) {
         console.log('[AI] Using Hugging Face (FLUX)...');
-        dataUrl = await generateWithHuggingFace(subject, hfToken, aiCancelledRef, 120000);
+        dataUrl = await generateWithHuggingFace(finalPrompt, hfToken, aiCancelledRef, 120000);
         console.log('[AI] HF success');
       } else {
         console.log('[AI] No HF token — using AI Horde (slow for anonymous users)');
         setAiQueuePos(null);
         dataUrl = await generateWithHorde(
-          subject,
+          finalPrompt,
           (status) => { setAiQueuePos(status.queue_position ?? null); },
           aiCancelledRef,
           300000
@@ -289,33 +291,6 @@ export default function ComponentPalette({ mobile = false }) {
             </button>
             {openAiImages && (
               <div>
-                {/* HF token config */}
-                {showHfToken ? (
-                  <div style={{ marginBottom: 6, padding: '6px 8px', backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 8, border: '1px solid rgba(167,139,250,0.4)' }}>
-                    <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 9, fontFamily: 'Nunito, sans-serif', marginBottom: 4, lineHeight: 1.4 }}>
-                      🔑 Token Hugging Face gratuit (obligatoire) :<br/>
-                      <span style={{ color: '#A78BFA' }}>huggingface.co → Settings → Access Tokens</span>
-                    </div>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <input
-                        value={hfTokenInput}
-                        onChange={e => setHfTokenInput(e.target.value)}
-                        placeholder="hf_xxxxxxxxxxxx"
-                        type="password"
-                        style={{ flex: 1, padding: '4px 7px', borderRadius: 6, border: 'none', backgroundColor: 'rgba(255,255,255,0.15)', color: 'white', fontSize: 10, fontFamily: 'Nunito, sans-serif', outline: 'none' }}
-                      />
-                      <button
-                        onClick={() => { setHfToken(hfTokenInput); if (hfTokenInput.trim()) setShowHfToken(false); }}
-                        style={{ padding: '4px 8px', borderRadius: 6, border: 'none', backgroundColor: '#6C63FF', color: 'white', fontSize: 10, fontWeight: 700, cursor: 'pointer', fontFamily: 'Nunito, sans-serif' }}
-                      >OK</button>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                    <span style={{ color: '#A78BFA', fontSize: 9, fontFamily: 'Nunito, sans-serif' }}>✅ Token HF configuré</span>
-                    <button onClick={() => setShowHfToken(true)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: 9, cursor: 'pointer', fontFamily: 'Nunito, sans-serif' }}>Modifier</button>
-                  </div>
-                )}
                 <div style={{ display: 'flex', gap: 4, marginBottom: 5 }}>
                   <input
                     value={aiPrompt}
@@ -333,11 +308,17 @@ export default function ComponentPalette({ mobile = false }) {
                     {aiStep === 'fetching' || aiStep === 'removing' ? '✕' : '✨'}
                   </button>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                   <div onClick={() => setAiRemoveBgOn(v => !v)} style={{ width: 32, height: 18, backgroundColor: aiRemoveBgOn ? '#6C63FF' : '#6B7280', borderRadius: 9, position: 'relative', cursor: 'pointer', flexShrink: 0 }}>
                     <div style={{ position: 'absolute', top: 2, left: aiRemoveBgOn ? 15 : 2, width: 14, height: 14, backgroundColor: 'white', borderRadius: '50%', transition: 'left 0.15s' }} />
                   </div>
                   <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.65)', fontFamily: 'Nunito, sans-serif' }}>Supprimer fond</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  <div onClick={() => setAi3dMode(v => !v)} style={{ width: 32, height: 18, backgroundColor: ai3dMode ? '#8B5CF6' : '#6B7280', borderRadius: 9, position: 'relative', cursor: 'pointer', flexShrink: 0 }}>
+                    <div style={{ position: 'absolute', top: 2, left: ai3dMode ? 15 : 2, width: 14, height: 14, backgroundColor: 'white', borderRadius: '50%', transition: 'left 0.15s' }} />
+                  </div>
+                  <span style={{ fontSize: 10, color: ai3dMode ? '#C4B5FD' : 'rgba(255,255,255,0.65)', fontFamily: 'Nunito, sans-serif', fontWeight: ai3dMode ? 700 : 400 }}>🧊 Mode 3D</span>
                 </div>
                 {(aiStep === 'fetching' || aiStep === 'removing') && (
                   <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontFamily: 'Nunito, sans-serif', textAlign: 'center', padding: '8px 0' }}>

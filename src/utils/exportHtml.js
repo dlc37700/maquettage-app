@@ -345,6 +345,10 @@ function compToHtml(comp) {
         return `<div${navOnclick} style="${base}display:flex;flex-direction:column;align-items:center;justify-content:center;background-color:#F5F3FF;border:2px dashed #A78BFA;border-radius:8px;gap:6px"><span style="font-size:28px">🤖</span><span style="color:#6C63FF;font-size:11px;font-family:Nunito,sans-serif;font-weight:700">Génération IA</span></div>`;
       }
       const aiAnim = props.animationType ? `animation:maquetapp-${props.animationType} ${props.animationType === 'float' ? '2s ease-in-out' : props.animationType === 'pulse' ? '1.5s ease-in-out' : '3s linear'} infinite;transform-origin:center center;` : '';
+      const aiPersp = props.animationType === 'spin3d' ? `perspective:600px;perspective-origin:center center;` : '';
+      if (props.animationType === 'spin3d') {
+        return `<div${navOnclick} style="${base}${aiPersp}${navOnclick ? 'cursor:pointer;' : ''}"><div style="width:100%;height:100%;${aiAnim}"><img src="${props.imageData}" alt="" style="width:100%;height:100%;object-fit:contain;display:block" /></div></div>`;
+      }
       return `<div${navOnclick} style="${base}${aiAnim}${navOnclick ? 'cursor:pointer;' : ''}"><img src="${props.imageData}" alt="" style="width:100%;height:100%;object-fit:contain;display:block" /></div>`;
     }
 
@@ -514,7 +518,7 @@ export function exportProjectAsHtml(state) {
       overflow: hidden;
       position: relative;
     }
-    @keyframes maquetapp-spin3d { from{transform:perspective(500px) rotateY(0deg)} to{transform:perspective(500px) rotateY(360deg)} }
+    @keyframes maquetapp-spin3d { from{transform:rotateY(0deg) rotateX(10deg)} to{transform:rotateY(360deg) rotateX(10deg)} }
     @keyframes maquetapp-spinz  { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
     @keyframes maquetapp-float  { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8%)} }
     @keyframes maquetapp-pulse  { 0%,100%{transform:scale(1)} 50%{transform:scale(1.08)} }
