@@ -10,6 +10,10 @@ import { renderChartSvg, DEFAULT_CHART_DATA_STR } from '../data/chartHelper';
 const CANVAS_W = 390;
 const CANVAS_H = 844;
 
+const TEXT_TYPES = new Set(['text', 'button', 'input', 'searchbar', 'checkbox', 'radio',
+  'header', 'navbar', 'card', 'listitem', 'badge', 'fontwork', 'textwork',
+  'table', 'schedule', 'switch', 'slider', 'keyboard', 'calendar', 'weekcalendar']);
+
 // Inject CSS keyframes for image animations (once)
 if (typeof document !== 'undefined' && !document.getElementById('maquetapp-anims')) {
   const s = document.createElement('style');
@@ -1424,6 +1428,11 @@ export default function Canvas({ canvasRef }) {
             <div className="component-outline" style={{ width: '100%', height: '100%' }}>
               <ComponentRenderer comp={comp} isReadOnly={isRemote} />
             </div>
+            {!isRemote && state.highlightTexts && TEXT_TYPES.has(comp.type) && (
+              <div style={{ position: 'absolute', inset: 0, border: '2px solid #FCD34D', backgroundColor: 'rgba(252,211,77,0.15)', borderRadius: 4, pointerEvents: 'none', zIndex: 9 }}>
+                <span style={{ position: 'absolute', top: 2, left: 3, fontSize: 9, color: '#92400E', backgroundColor: '#FCD34D', borderRadius: 3, padding: '0px 4px', fontFamily: 'Nunito, sans-serif', fontWeight: 800, lineHeight: '16px' }}>T</span>
+              </div>
+            )}
             {!isRemote && comp.props?.navigateTo && (
               <div style={{ position: 'absolute', top: 3, right: 3, width: 16, height: 16, backgroundColor: '#3B82F6', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10 }}>
                 <span style={{ fontSize: 9, color: 'white', lineHeight: 1 }}>🔗</span>

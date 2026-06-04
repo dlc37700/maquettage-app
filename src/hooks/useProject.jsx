@@ -17,6 +17,7 @@ const INITIAL_STATE = {
   selectedComponentId: null,
   selectedNavbarItemIndex: null,
   pendingTool: null,
+  highlightTexts: false,
 };
 
 function takeSnapshot(state) {
@@ -335,6 +336,9 @@ function reducer(state, action) {
 
     case 'SET_PENDING_TOOL':
       return { ...state, pendingTool: action.tool || null };
+
+    case 'TOGGLE_HIGHLIGHT_TEXTS':
+      return { ...state, highlightTexts: !state.highlightTexts };
 
     case 'MOVE_LINE_ENDPOINT': {
       // Updates both position and endpoint fractions atomically

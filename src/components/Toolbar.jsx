@@ -172,6 +172,25 @@ export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessi
 
       <div style={{ width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.15)' }} />
 
+      {/* Highlight texts */}
+      <button
+        onClick={() => dispatch({ type: 'TOGGLE_HIGHLIGHT_TEXTS' })}
+        title="Surligner tous les éléments avec du texte"
+        style={{
+          display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: 8,
+          border: state.highlightTexts ? '1.5px solid #FCD34D' : 'none',
+          backgroundColor: state.highlightTexts ? 'rgba(252,211,77,0.2)' : 'rgba(255,255,255,0.08)',
+          color: state.highlightTexts ? '#FCD34D' : 'rgba(255,255,255,0.7)',
+          fontSize: 12, fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer',
+          transition: 'all 0.15s',
+        }}
+      >
+        <span style={{ fontSize: 14 }}>🔡</span>
+        <span>Textes</span>
+      </button>
+
+      <div style={{ width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.15)' }} />
+
       {/* Collaboration */}
       {sessionCode ? (
         <button
