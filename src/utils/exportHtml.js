@@ -6,7 +6,7 @@ function getBgCss(bgColor, bgGradient) {
   if (bgGradient && bgGradient.from && bgGradient.to) {
     return `background:linear-gradient(${bgGradient.angle ?? 135}deg,${bgGradient.from},${bgGradient.to})`;
   }
-  return `background-color:${bgColor}`;
+  return `background-color:${bgColor || 'transparent'}`;
 }
 
 function escHtml(str) {
@@ -28,7 +28,7 @@ function compToHtml(comp) {
   const _transformCss = _transforms.length ? `transform:${_transforms.join(' ')};transform-origin:center center;` : '';
   const base = `position:absolute;left:${pos.x}px;top:${pos.y}px;width:${pos.width}px;height:${pos.height}px;opacity:${props.opacity ?? 1};z-index:${zIndex || 1};box-sizing:border-box;${_transformCss}`;
   const navOnclick = props.navigateTo
-    ? ` onclick="document.querySelectorAll('.screen').forEach((el)=>el.style.display=el.id==='screen-${props.navigateTo}'?'block':'none')"`
+    ? ` onclick="showScreen('${props.navigateTo}');return false;"`
     : '';
 
   switch (type) {
@@ -54,9 +54,9 @@ function compToHtml(comp) {
     }
 
     case 'input':
-      return `<div style="${base}display:flex;flex-direction:column;gap:4px">
+      return `<div${navOnclick} style="${base}display:flex;flex-direction:column;gap:4px${navOnclick ? ';cursor:pointer' : ''}">
   <label style="font-size:${props.labelFontSize || 12}px;color:#6B7280;font-family:${props.fontFamily || 'Nunito'},sans-serif;font-weight:600">${escHtml(props.label)}</label>
-  <input type="text" placeholder="${escHtml(props.placeholder)}" style="flex:1;${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};border-radius:${props.borderRadius || 8}px;border:1.5px solid #E5E7EB;padding:0 12px;font-size:${props.fontSize || 14}px;font-family:${props.fontFamily || 'Nunito'},sans-serif;outline:none;width:100%;box-sizing:border-box">
+  <input type="text" placeholder="${escHtml(props.placeholder)}" ${navOnclick ? 'readonly ' : ''}style="flex:1;${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor || '#1F2937'};border-radius:${props.borderRadius || 8}px;border:1.5px solid #E5E7EB;padding:0 12px;font-size:${props.fontSize || 14}px;font-family:${props.fontFamily || 'Nunito'},sans-serif;outline:none;width:100%;box-sizing:border-box">
 </div>`;
 
     case 'searchbar': {
@@ -123,13 +123,13 @@ function compToHtml(comp) {
 
     case 'header':
       return `<header${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};display:flex;align-items:center;padding:0 16px;gap:12px${navOnclick ? ';cursor:pointer' : ''}">
-  ${props.showBack ? `<button onclick="history.back()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;padding:0"><i data-lucide="arrow-left" style="width:20px;height:20px;color:${props.textColor}"></i></button>` : ''}
+  ${props.showBack ? `<button onclick="(function(){var h=window._screenHistory;if(h&&h.length>1){h.pop();showScreen(h[h.length-1]);}else{var first=document.querySelector('.screen');if(first)showScreen(first.id.replace('screen-',''));}})()" style="background:none;border:none;cursor:pointer;display:flex;align-items:center;padding:0"><i data-lucide="arrow-left" style="width:20px;height:20px;color:${props.textColor}"></i></button>` : ''}
   <span style="color:${props.textColor};font-size:18px;font-weight:700;font-family:${props.fontFamily || 'Nunito'},sans-serif;flex:1;text-align:${props.textAlign || 'left'}">${escHtml(props.title)}</span>
 </header>`;
 
     case 'navbar':
-      return `<nav style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-top:1px solid #E5E7EB;display:flex;align-items:center;justify-content:space-around;padding:0 8px">
-  ${['home','search','heart','user'].map((ic, i) => `<a href="#" style="display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none"><i data-lucide="${ic}" style="width:22px;height:22px;color:${i === 0 ? props.activeColor : '#9CA3AF'}"></i>${i === 0 ? `<span style="width:4px;height:4px;border-radius:50%;background:${props.activeColor};display:block"></span>` : ''}</a>`).join('')}
+      return `<nav${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-top:1px solid #E5E7EB;display:flex;align-items:center;justify-content:space-around;padding:0 8px${navOnclick ? ';cursor:pointer' : ''}">
+  ${['home','search','heart','user'].map((ic, i) => `<a href="javascript:void(0)" style="display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none"><i data-lucide="${ic}" style="width:22px;height:22px;color:${i === 0 ? props.activeColor : '#9CA3AF'}"></i>${i === 0 ? `<span style="width:4px;height:4px;border-radius:50%;background:${props.activeColor};display:block"></span>` : ''}</a>`).join('')}
 </nav>`;
 
     case 'card':
@@ -457,7 +457,7 @@ function screenToHtml(screen, index, total, allScreens) {
 
   const screenBgCss = screen.backgroundImage
     ? `background-image:url(${screen.backgroundImage});background-size:cover;background-position:center;background-repeat:no-repeat`
-    : getBgCss(screen.backgroundColor, screen.backgroundGradient);
+    : getBgCss(screen.backgroundColor || '#FFFFFF', screen.backgroundGradient);
   return `<!-- ===== Écran: ${escHtml(screen.name)} ===== -->
 <div id="screen-${screen.id}" class="screen" style="display:${index === 0 ? 'block' : 'none'};position:relative;width:390px;height:844px;${screenBgCss};overflow:hidden;flex-shrink:0">
     ${components}
@@ -469,19 +469,28 @@ export function exportProjectAsHtml(state) {
 
   const screensHtml = screens.map((s, i) => screenToHtml(s, i, screens.length, screens)).join('\n\n');
 
-  const navHtml = screens.length > 1 ? `
-  <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap">
+  const navBtnsHtml = screens.length > 1
+    ? `<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap">
     ${screens.map((s, i) => `<button onclick="showScreen('${s.id}')" id="nav-${s.id}" style="padding:6px 14px;border-radius:20px;border:none;cursor:pointer;font-family:Nunito,sans-serif;font-size:12px;font-weight:700;background-color:${i === 0 ? '#6C63FF' : '#E5E7EB'};color:${i === 0 ? 'white' : '#374151'}">${escHtml(s.name)}</button>`).join('')}
-  </div>
+  </div>`
+    : '';
+  const navHtml = `${navBtnsHtml}
   <script>
+    window._screenHistory = window._screenHistory || [];
     function showScreen(id) {
-      document.querySelectorAll('.screen').forEach(el => el.style.display = el.id === 'screen-' + id ? 'block' : 'none');
-      document.querySelectorAll('[id^="nav-"]').forEach(btn => {
+      var target = document.getElementById('screen-' + id);
+      if (!target) return;
+      document.querySelectorAll('.screen').forEach(function(el){ el.style.display = 'none'; });
+      target.style.display = 'block';
+      document.querySelectorAll('[id^="nav-"]').forEach(function(btn){
         btn.style.backgroundColor = btn.id === 'nav-' + id ? '#6C63FF' : '#E5E7EB';
         btn.style.color = btn.id === 'nav-' + id ? 'white' : '#374151';
       });
+      if (window._screenHistory[window._screenHistory.length - 1] !== id) {
+        window._screenHistory.push(id);
+      }
     }
-  <\/script>` : '';
+  <\/script>`;
 
   const html = `<!DOCTYPE html>
 <html lang="fr">
