@@ -124,21 +124,21 @@ export function getShapeSvgInner(shapeId, fill = '#6C63FF', stroke = 'none', sw 
              `<path d="M50,5 L85,85 L50,75 L50,5 Z" fill="${f}" style="filter:brightness(0.75)" ${swStr}/>` +
              `<path d="M15,85 L85,85 L50,75 Z" fill="${f}" style="filter:brightness(0.55)" ${swStr}/>`;
     case 'half_l':
-      return `<path d="M50,2 A48,48 0 0 0 50,98 L50,2 Z" ${pathAttrs}/>`;
+      return `<path d="M0,0 A50,50 0 0 1 0,100 Z" ${pathAttrs}/>`;
     case 'half_r':
-      return `<path d="M50,2 A48,48 0 0 1 50,98 L50,2 Z" ${pathAttrs}/>`;
+      return `<path d="M100,0 A50,50 0 0 0 100,100 Z" ${pathAttrs}/>`;
     case 'half_t':
-      return `<path d="M2,50 A48,48 0 0 1 98,50 L2,50 Z" ${pathAttrs}/>`;
+      return `<path d="M0,0 A50,50 0 0 1 100,0 Z" ${pathAttrs}/>`;
     case 'half_b':
-      return `<path d="M2,50 A48,48 0 0 0 98,50 L2,50 Z" ${pathAttrs}/>`;
+      return `<path d="M0,100 A50,50 0 0 0 100,100 Z" ${pathAttrs}/>`;
     case 'quart_tl':
-      return `<path d="M2,2 L98,2 A96,96 0 0 0 2,98 Z" ${pathAttrs}/>`;
+      return `<path d="M0,0 L100,0 A100,100 0 0 1 0,100 Z" ${pathAttrs}/>`;
     case 'quart_tr':
-      return `<path d="M98,2 L98,98 A96,96 0 0 0 2,2 Z" ${pathAttrs}/>`;
+      return `<path d="M100,0 L0,0 A100,100 0 0 0 100,100 Z" ${pathAttrs}/>`;
     case 'quart_bl':
-      return `<path d="M2,98 L2,2 A96,96 0 0 1 98,98 Z" ${pathAttrs}/>`;
+      return `<path d="M0,100 L100,100 A100,100 0 0 0 0,0 Z" ${pathAttrs}/>`;
     case 'quart_br':
-      return `<path d="M98,98 L2,98 A96,96 0 0 1 98,2 Z" ${pathAttrs}/>`;
+      return `<path d="M100,100 L0,100 A100,100 0 0 1 100,0 Z" ${pathAttrs}/>`;
     default:
       return `<ellipse cx="50" cy="50" rx="48" ry="48" ${pathAttrs}/>`;
   }
