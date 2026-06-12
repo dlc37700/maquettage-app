@@ -19,6 +19,20 @@ function lucideRef(name) {
   return name.replace(/([A-Z])/g, (m, l, i) => (i > 0 ? '-' : '') + l.toLowerCase());
 }
 
+function tablerRef(name) {
+  if (!name) return '';
+  // Tabler react names are IconHome -> webfont class ti-home
+  return name.replace(/^Icon/, '').replace(/([A-Z])/g, (m, l, i) => (i > 0 ? '-' : '') + l.toLowerCase()).replace(/([a-z])(\d)/g, '$1-$2');
+}
+
+function iconHtml(name, iconSet, sizePx, color) {
+  if (!name) return '';
+  if (iconSet === 'tabler') {
+    return `<i class="ti ti-${tablerRef(name)}" style="font-size:${sizePx}px;color:${color};line-height:1"></i>`;
+  }
+  return `<i data-lucide="${lucideRef(name)}" style="width:${sizePx}px;height:${sizePx}px;color:${color}"></i>`;
+}
+
 function compToHtml(comp) {
   const { type, props, position: pos, zIndex } = comp;
   const _transforms = [];
@@ -116,10 +130,13 @@ function compToHtml(comp) {
   <i data-lucide="user" style="width:${Math.round(Math.min(pos.width, pos.height) * 0.55)}px;height:${Math.round(Math.min(pos.width, pos.height) * 0.55)}px;color:white"></i>
 </div>`;
 
-    case 'icon':
-      return `<div${navOnclick} style="${base}display:flex;align-items:center;justify-content:center${navOnclick ? ';cursor:pointer' : ''}">
-  <i data-lucide="${lucideRef(props.iconName || 'star')}" style="width:${Math.round(Math.min(pos.width, pos.height) * 0.55)}px;height:${Math.round(Math.min(pos.width, pos.height) * 0.55)}px;color:${props.color}"></i>
+    case 'icon': {
+      const hasIconBg = 'bgColor' in props;
+      const iconBgCss = hasIconBg ? `;${getBgCss(props.bgColor, props.bgGradient)};border-radius:${props.borderRadius ?? 100}px` : '';
+      return `<div${navOnclick} style="${base}display:flex;align-items:center;justify-content:center${iconBgCss}${navOnclick ? ';cursor:pointer' : ''}">
+  ${iconHtml(props.iconName || 'Star', props.iconSet || 'lucide', Math.round(Math.min(pos.width, pos.height) * 0.55), props.color)}
 </div>`;
+    }
 
     case 'header':
       return `<header${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};display:flex;align-items:center;padding:0 16px;gap:12px${navOnclick ? ';cursor:pointer' : ''}">
@@ -127,10 +144,29 @@ function compToHtml(comp) {
   <span style="color:${props.textColor};font-size:18px;font-weight:700;font-family:${props.fontFamily || 'Nunito'},sans-serif;flex:1;text-align:${props.textAlign || 'left'}">${escHtml(props.title)}</span>
 </header>`;
 
-    case 'navbar':
-      return `<nav${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-top:1px solid #E5E7EB;display:flex;align-items:center;justify-content:space-around;padding:0 8px${navOnclick ? ';cursor:pointer' : ''}">
-  ${['home','search','heart','user'].map((ic, i) => `<a href="javascript:void(0)" style="display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none"><i data-lucide="${ic}" style="width:22px;height:22px;color:${i === 0 ? props.activeColor : '#9CA3AF'}"></i>${i === 0 ? `<span style="width:4px;height:4px;border-radius:50%;background:${props.activeColor};display:block"></span>` : ''}</a>`).join('')}
+    case 'navbar': {
+      const defaultNavItems = [
+        { iconName: 'Home', iconSet: 'lucide', label: 'Accueil', navigateTo: '' },
+        { iconName: 'Search', iconSet: 'lucide', label: 'Recherche', navigateTo: '' },
+        { iconName: 'Heart', iconSet: 'lucide', label: 'Favoris', navigateTo: '' },
+        { iconName: 'User', iconSet: 'lucide', label: 'Profil', navigateTo: '' },
+      ];
+      const navItems = Array.isArray(props.items) ? props.items : defaultNavItems;
+      const activeIndex = props.activeIndex ?? 0;
+      const navIconSize = Math.max(14, Math.round(Math.min((pos.width / navItems.length) * 0.45, pos.height * 0.4)));
+      const navLabelSize = Math.max(8, Math.round(pos.height * 0.13));
+      return `<nav${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-top:1px solid ${props.borderTopColor || '#E5E7EB'};display:flex;align-items:center;justify-content:space-around;padding:0 4px${navOnclick ? ';cursor:pointer' : ''}">
+  ${navItems.map((item, i) => {
+    const isActive = i === activeIndex;
+    const color = item.color || (isActive ? (props.activeColor || '#6C63FF') : (props.inactiveColor || '#9CA3AF'));
+    const itemClick = item.navigateTo ? ` onclick="showScreen('${item.navigateTo}');return false;"` : '';
+    const labelOrDot = props.showLabels !== false
+      ? `<span style="font-size:${navLabelSize}px;color:${color};font-family:Nunito,sans-serif;font-weight:${isActive ? 700 : 400};line-height:1">${escHtml(item.label || '')}</span>`
+      : (isActive ? `<span style="width:4px;height:4px;border-radius:50%;background:${props.activeColor || '#6C63FF'};display:block"></span>` : '');
+    return `<a href="javascript:void(0)"${itemClick} style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;flex:1;height:100%;text-decoration:none;cursor:${item.navigateTo ? 'pointer' : 'default'}">${iconHtml(item.iconName, item.iconSet || 'lucide', navIconSize, color)}${labelOrDot}</a>`;
+  }).join('')}
 </nav>`;
+    }
 
     case 'card':
       if (props.backgroundImage) {
@@ -501,6 +537,7 @@ export function exportProjectAsHtml(state) {
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Caveat:wght@400;700&family=Dancing+Script:wght@400;700&family=Josefin+Sans:wght@400;600;700&family=Lato:wght@400;700&family=Merriweather:wght@400;700&family=Montserrat:wght@400;600;700&family=Nunito:wght@400;600;700;800;900&family=Open+Sans:wght@400;600;700&family=Oswald:wght@400;700&family=Pacifico&family=Playfair+Display:wght@400;700&family=Poppins:wght@400;600;700&family=Quicksand:wght@400;600;700&family=Raleway:wght@400;600;700&family=Roboto:wght@400;700&family=Ubuntu:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"><\/script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
   <style>
     *, *::before, *::after { box-sizing: border-box; }
     body {
