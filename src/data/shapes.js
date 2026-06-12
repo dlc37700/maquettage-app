@@ -7,6 +7,16 @@ export const SHAPES_CATEGORIES = [
     { id: 'triangle', label: 'Triangle ▲' },
     { id: 'diamond', label: 'Losange' },
   ]},
+  { label: 'Demi-formes', shapes: [
+    { id: 'half_l', label: '◐ Gauche' },
+    { id: 'half_r', label: '◑ Droit' },
+    { id: 'half_t', label: '◓ Haut' },
+    { id: 'half_b', label: '◒ Bas' },
+    { id: 'quart_tl', label: '◜ Coin TG' },
+    { id: 'quart_tr', label: '◝ Coin TD' },
+    { id: 'quart_bl', label: '◟ Coin BG' },
+    { id: 'quart_br', label: '◞ Coin BD' },
+  ]},
   { label: 'Polygones', shapes: [
     { id: 'pentagon', label: 'Pentagone' },
     { id: 'hexagon', label: 'Hexagone' },
@@ -113,6 +123,22 @@ export function getShapeSvgInner(shapeId, fill = '#6C63FF', stroke = 'none', sw 
       return `<path d="M50,5 L85,85 L15,85 Z" fill="${f}" ${swStr}/>` +
              `<path d="M50,5 L85,85 L50,75 L50,5 Z" fill="${f}" style="filter:brightness(0.75)" ${swStr}/>` +
              `<path d="M15,85 L85,85 L50,75 Z" fill="${f}" style="filter:brightness(0.55)" ${swStr}/>`;
+    case 'half_l':
+      return `<path d="M50,2 A48,48 0 0 0 50,98 L50,2 Z" ${pathAttrs}/>`;
+    case 'half_r':
+      return `<path d="M50,2 A48,48 0 0 1 50,98 L50,2 Z" ${pathAttrs}/>`;
+    case 'half_t':
+      return `<path d="M2,50 A48,48 0 0 1 98,50 L2,50 Z" ${pathAttrs}/>`;
+    case 'half_b':
+      return `<path d="M2,50 A48,48 0 0 0 98,50 L2,50 Z" ${pathAttrs}/>`;
+    case 'quart_tl':
+      return `<path d="M2,2 L98,2 A96,96 0 0 0 2,98 Z" ${pathAttrs}/>`;
+    case 'quart_tr':
+      return `<path d="M98,2 L98,98 A96,96 0 0 0 2,2 Z" ${pathAttrs}/>`;
+    case 'quart_bl':
+      return `<path d="M2,98 L2,2 A96,96 0 0 1 98,98 Z" ${pathAttrs}/>`;
+    case 'quart_br':
+      return `<path d="M98,98 L2,98 A96,96 0 0 1 98,2 Z" ${pathAttrs}/>`;
     default:
       return `<ellipse cx="50" cy="50" rx="48" ry="48" ${pathAttrs}/>`;
   }
