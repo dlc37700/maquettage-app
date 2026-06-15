@@ -235,3 +235,44 @@ export function clearBgRequest(code, myClientId) {
   if (!db || !code || !myClientId) return;
   remove(ref(db, `sessions/${code}/bgRequests/${myClientId}`)).catch(() => {});
 }
+
+export function sendScreenTransfer(code, targetClientId, screen, fromNickname) {
+  if (!db || !code || !targetClientId) return;
+  const cleanScreen = JSON.parse(JSON.stringify(screen));
+  delete cleanScreen._remote;
+  delete cleanScreen._nickname;
+  delete cleanScreen._clientId;
+  const r = push(ref(db, `sessions/${code}/transfers/${targetClientId}`));
+  set(r, {
+    screen: cleanScreen,
+    fromClientId: getClientId(),
+    fromNickname: fromNickname || 'Anonyme',
+    sentAt: Date.now(),
+  }).catch(err => console.error('[Transfer] Send error:', err));
+}
+
+export function listenTransfers(code, myClientId, callback) {
+  if (!db || !code || !myClientId) return () => {};
+  return onValue(ref(db, `sessions/${code}/transfers/${myClientId}`), (snap) => {
+    const val = snap.val();
+    if (!val) { callback([]); return; }
+    callback(Object.entries(val).map(([id, t]) => ({ id, ...t })));
+  });
+}
+
+export function clearTransfer(code, myClientId, transferId) {
+  if (!db || !code || !myClientId || !transferId) return;
+  remove(ref(db, `sessions/${code}/transfers/${myClientId}/${transferId}`)).catch(() => {});
+}
+
+export function listenSessionMembers(code, myClientId, callback) {
+  if (!db || !code) return () => {};
+  return onValue(ref(db, `sessions/${code}/clients`), (snap) => {
+    const val = snap.val() || {};
+    callback(
+      Object.entries(val)
+        .filter(([id]) => id !== myClientId)
+        .map(([id, data]) => ({ clientId: id, nickname: data.nickname || 'Anonyme' }))
+    );
+  });
+}

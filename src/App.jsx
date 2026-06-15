@@ -11,7 +11,8 @@ import ChatPanel from './components/ChatPanel';
 import AdminPanel from './components/AdminPanel';
 import MobileLayout from './components/MobileLayout';
 import BgRequestNotification from './components/BgRequestNotification';
-import { writeOwnScreens, loadSessionOnce, subscribeToSession, getClientId, registerPresence } from './services/session';
+import TransferNotification from './components/TransferNotification';
+import { writeOwnScreens, loadSessionOnce, subscribeToSession, getClientId, registerPresence, listenTransfers } from './services/session';
 import { isFirebaseConfigured } from './services/firebase';
 
 const SESSION_STORAGE_KEY = 'maquetapp-session-code';
@@ -27,6 +28,7 @@ function AppInner() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [isCreator, setIsCreator] = useState(false);
+  const [pendingTransfers, setPendingTransfers] = useState([]);
 
   const closeWelcome = () => {
     localStorage.setItem('maquetapp-visited', '1');
@@ -63,6 +65,11 @@ function AppInner() {
   useEffect(() => {
     if (!sessionCode || !isFirebaseConfigured) return;
     return registerPresence(sessionCode);
+  }, [sessionCode]);
+
+  useEffect(() => {
+    if (!sessionCode) return;
+    return listenTransfers(sessionCode, getClientId(), setPendingTransfers);
   }, [sessionCode]);
 
   const joinSession = useCallback((code, sessionData, options = {}) => {
@@ -218,6 +225,9 @@ function AppInner() {
       <ChatPanel sessionCode={sessionCode} />
       {modals}
       {sessionCode && <BgRequestNotification sessionCode={sessionCode} />}
+      {sessionCode && pendingTransfers.length > 0 && (
+        <TransferNotification sessionCode={sessionCode} transfers={pendingTransfers} />
+      )}
     </div>
   );
 }

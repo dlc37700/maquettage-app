@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useProject, useActiveScreen } from '../hooks/useProject';
 import BgApplyModal from './BgApplyModal';
-import { getClientNickname } from '../services/session';
+import { getClientNickname, listenSessionMembers, sendScreenTransfer, getClientId } from '../services/session';
 import { getShapeSvgInner } from '../data/shapes';
 
 const THUMB_W = 120;
@@ -107,7 +107,7 @@ function MiniComp({ comp }) {
   }
 }
 
-function ScreenThumbnail({ screen, isActive, isRemote, onClick, onRename, onDelete, onDuplicate }) {
+function ScreenThumbnail({ screen, isActive, isRemote, onClick, onRename, onDelete, onDuplicate, onTransfer, showTransfer }) {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(screen.name);
   const inputRef = useRef(null);
@@ -209,6 +209,9 @@ function ScreenThumbnail({ screen, isActive, isRemote, onClick, onRename, onDele
           <button onClick={startEdit} title="Renommer" style={actionBtnStyle}>✏️</button>
           <button onClick={(e) => { e.stopPropagation(); onDuplicate(); }} title="Dupliquer" style={actionBtnStyle}>📋</button>
           <button onClick={(e) => { e.stopPropagation(); onDelete(); }} title="Supprimer" style={{ ...actionBtnStyle, color: '#FCA5A5' }}>🗑️</button>
+          {showTransfer && (
+            <button onClick={(e) => { e.stopPropagation(); onTransfer(); }} title="Transférer à un membre" style={actionBtnStyle}>📤</button>
+          )}
         </div>
       )}
     </div>
@@ -228,6 +231,19 @@ const actionBtnStyle = {
 export default function ScreenManager({ isCreator = false, sessionCode = null }) {
   const { state, dispatch } = useProject();
   const [showBgModal, setShowBgModal] = useState(false);
+  const [sessionMembers, setSessionMembers] = useState([]);
+  const [transferingScreen, setTransferingScreen] = useState(null);
+
+  useEffect(() => {
+    if (!sessionCode) return;
+    return listenSessionMembers(sessionCode, getClientId(), setSessionMembers);
+  }, [sessionCode]);
+
+  const handleTransfer = (screen, member) => {
+    sendScreenTransfer(sessionCode, member.clientId, screen, getClientNickname());
+    dispatch({ type: 'TRANSFER_SCREEN', id: screen.id });
+    setTransferingScreen(null);
+  };
 
   const addScreen = () => {
     dispatch({ type: 'ADD_SCREEN' });
@@ -282,13 +298,55 @@ export default function ScreenManager({ isCreator = false, sessionCode = null })
             screen={screen}
             isActive={screen.id === state.activeScreenId}
             isRemote={!!screen._remote}
+            showTransfer={!!sessionCode && !screen._remote && sessionMembers.length > 0}
             onClick={() => dispatch({ type: 'SET_ACTIVE_SCREEN', id: screen.id })}
             onRename={(name) => dispatch({ type: 'RENAME_SCREEN', id: screen.id, name })}
             onDelete={() => dispatch({ type: 'DELETE_SCREEN', id: screen.id })}
             onDuplicate={() => dispatch({ type: 'DUPLICATE_SCREEN', id: screen.id })}
+            onTransfer={() => setTransferingScreen(screen)}
           />
         ))}
       </div>
+
+      {transferingScreen && (
+        <div
+          onClick={() => setTransferingScreen(null)}
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9050, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Nunito, sans-serif' }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ backgroundColor: '#1e1b2e', borderRadius: 16, padding: 24, width: 320, boxShadow: '0 24px 64px rgba(0,0,0,0.5)', border: '1px solid rgba(167,139,250,0.2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+              <span style={{ fontSize: 24 }}>📤</span>
+              <div>
+                <div style={{ color: 'white', fontSize: 15, fontWeight: 900 }}>Transférer l'écran</div>
+                <div style={{ color: '#A78BFA', fontSize: 12, marginTop: 2 }}>"{transferingScreen.name}"</div>
+              </div>
+            </div>
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, marginBottom: 14, lineHeight: 1.5 }}>
+              ⚠️ L'écran sera retiré de ta session et envoyé au destinataire.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+              {sessionMembers.map(member => (
+                <button
+                  key={member.clientId}
+                  onClick={() => handleTransfer(transferingScreen, member)}
+                  style={{ padding: '11px 16px', borderRadius: 10, border: '1.5px solid rgba(167,139,250,0.3)', backgroundColor: 'rgba(124,58,237,0.15)', color: 'white', fontSize: 14, fontWeight: 700, fontFamily: 'Nunito, sans-serif', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10 }}
+                >
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', backgroundColor: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 900, color: 'white', flexShrink: 0 }}>
+                    {member.nickname[0]?.toUpperCase() || '?'}
+                  </div>
+                  {member.nickname}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setTransferingScreen(null)}
+              style={{ width: '100%', padding: '9px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', backgroundColor: 'transparent', color: 'rgba(255,255,255,0.5)', fontSize: 13, fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer' }}
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
 
       {sessionCode && (
         <div style={{ padding: '6px 8px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>

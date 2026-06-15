@@ -361,6 +361,38 @@ function reducer(state, action) {
       return { ...state, screens };
     }
 
+    case 'TRANSFER_SCREEN': {
+      const remaining = state.screens.filter(s => s.id !== action.id);
+      const ownRemaining = remaining.filter(s => !s._remote);
+      if (ownRemaining.length === 0) {
+        const newId = `screen-${uuidv4()}`;
+        const newScreen = { id: newId, name: 'Accueil', backgroundColor: '#FFFFFF', components: [] };
+        return pushHistory(state, {
+          screens: [...remaining, newScreen],
+          activeScreenId: newId,
+          selectedComponentId: null,
+        });
+      }
+      const idx = state.screens.findIndex(s => s.id === action.id);
+      const activeStillExists = remaining.some(s => s.id === state.activeScreenId);
+      const newActive = activeStillExists
+        ? state.activeScreenId
+        : (ownRemaining[Math.max(0, idx - 1)]?.id || ownRemaining[0]?.id);
+      return pushHistory(state, { screens: remaining, activeScreenId: newActive, selectedComponentId: null });
+    }
+
+    case 'RECEIVE_TRANSFERRED_SCREEN': {
+      const newScreen = JSON.parse(JSON.stringify(action.screen));
+      delete newScreen._remote;
+      delete newScreen._nickname;
+      delete newScreen._clientId;
+      return pushHistory(state, {
+        screens: [...state.screens, newScreen],
+        activeScreenId: newScreen.id,
+        selectedComponentId: null,
+      });
+    }
+
     default:
       return state;
   }
