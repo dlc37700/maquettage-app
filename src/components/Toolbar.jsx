@@ -56,21 +56,21 @@ export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessi
 
   return (
     <div style={{
-      height: 56,
+      height: 50,
       backgroundColor: '#1e1b4b',
       display: 'flex',
       alignItems: 'center',
-      padding: '0 16px',
-      gap: 10,
+      padding: '0 10px',
+      gap: 6,
       borderBottom: '1px solid rgba(255,255,255,0.08)',
       flexShrink: 0,
       boxShadow: '0 2px 12px rgba(0,0,0,0.3)',
     }}>
       {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 8 }}>
-        <span style={{ fontSize: 22 }}>📱</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginRight: 4 }}>
+        <span style={{ fontSize: 20 }}>📱</span>
         <span style={{
-          color: 'white', fontSize: 16, fontWeight: 900,
+          color: 'white', fontSize: 15, fontWeight: 900,
           fontFamily: 'Nunito, sans-serif', letterSpacing: -0.5,
         }}>
           Maquet<span style={{ color: '#A78BFA' }}>App</span>
@@ -96,7 +96,7 @@ export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessi
             fontFamily: 'Nunito, sans-serif',
             fontWeight: 700,
             outline: 'none',
-            width: 180,
+            width: 130,
             cursor: projectNameLocked ? 'default' : 'text',
           }}
           placeholder="Nom du projet…"
@@ -109,20 +109,8 @@ export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessi
       <div style={{ flex: 1 }} />
 
       {/* Undo / Redo */}
-      <ToolBtn
-        onClick={() => dispatch({ type: 'UNDO' })}
-        disabled={!canUndo}
-        title="Annuler (Ctrl+Z)"
-        emoji="↩️"
-        label="Annuler"
-      />
-      <ToolBtn
-        onClick={() => dispatch({ type: 'REDO' })}
-        disabled={!canRedo}
-        title="Refaire (Ctrl+Y)"
-        emoji="↪️"
-        label="Refaire"
-      />
+      <IconBtn onClick={() => dispatch({ type: 'UNDO' })} disabled={!canUndo} title="Annuler (Ctrl+Z)" emoji="↩️" />
+      <IconBtn onClick={() => dispatch({ type: 'REDO' })} disabled={!canRedo} title="Refaire (Ctrl+Y)" emoji="↪️" />
 
       <div style={{ width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.15)' }} />
 
@@ -177,11 +165,11 @@ export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessi
         onClick={() => dispatch({ type: 'TOGGLE_HIGHLIGHT_TEXTS' })}
         title="Surligner tous les éléments avec du texte"
         style={{
-          display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: 8,
+          display: 'flex', alignItems: 'center', gap: 4, padding: '5px 8px', borderRadius: 7,
           border: state.highlightTexts ? '1.5px solid #FCD34D' : 'none',
           backgroundColor: state.highlightTexts ? 'rgba(252,211,77,0.2)' : 'rgba(255,255,255,0.08)',
           color: state.highlightTexts ? '#FCD34D' : 'rgba(255,255,255,0.7)',
-          fontSize: 12, fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer',
+          fontSize: 11, fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer',
           transition: 'all 0.15s',
         }}
       >
@@ -196,24 +184,24 @@ export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessi
         <button
           onClick={() => dispatch({ type: 'SET_DEVICE_MODE', deviceType: 'phone', orientation: state.orientation ?? 'portrait' })}
           title="Mode téléphone"
-          style={{ padding: '4px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', backgroundColor: (state.deviceType ?? 'phone') === 'phone' ? 'rgba(167,139,250,0.3)' : 'transparent', color: (state.deviceType ?? 'phone') === 'phone' ? '#A78BFA' : 'rgba(255,255,255,0.4)', fontSize: 16, lineHeight: 1, transition: 'all 0.15s' }}
+          style={{ padding: '3px 7px', borderRadius: 5, border: 'none', cursor: 'pointer', backgroundColor: (state.deviceType ?? 'phone') === 'phone' ? 'rgba(167,139,250,0.3)' : 'transparent', color: (state.deviceType ?? 'phone') === 'phone' ? '#A78BFA' : 'rgba(255,255,255,0.4)', fontSize: 16, lineHeight: 1, transition: 'all 0.15s' }}
         >📱</button>
         <button
           onClick={() => dispatch({ type: 'SET_DEVICE_MODE', deviceType: 'tablet', orientation: state.orientation ?? 'portrait' })}
           title="Mode tablette"
-          style={{ padding: '4px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', backgroundColor: (state.deviceType ?? 'phone') === 'tablet' ? 'rgba(167,139,250,0.3)' : 'transparent', color: (state.deviceType ?? 'phone') === 'tablet' ? '#A78BFA' : 'rgba(255,255,255,0.4)', fontSize: 16, lineHeight: 1, transition: 'all 0.15s' }}
+          style={{ padding: '3px 7px', borderRadius: 5, border: 'none', cursor: 'pointer', backgroundColor: (state.deviceType ?? 'phone') === 'tablet' ? 'rgba(167,139,250,0.3)' : 'transparent', color: (state.deviceType ?? 'phone') === 'tablet' ? '#A78BFA' : 'rgba(255,255,255,0.4)', fontSize: 16, lineHeight: 1, transition: 'all 0.15s' }}
         >⬜</button>
         <div style={{ width: 1, backgroundColor: 'rgba(255,255,255,0.12)', margin: '2px 0' }} />
         {/* Orientation */}
         <button
           onClick={() => dispatch({ type: 'SET_DEVICE_MODE', deviceType: state.deviceType ?? 'phone', orientation: 'portrait' })}
           title="Portrait"
-          style={{ padding: '4px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', backgroundColor: (state.orientation ?? 'portrait') === 'portrait' ? 'rgba(167,139,250,0.3)' : 'transparent', color: (state.orientation ?? 'portrait') === 'portrait' ? '#A78BFA' : 'rgba(255,255,255,0.4)', fontSize: 14, fontFamily: 'Nunito,sans-serif', fontWeight: 900, lineHeight: 1, transition: 'all 0.15s' }}
+          style={{ padding: '3px 7px', borderRadius: 5, border: 'none', cursor: 'pointer', backgroundColor: (state.orientation ?? 'portrait') === 'portrait' ? 'rgba(167,139,250,0.3)' : 'transparent', color: (state.orientation ?? 'portrait') === 'portrait' ? '#A78BFA' : 'rgba(255,255,255,0.4)', fontSize: 14, fontFamily: 'Nunito,sans-serif', fontWeight: 900, lineHeight: 1, transition: 'all 0.15s' }}
         >▯</button>
         <button
           onClick={() => dispatch({ type: 'SET_DEVICE_MODE', deviceType: state.deviceType ?? 'phone', orientation: 'landscape' })}
           title="Paysage"
-          style={{ padding: '4px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', backgroundColor: (state.orientation ?? 'portrait') === 'landscape' ? 'rgba(167,139,250,0.3)' : 'transparent', color: (state.orientation ?? 'portrait') === 'landscape' ? '#A78BFA' : 'rgba(255,255,255,0.4)', fontSize: 14, fontFamily: 'Nunito,sans-serif', fontWeight: 900, lineHeight: 1, transition: 'all 0.15s' }}
+          style={{ padding: '3px 7px', borderRadius: 5, border: 'none', cursor: 'pointer', backgroundColor: (state.orientation ?? 'portrait') === 'landscape' ? 'rgba(167,139,250,0.3)' : 'transparent', color: (state.orientation ?? 'portrait') === 'landscape' ? '#A78BFA' : 'rgba(255,255,255,0.4)', fontSize: 14, fontFamily: 'Nunito,sans-serif', fontWeight: 900, lineHeight: 1, transition: 'all 0.15s' }}
         >▭</button>
       </div>
 
@@ -223,8 +211,8 @@ export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessi
           onClick={onCollabClick}
           title="Session collaborative active"
           style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '5px 12px', borderRadius: 8, border: 'none',
+            display: 'flex', alignItems: 'center', gap: 5,
+            padding: '4px 9px', borderRadius: 7, border: 'none',
             background: 'linear-gradient(135deg, rgba(124,58,237,0.4), rgba(108,99,255,0.4))',
             color: '#A78BFA', fontSize: 12, fontFamily: 'Nunito, sans-serif',
             fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap',
@@ -280,13 +268,13 @@ function ToolBtn({ onClick, disabled, title, emoji, label, color = 'white' }) {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 5,
-        padding: '6px 10px',
-        borderRadius: 8,
+        gap: 4,
+        padding: '5px 8px',
+        borderRadius: 7,
         border: 'none',
         backgroundColor: disabled ? 'transparent' : 'rgba(255,255,255,0.08)',
         color: disabled ? 'rgba(255,255,255,0.25)' : color,
-        fontSize: 12,
+        fontSize: 11,
         fontFamily: 'Nunito, sans-serif',
         fontWeight: 700,
         cursor: disabled ? 'not-allowed' : 'pointer',
@@ -296,8 +284,30 @@ function ToolBtn({ onClick, disabled, title, emoji, label, color = 'white' }) {
       onMouseEnter={e => { if (!disabled) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)'; }}
       onMouseLeave={e => { e.currentTarget.style.backgroundColor = disabled ? 'transparent' : 'rgba(255,255,255,0.08)'; }}
     >
-      <span style={{ fontSize: 14 }}>{emoji}</span>
+      <span style={{ fontSize: 13 }}>{emoji}</span>
       <span>{label}</span>
+    </button>
+  );
+}
+
+function IconBtn({ onClick, disabled, title, emoji }) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '5px 7px', borderRadius: 7, border: 'none',
+        backgroundColor: disabled ? 'transparent' : 'rgba(255,255,255,0.08)',
+        color: disabled ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.7)',
+        fontSize: 15, cursor: disabled ? 'not-allowed' : 'pointer',
+        transition: 'background-color 0.15s',
+      }}
+      onMouseEnter={e => { if (!disabled) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.15)'; }}
+      onMouseLeave={e => { e.currentTarget.style.backgroundColor = disabled ? 'transparent' : 'rgba(255,255,255,0.08)'; }}
+    >
+      {emoji}
     </button>
   );
 }
