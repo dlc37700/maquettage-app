@@ -750,7 +750,7 @@ function ComponentRenderer({ comp, isReadOnly }) {
             ? <span style={{ fontSize: Math.min(pos.width, pos.height) * 0.52, lineHeight: 1 }}>{props.emoji}</span>
             : <>
                 {props.iconName && props.iconPosition !== 'right' && <AnyIcon name={props.iconName} iconSet={props.iconSet || 'lucide'} size={props.fontSize + 4} color={props.textColor} strokeWidth={2.5} />}
-                {!iconOnly && props.label && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontStyle: props.fontStyle || 'normal', textDecoration: props.textDecoration || 'none' }}>{props.label}</span>}
+                {!iconOnly && props.label && <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', textAlign: 'center', lineHeight: 1.2, fontStyle: props.fontStyle || 'normal', textDecoration: props.textDecoration || 'none' }}>{props.label}</span>}
                 {props.iconName && props.iconPosition === 'right' && <AnyIcon name={props.iconName} iconSet={props.iconSet || 'lucide'} size={props.fontSize + 4} color={props.textColor} strokeWidth={2.5} />}
               </>
           }
@@ -780,7 +780,7 @@ function ComponentRenderer({ comp, isReadOnly }) {
       return (
         <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, null), borderRadius: br, display: 'flex', alignItems: 'center', padding: '0 12px', gap: 8, boxSizing: 'border-box', overflow: 'hidden' }}>
           <LucideIcons.Search size={Math.round(fs * 1.15)} color={iconColor} strokeWidth={2.2} style={{ flexShrink: 0 }} />
-          <span style={{ flex: 1, color: props.textColor || '#6B7280', fontSize: fs, fontFamily: ff, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1 }}>
+          <span style={{ flex: 1, color: props.textColor || '#6B7280', fontSize: fs, fontFamily: ff, overflow: 'hidden', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.2 }}>
             {props.placeholder || 'Rechercher…'}
           </span>
           {props.showClearBtn && (
@@ -798,7 +798,7 @@ function ComponentRenderer({ comp, isReadOnly }) {
           <div style={{ width: 20, height: 20, border: `2px solid ${props.accentColor || '#6C63FF'}`, borderRadius: 5, backgroundColor: props.checked ? (props.accentColor || '#6C63FF') : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             {props.checked && <LucideIcons.Check size={13} color="white" strokeWidth={3} />}
           </div>
-          <span style={{ color: props.textColor, fontSize: props.fontSize || 14, fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif` }}>{props.label}</span>
+          <span style={{ color: props.textColor, fontSize: props.fontSize || 14, fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif`, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.3 }}>{props.label}</span>
         </div>
       );
 
@@ -808,7 +808,7 @@ function ComponentRenderer({ comp, isReadOnly }) {
           <div style={{ width: 20, height: 20, border: `2px solid ${props.accentColor || '#6C63FF'}`, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             {props.checked && <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: props.accentColor || '#6C63FF' }} />}
           </div>
-          <span style={{ color: props.textColor, fontSize: props.fontSize || 14, fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif` }}>{props.label}</span>
+          <span style={{ color: props.textColor, fontSize: props.fontSize || 14, fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif`, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.3 }}>{props.label}</span>
         </div>
       );
 
@@ -919,8 +919,8 @@ function ComponentRenderer({ comp, isReadOnly }) {
       return (
         <div style={{ width: '100%', height: '100%', ...getBg(props.bgColor, props.bgGradient), borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
           <div style={{ width: 34, height: 34, backgroundColor: '#EDE9FE', borderRadius: 9, flexShrink: 0 }} />
-          <span style={{ flex: 1, color: props.textColor, fontSize: 14, fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif`, fontWeight: 600 }}>{props.label}</span>
-          <LucideIcons.ChevronRight size={16} color="#9CA3AF" />
+          <span style={{ flex: 1, color: props.textColor, fontSize: 14, fontFamily: `${props.fontFamily || 'Nunito'}, sans-serif`, fontWeight: 600, whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.3 }}>{props.label}</span>
+          <LucideIcons.ChevronRight size={16} color="#9CA3AF" style={{ flexShrink: 0 }} />
         </div>
       );
 

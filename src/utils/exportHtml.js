@@ -55,7 +55,7 @@ function compToHtml(comp) {
         : props.iconName
           ? `<i data-lucide="${lucideRef(props.iconName)}" style="width:${(props.fontSize || 16) + 4}px;height:${(props.fontSize || 16) + 4}px;flex-shrink:0"></i>`
           : '';
-      const labelHtml = !iconOnly && props.label ? `<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:${props.fontStyle || 'normal'};text-decoration:${props.textDecoration || 'none'}">${escHtml(props.label)}</span>` : '';
+      const labelHtml = !iconOnly && props.label ? `<span style="white-space:pre-wrap;word-break:break-word;text-align:center;line-height:1.2;font-style:${props.fontStyle || 'normal'};text-decoration:${props.textDecoration || 'none'}">${escHtml(props.label)}</span>` : '';
       const flexDir = props.iconPosition === 'right' ? 'row-reverse' : 'row';
       const shadow = props.bgColor === 'transparent' ? '' : ';box-shadow:0 2px 8px rgba(0,0,0,0.15)';
       return `<button${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};color:${props.textColor};font-size:${props.fontSize || 16}px;border-radius:${props.borderRadius || 12}px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;flex-direction:${flexDir};font-family:${props.fontFamily || 'Nunito'},sans-serif;font-weight:700${shadow};padding:0 12px">${iconHtml}${labelHtml}</button>`;
@@ -85,7 +85,7 @@ function compToHtml(comp) {
         : '';
       return `<div${navOnclick} style="${base}background:${bg};border-radius:${br}px;display:flex;align-items:center;padding:0 12px;gap:8px;box-sizing:border-box;overflow:hidden${navOnclick ? ';cursor:pointer' : ''}">
   <svg xmlns="http://www.w3.org/2000/svg" width="${Math.round(fs*1.15)}" height="${Math.round(fs*1.15)}" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-  <span style="flex:1;color:${tc};font-size:${fs}px;font-family:${ff},sans-serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(props.placeholder || 'Rechercher…')}</span>
+  <span style="flex:1;color:${tc};font-size:${fs}px;font-family:${ff},sans-serif;overflow:hidden;white-space:pre-wrap;word-break:break-word;line-height:1.2">${escHtml(props.placeholder || 'Rechercher…')}</span>
   ${clearBtn}
 </div>`;
     }
@@ -93,13 +93,13 @@ function compToHtml(comp) {
     case 'checkbox':
       return `<label${navOnclick} style="${base}display:flex;align-items:center;gap:10px;cursor:pointer;font-family:${props.fontFamily || 'Nunito'},sans-serif;color:${props.textColor};font-size:${props.fontSize || 14}px${navOnclick ? ';cursor:pointer' : ''}">
   <input type="checkbox"${props.checked ? ' checked' : ''} style="width:18px;height:18px;accent-color:${props.accentColor};cursor:pointer;flex-shrink:0">
-  <span>${escHtml(props.label)}</span>
+  <span style="white-space:pre-wrap;word-break:break-word;line-height:1.3">${escHtml(props.label)}</span>
 </label>`;
 
     case 'radio':
       return `<label${navOnclick} style="${base}display:flex;align-items:center;gap:10px;cursor:pointer;font-family:${props.fontFamily || 'Nunito'},sans-serif;color:${props.textColor};font-size:${props.fontSize || 14}px${navOnclick ? ';cursor:pointer' : ''}">
   <input type="radio"${props.checked ? ' checked' : ''} style="width:18px;height:18px;accent-color:${props.accentColor};cursor:pointer;flex-shrink:0">
-  <span>${escHtml(props.label)}</span>
+  <span style="white-space:pre-wrap;word-break:break-word;line-height:1.3">${escHtml(props.label)}</span>
 </label>`;
 
     case 'image': {
@@ -196,8 +196,8 @@ function compToHtml(comp) {
     case 'listitem':
       return `<div${navOnclick} style="${base}${getBgCss(props.bgColor, props.bgGradient)};border-bottom:1px solid #F3F4F6;display:flex;align-items:center;padding:0 16px;gap:12px${navOnclick ? ';cursor:pointer' : ''}">
   <div style="width:34px;height:34px;background-color:#EDE9FE;border-radius:9px;flex-shrink:0"></div>
-  <span style="flex:1;color:${props.textColor};font-size:14px;font-family:${props.fontFamily || 'Nunito'},sans-serif;font-weight:600">${escHtml(props.label)}</span>
-  <i data-lucide="chevron-right" style="width:16px;height:16px;color:#9CA3AF"></i>
+  <span style="flex:1;color:${props.textColor};font-size:14px;font-family:${props.fontFamily || 'Nunito'},sans-serif;font-weight:600;white-space:pre-wrap;word-break:break-word;line-height:1.3">${escHtml(props.label)}</span>
+  <i data-lucide="chevron-right" style="width:16px;height:16px;color:#9CA3AF;flex-shrink:0"></i>
 </div>`;
 
     case 'badge':
