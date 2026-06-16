@@ -3,7 +3,7 @@ import { useProject } from '../hooks/useProject';
 import { exportProjectAsJson, importProjectFromJson } from '../utils/exportJson';
 import { exportProjectAsHtml } from '../utils/exportHtml';
 
-export default function Toolbar({ canvasRef, phoneScaleWrapperRef, sessionCode, isCreator, onCollabClick }) {
+export default function Toolbar({ sessionCode, isCreator, onCollabClick, onAdminClick }) {
   const { state, dispatch } = useProject();
   const projectNameLocked = !!(sessionCode && !isCreator);
   const importRef = useRef(null);
@@ -152,6 +152,10 @@ export default function Toolbar({ canvasRef, phoneScaleWrapperRef, sessionCode, 
         />
       )}
 
+      {/* Admin */}
+      {onAdminClick && (
+        <IconBtn onClick={onAdminClick} title="Espace enseignant" emoji="👨‍🏫" />
+      )}
     </div>
   );
 }

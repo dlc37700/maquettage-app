@@ -185,6 +185,7 @@ function AppInner() {
         sessionCode={sessionCode}
         isCreator={isCreator}
         onCollabClick={() => setShowCollabModal(true)}
+        onAdminClick={() => setShowAdmin(true)}
       />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
         <div style={{ display: 'flex', height: '100%', flexShrink: 0 }}>
