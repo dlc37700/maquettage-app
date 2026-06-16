@@ -33,7 +33,7 @@ function iconHtml(name, iconSet, sizePx, color) {
   return `<i data-lucide="${lucideRef(name)}" style="width:${sizePx}px;height:${sizePx}px;color:${color}"></i>`;
 }
 
-function compToHtml(comp) {
+function compToHtml(comp, canvasW = 390, canvasH = 844) {
   const { type, props, position: pos, zIndex } = comp;
   const _transforms = [];
   if (props.rotation) _transforms.push(`rotate(${props.rotation}deg)`);
@@ -428,7 +428,7 @@ function compToHtml(comp) {
         defs = `<defs>${hasA ? mkr(`${uid}s`, props.arrowStart, true) : ''}${hasB ? mkr(`${uid}e`, props.arrowEnd, false) : ''}</defs>`;
       }
       const lineType = props.lineType || 'straight';
-      const CW = 390, CH = 844;
+      const CW = canvasW, CH = canvasH;
       const cx1 = (props.cx1abs ?? 0.5) * CW - pos.x;
       const cy1 = (props.cy1abs ?? 0.15) * CH - pos.y;
       const cx2 = (props.cx2abs ?? 0.5) * CW - pos.x;
@@ -487,23 +487,23 @@ function compToHtml(comp) {
   }
 }
 
-function screenToHtml(screen, index, total, allScreens) {
+function screenToHtml(screen, index, total, allScreens, canvasW = 390, canvasH = 844) {
   const sorted = [...screen.components].sort((a, b) => (a.zIndex || 1) - (b.zIndex || 1));
-  const components = sorted.map(compToHtml).filter(Boolean).join('\n    ');
+  const components = sorted.map(c => compToHtml(c, canvasW, canvasH)).filter(Boolean).join('\n    ');
 
   const screenBgCss = screen.backgroundImage
     ? `background-image:url(${screen.backgroundImage});background-size:cover;background-position:center;background-repeat:no-repeat`
     : getBgCss(screen.backgroundColor || '#FFFFFF', screen.backgroundGradient);
   return `<!-- ===== Écran: ${escHtml(screen.name)} ===== -->
-<div id="screen-${screen.id}" class="screen" style="display:${index === 0 ? 'block' : 'none'};position:relative;width:390px;height:844px;${screenBgCss};overflow:hidden;flex-shrink:0">
+<div id="screen-${screen.id}" class="screen" style="display:${index === 0 ? 'block' : 'none'};position:relative;width:${canvasW}px;height:${canvasH}px;${screenBgCss};overflow:hidden;flex-shrink:0">
     ${components}
 </div>`;
 }
 
 export function exportProjectAsHtml(state) {
-  const { screens, projectName } = state;
+  const { screens, projectName, canvasW = 390, canvasH = 844 } = state;
 
-  const screensHtml = screens.map((s, i) => screenToHtml(s, i, screens.length, screens)).join('\n\n');
+  const screensHtml = screens.map((s, i) => screenToHtml(s, i, screens.length, screens, canvasW, canvasH)).join('\n\n');
 
   const navBtnsHtml = screens.length > 1
     ? `<div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap">

@@ -102,17 +102,22 @@ function AppInner() {
 
   useEffect(() => {
     const updateScale = () => {
+      const dt = state.deviceType ?? 'phone';
+      const or = state.orientation ?? 'portrait';
+      const frameDims = {
+        phone:  { portrait: [430, 932], landscape: [932, 430] },
+        tablet: { portrait: [820, 1100], landscape: [1100, 820] },
+      };
+      const [frameW, frameH] = (frameDims[dt] || frameDims.phone)[or] || frameDims.phone.portrait;
       const availableH = window.innerHeight - 56 - 80;
       const availableW = window.innerWidth - 200 - 158 - 230 - 64;
-      const phoneH = 932;
-      const phoneW = 430;
-      const scale = Math.min(1, availableH / phoneH, availableW / phoneW);
-      setPhoneScale(Math.max(0.45, scale));
+      const scale = Math.min(1, availableH / frameH, availableW / frameW);
+      setPhoneScale(Math.max(0.35, scale));
     };
     updateScale();
     window.addEventListener('resize', updateScale);
     return () => window.removeEventListener('resize', updateScale);
-  }, []);
+  }, [state.deviceType, state.orientation]);
 
   useEffect(() => {
     const onKeyDown = (e) => {
@@ -205,18 +210,27 @@ function AppInner() {
               <div style={{ backgroundColor: '#6C63FF', color: 'white', padding: '4px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700, fontFamily: 'Nunito, sans-serif', boxShadow: '0 2px 8px rgba(108,99,255,0.35)' }}>
                 📱 {activeScreen?.name || 'Écran'}
               </div>
-              <div style={{ color: '#9CA3AF', fontSize: 11, fontFamily: 'Nunito, sans-serif' }}>390 × 844 px</div>
+              <div style={{ color: '#9CA3AF', fontSize: 11, fontFamily: 'Nunito, sans-serif' }}>{state.canvasW ?? 390} × {state.canvasH ?? 844} px</div>
               <div style={{ color: '#9CA3AF', fontSize: 10, fontFamily: 'Nunito, sans-serif', backgroundColor: 'rgba(255,255,255,0.7)', padding: '2px 8px', borderRadius: 10 }}>
                 {Math.round(phoneScale * 100)}%
               </div>
             </div>
 
             {/* Scaled phone wrapper */}
-            <div style={{ width: 430 * phoneScale, height: 932 * phoneScale, position: 'relative', flexShrink: 0 }}>
-              <div ref={phoneScaleWrapperRef} style={{ position: 'absolute', top: 0, left: 0, transform: `scale(${phoneScale})`, transformOrigin: 'top left' }}>
-                <PhoneFrame canvasRef={canvasRef} />
-              </div>
-            </div>
+            {(() => {
+              const frameDims = {
+                phone:  { portrait: [430, 932], landscape: [932, 430] },
+                tablet: { portrait: [820, 1100], landscape: [1100, 820] },
+              };
+              const [activeFrameW, activeFrameH] = (frameDims[state.deviceType ?? 'phone'] || frameDims.phone)[state.orientation ?? 'portrait'];
+              return (
+                <div style={{ width: activeFrameW * phoneScale, height: activeFrameH * phoneScale, position: 'relative', flexShrink: 0 }}>
+                  <div ref={phoneScaleWrapperRef} style={{ position: 'absolute', top: 0, left: 0, transform: `scale(${phoneScale})`, transformOrigin: 'top left' }}>
+                    <PhoneFrame canvasRef={canvasRef} />
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
 

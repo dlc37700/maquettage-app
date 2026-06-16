@@ -18,6 +18,10 @@ const INITIAL_STATE = {
   selectedNavbarItemIndex: null,
   pendingTool: null,
   highlightTexts: false,
+  canvasW: 390,
+  canvasH: 844,
+  deviceType: 'phone',
+  orientation: 'portrait',
 };
 
 function takeSnapshot(state) {
@@ -266,6 +270,16 @@ function reducer(state, action) {
       });
     }
 
+    case 'SET_DEVICE_MODE': {
+      const { deviceType, orientation } = action;
+      const dims = {
+        phone:   { portrait: { canvasW: 390, canvasH: 844 }, landscape: { canvasW: 844, canvasH: 390 } },
+        tablet:  { portrait: { canvasW: 768, canvasH: 1024 }, landscape: { canvasW: 1024, canvasH: 768 } },
+      };
+      const { canvasW, canvasH } = (dims[deviceType] || dims.phone)[orientation] || dims.phone.portrait;
+      return { ...state, deviceType, orientation, canvasW, canvasH };
+    }
+
     case 'LOAD_PROJECT': {
       if (!action.project) return state;
       const screens = (Array.isArray(action.project.screens) && action.project.screens.length > 0)
@@ -277,6 +291,10 @@ function reducer(state, action) {
         projectName: action.project.projectName || 'Mon Projet',
         screens,
         activeScreenId: (firstOwn || screens[0])?.id,
+        canvasW: action.project.canvasW ?? state.canvasW ?? 390,
+        canvasH: action.project.canvasH ?? state.canvasH ?? 844,
+        deviceType: action.project.deviceType ?? state.deviceType ?? 'phone',
+        orientation: action.project.orientation ?? state.orientation ?? 'portrait',
       };
     }
 

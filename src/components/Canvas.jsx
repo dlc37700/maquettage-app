@@ -7,9 +7,6 @@ import { getShapeSvgInner } from '../data/shapes';
 import { getFontworkSvg } from '../data/fontwork';
 import { renderChartSvg, DEFAULT_CHART_DATA_STR } from '../data/chartHelper';
 
-const CANVAS_W = 390;
-const CANVAS_H = 844;
-
 const TEXT_TYPES = new Set(['text', 'button', 'input', 'searchbar', 'checkbox', 'radio',
   'header', 'navbar', 'card', 'listitem', 'badge', 'fontwork', 'textwork',
   'table', 'schedule', 'switch', 'slider', 'keyboard', 'calendar', 'weekcalendar']);
@@ -729,6 +726,9 @@ function ChartRenderer({ comp }) {
 }
 
 function ComponentRenderer({ comp, isReadOnly }) {
+  const { state: _rendState } = useProject();
+  const CANVAS_W = _rendState.canvasW ?? 390;
+  const CANVAS_H = _rendState.canvasH ?? 844;
   const { type, props, position: pos } = comp;
   const iconSize = Math.min(pos.width, pos.height) * 0.55;
 
@@ -1083,6 +1083,8 @@ function ComponentRenderer({ comp, isReadOnly }) {
 
 export default function Canvas({ canvasRef }) {
   const { state, dispatch } = useProject();
+  const CANVAS_W = state.canvasW ?? 390;
+  const CANVAS_H = state.canvasH ?? 844;
   const screen = useActiveScreen();
   const localRef = useRef(null);
   const ref = canvasRef || localRef;

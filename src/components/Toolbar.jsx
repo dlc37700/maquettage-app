@@ -190,6 +190,32 @@ export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessi
       </button>
 
       <div style={{ width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.15)' }} />
+      {/* Device mode picker */}
+      <div style={{ display: 'flex', gap: 4, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 9, padding: 3 }}>
+        {/* Device type */}
+        <button
+          onClick={() => dispatch({ type: 'SET_DEVICE_MODE', deviceType: 'phone', orientation: state.orientation ?? 'portrait' })}
+          title="Mode téléphone"
+          style={{ padding: '4px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', backgroundColor: (state.deviceType ?? 'phone') === 'phone' ? 'rgba(167,139,250,0.3)' : 'transparent', color: (state.deviceType ?? 'phone') === 'phone' ? '#A78BFA' : 'rgba(255,255,255,0.4)', fontSize: 16, lineHeight: 1, transition: 'all 0.15s' }}
+        >📱</button>
+        <button
+          onClick={() => dispatch({ type: 'SET_DEVICE_MODE', deviceType: 'tablet', orientation: state.orientation ?? 'portrait' })}
+          title="Mode tablette"
+          style={{ padding: '4px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', backgroundColor: (state.deviceType ?? 'phone') === 'tablet' ? 'rgba(167,139,250,0.3)' : 'transparent', color: (state.deviceType ?? 'phone') === 'tablet' ? '#A78BFA' : 'rgba(255,255,255,0.4)', fontSize: 16, lineHeight: 1, transition: 'all 0.15s' }}
+        >⬜</button>
+        <div style={{ width: 1, backgroundColor: 'rgba(255,255,255,0.12)', margin: '2px 0' }} />
+        {/* Orientation */}
+        <button
+          onClick={() => dispatch({ type: 'SET_DEVICE_MODE', deviceType: state.deviceType ?? 'phone', orientation: 'portrait' })}
+          title="Portrait"
+          style={{ padding: '4px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', backgroundColor: (state.orientation ?? 'portrait') === 'portrait' ? 'rgba(167,139,250,0.3)' : 'transparent', color: (state.orientation ?? 'portrait') === 'portrait' ? '#A78BFA' : 'rgba(255,255,255,0.4)', fontSize: 14, fontFamily: 'Nunito,sans-serif', fontWeight: 900, lineHeight: 1, transition: 'all 0.15s' }}
+        >▯</button>
+        <button
+          onClick={() => dispatch({ type: 'SET_DEVICE_MODE', deviceType: state.deviceType ?? 'phone', orientation: 'landscape' })}
+          title="Paysage"
+          style={{ padding: '4px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', backgroundColor: (state.orientation ?? 'portrait') === 'landscape' ? 'rgba(167,139,250,0.3)' : 'transparent', color: (state.orientation ?? 'portrait') === 'landscape' ? '#A78BFA' : 'rgba(255,255,255,0.4)', fontSize: 14, fontFamily: 'Nunito,sans-serif', fontWeight: 900, lineHeight: 1, transition: 'all 0.15s' }}
+        >▭</button>
+      </div>
 
       {/* Collaboration */}
       {sessionCode ? (
