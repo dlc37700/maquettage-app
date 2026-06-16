@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { useProject } from '../hooks/useProject';
 import { exportProjectAsJson, importProjectFromJson } from '../utils/exportJson';
 import { exportProjectAsHtml } from '../utils/exportHtml';
+import { exportProjectAsDossier } from '../utils/exportDossier';
 
 export default function Toolbar({ sessionCode, isCreator, onCollabClick, onAdminClick }) {
   const { state, dispatch } = useProject();
@@ -94,6 +95,25 @@ export default function Toolbar({ sessionCode, isCreator, onCollabClick, onAdmin
         emoji="</>"
         label="HTML"
         color="#F472B6"
+      />
+
+      {/* Export Dossier */}
+      <ToolBtn
+        onClick={() => {
+          const html = exportProjectAsDossier(state);
+          const blob = new Blob([html], { type: 'text/html' });
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = (state.projectName || 'projet').replace(/[^a-zA-Z0-9]/g, '_') + '_dossier.html';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        }}
+        title="Exporter le dossier de projet (HTML éditable)"
+        emoji="📋"
+        label="Dossier"
+        color="#34D399"
       />
 
       {/* Export JSON */}

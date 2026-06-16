@@ -2,14 +2,14 @@ import { getShapeSvgInner } from '../data/shapes';
 import { getFontworkSvg } from '../data/fontwork';
 import { renderChartSvg, DEFAULT_CHART_DATA_STR } from '../data/chartHelper';
 
-function getBgCss(bgColor, bgGradient) {
+export function getBgCss(bgColor, bgGradient) {
   if (bgGradient && bgGradient.from && bgGradient.to) {
     return `background:linear-gradient(${bgGradient.angle ?? 135}deg,${bgGradient.from},${bgGradient.to})`;
   }
   return `background-color:${bgColor || 'transparent'}`;
 }
 
-function escHtml(str) {
+export function escHtml(str) {
   return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
@@ -33,7 +33,7 @@ function iconHtml(name, iconSet, sizePx, color) {
   return `<i data-lucide="${lucideRef(name)}" style="width:${sizePx}px;height:${sizePx}px;color:${color}"></i>`;
 }
 
-function compToHtml(comp, canvasW = 390, canvasH = 844) {
+export function compToHtml(comp, canvasW = 390, canvasH = 844) {
   const { type, props, position: pos, zIndex } = comp;
   const _transforms = [];
   if (props.rotation) _transforms.push(`rotate(${props.rotation}deg)`);
