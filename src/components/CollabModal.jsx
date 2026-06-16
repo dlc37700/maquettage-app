@@ -28,8 +28,8 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
   // Multi-step join flow
-  // 'form' | 'teacher_code' | 'pick_member' | 'pin_entry' | 'claim_no_pin' | 'new_member' | 'show_pin'
-  const [joinStep, setJoinStep] = useState('form');
+  // 'choose' | 'create' | 'join' | 'teacher_code' | 'pick_member' | 'pin_entry' | 'claim_no_pin' | 'new_member' | 'show_pin'
+  const [joinStep, setJoinStep] = useState('choose');
   const [joinCode, setJoinCode] = useState('');
   const [sessionMembers, setSessionMembers] = useState([]);
   const [selectedMember, setSelectedMember] = useState(null);
@@ -41,7 +41,7 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
   const joinRef = useRef(null);
 
   useEffect(() => {
-    if (!sessionCode && joinStep === 'form') setTimeout(() => joinRef.current?.focus(), 100);
+    if (!sessionCode && joinStep === 'join') setTimeout(() => joinRef.current?.focus(), 100);
   }, [sessionCode, joinStep]);
 
   const handleCreate = () => {
@@ -57,6 +57,29 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
     setTeacherCodeError('');
     setTeacherCodeValidated(false);
     setJoinStep('teacher_code');
+  };
+
+  const handleCheckJoin = async () => {
+    const code = joinInput.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (code.length !== 6) { setError('Le code doit avoir exactement 6 caractères.'); return; }
+    setLoading(true); setError('');
+    const result = await prepareJoin(code);
+    setLoading(false);
+    if (result.error === 'not_found') { setError('Session introuvable. Vérifie le code et réessaie.'); return; }
+    if (result.error === 'blocked') { setError("Cette session a été bloquée par l'enseignant."); return; }
+    if (result.error) { setError('Erreur réseau. Réessaie.'); return; }
+    if (result.alreadyMember) {
+      setLoading(true);
+      setClientNickname(result.myNickname);
+      const project = await loadSessionOnce(code);
+      onJoin(code, project, { isCreator: false });
+      setLoading(false);
+      return;
+    }
+    setJoinCode(code);
+    setSessionMembers(result.members);
+    setNewNickname(getClientNickname());
+    setJoinStep(result.members.length > 0 ? 'pick_member' : 'new_member');
   };
 
   const handleValidateTeacherCode = async () => {
@@ -111,29 +134,7 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
     await handleFinalizeCreate(pendingTeacherCode || null, pendingSchool);
   };
 
-  const handleCheckCode = async () => {
-    const code = joinInput.trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
-    if (code.length !== 6) { setError('Le code doit avoir exactement 6 caractères.'); return; }
-    setLoading(true); setError('');
-    const result = await prepareJoin(code);
-    setLoading(false);
-    if (result.error === 'not_found') { setError('Session introuvable. Vérifie le code et réessaie.'); return; }
-    if (result.error === 'blocked') { setError("Cette session a été bloquée par l'enseignant."); return; }
-    if (result.error) { setError('Erreur réseau. Réessaie.'); return; }
-    if (result.alreadyMember) {
-      // Same device, same clientId → join directly
-      setLoading(true);
-      setClientNickname(result.myNickname);
-      const project = await loadSessionOnce(code);
-      onJoin(code, project, { isCreator: false });
-      setLoading(false);
-      return;
-    }
-    setJoinCode(code);
-    setSessionMembers(result.members);
-    setNewNickname(getClientNickname());
-    setJoinStep(result.members.length > 0 ? 'pick_member' : 'new_member');
-  };
+  const handleCheckCode = handleCheckJoin;
 
   const handleSelectMember = (member) => {
     setSelectedMember(member);
@@ -226,6 +227,26 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
 
         {!isFirebaseConfigured ? <NotConfigured /> :
          sessionCode ? <ActiveSession code={sessionCode} onCopy={handleCopy} copied={copied} onLeave={handleLeave} nickname={getClientNickname()} /> :
+         joinStep === 'create' ? (
+          <CreateStep
+            nickname={nickname} setNickname={setNickname}
+            projectName={projectName} setProjectName={setProjectName}
+            className={className} setClassName={setClassName}
+            loading={loading} error={error} setError={setError}
+            onCreate={handleCreate}
+            onBack={() => { setError(''); setJoinStep('choose'); }}
+            fieldStyle={s.field}
+          />
+         ) :
+         joinStep === 'join' ? (
+          <JoinStep
+            joinInput={joinInput} setJoinInput={setJoinInput}
+            loading={loading} error={error} setError={setError}
+            onCheck={handleCheckJoin}
+            onBack={() => { setError(''); setJoinStep('choose'); }}
+            joinRef={joinRef}
+          />
+         ) :
          joinStep === 'teacher_code' ? (
           <TeacherCodeStep
             teacherCodeInput={teacherCodeInput}
@@ -240,7 +261,7 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
             onValidate={handleValidateTeacherCode}
             onSkip={handleSkipTeacherCode}
             onConfirm={handleConfirmTeacherCode}
-            onBack={() => setJoinStep('form')}
+            onBack={() => setJoinStep('create')}
           />
          ) :
          joinStep === 'pick_member' ? (
@@ -249,7 +270,7 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
             members={sessionMembers}
             onSelect={handleSelectMember}
             onNew={() => setJoinStep('new_member')}
-            onBack={() => setJoinStep('form')}
+            onBack={() => setJoinStep('join')}
           />
          ) :
          joinStep === 'pin_entry' ? (
@@ -289,19 +310,12 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
             error={error}
             loading={loading}
             onJoin={handleJoinAsNew}
-            onBack={() => setJoinStep(sessionMembers.length > 0 ? 'pick_member' : 'form')}
+            onBack={() => setJoinStep(sessionMembers.length > 0 ? 'pick_member' : 'join')}
           />
          ) : (
-          <StartSession
-            nickname={nickname} setNickname={setNickname}
-            projectName={projectName} setProjectName={setProjectName}
-            className={className} setClassName={setClassName}
-            joinInput={joinInput} setJoinInput={setJoinInput}
-            onCheckCode={handleCheckCode}
-            onCreate={handleCreate}
-            loading={loading} error={error} setError={setError}
-            joinRef={joinRef}
-            fieldStyle={s.field}
+          <ChooseStep
+            onCreate={() => setJoinStep('create')}
+            onJoin={() => setJoinStep('join')}
           />
          )
         }
@@ -467,46 +481,104 @@ function NewMemberStep({ nickname, setNickname, error, loading, onJoin, onBack }
   );
 }
 
-function StartSession({ nickname, setNickname, projectName, setProjectName, className, setClassName, joinInput, setJoinInput, onCheckCode, onCreate, loading, error, setError, joinRef, fieldStyle }) {
+function ChooseStep({ onCreate, onJoin }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, margin: '0 0 4px', textAlign: 'center', lineHeight: 1.5 }}>
+        Travaillez ensemble sur le même projet en temps réel.
+      </p>
+      <button
+        onClick={onCreate}
+        style={{ width: '100%', padding: '22px 16px', borderRadius: 14, border: '2px solid rgba(124,58,237,0.5)', cursor: 'pointer', background: 'linear-gradient(135deg, rgba(109,40,217,0.25), rgba(108,99,255,0.15))', color: 'white', fontFamily: 'Nunito, sans-serif', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 16, transition: 'all 0.15s' }}
+        onMouseEnter={e => e.currentTarget.style.borderColor = '#7C3AED'}
+        onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(124,58,237,0.5)'}
+      >
+        <span style={{ fontSize: 36 }}>✨</span>
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 4 }}>Créer une session</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>Génère un code et invite tes camarades à rejoindre</div>
+        </div>
+      </button>
+      <button
+        onClick={onJoin}
+        style={{ width: '100%', padding: '22px 16px', borderRadius: 14, border: '2px solid rgba(255,255,255,0.12)', cursor: 'pointer', backgroundColor: 'rgba(255,255,255,0.04)', color: 'white', fontFamily: 'Nunito, sans-serif', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 16, transition: 'all 0.15s' }}
+        onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)'}
+        onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'}
+      >
+        <span style={{ fontSize: 36 }}>🔗</span>
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 900, marginBottom: 4 }}>Rejoindre une session</div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.4 }}>Entre le code partagé par ton enseignant ou un camarade</div>
+        </div>
+      </button>
+    </div>
+  );
+}
+
+function CreateStep({ nickname, setNickname, projectName, setProjectName, className, setClassName, loading, error, setError, onCreate, onBack, fieldStyle }) {
   return (
     <div>
-      {/* Nickname input for create */}
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ color: '#A78BFA', fontSize: 12, fontWeight: 700, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>👤 Ton prénom</div>
-        <input value={nickname} onChange={e => { setNickname(e.target.value); setError(''); }} placeholder="Entre ton prénom…" maxLength={20}
-          style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: `1.5px solid ${error && !nickname.trim() ? '#FCA5A5' : 'rgba(167,139,250,0.4)'}`, backgroundColor: 'rgba(167,139,250,0.08)', color: 'white', fontSize: 15, fontWeight: 700, fontFamily: 'Nunito, sans-serif', outline: 'none', boxSizing: 'border-box' }} />
-        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 11, margin: '4px 0 0', fontFamily: 'Nunito, sans-serif' }}>Ton prénom sera affiché à côté de tes écrans.</p>
+      <button onClick={onBack} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 12, cursor: 'pointer', padding: '0 0 14px', fontFamily: 'Nunito, sans-serif', display: 'flex', alignItems: 'center', gap: 4 }}>
+        ← Retour
+      </button>
+      <div style={{ textAlign: 'center', marginBottom: 20 }}>
+        <div style={{ fontSize: 32, marginBottom: 6 }}>✨</div>
+        <div style={{ color: 'white', fontSize: 16, fontWeight: 900 }}>Créer une session</div>
+        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>Un code sera généré pour inviter tes camarades</div>
       </div>
-      {error && <p style={{ color: '#FCA5A5', fontSize: 12, margin: '-4px 0 12px', fontFamily: 'Nunito, sans-serif' }}>{error}</p>}
-
-      {/* Create */}
-      <div style={{ backgroundColor: 'rgba(109,40,217,0.15)', border: '1px solid rgba(124,58,237,0.3)', borderRadius: 12, padding: 18, marginBottom: 16 }}>
-        <div style={{ color: '#A78BFA', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>✨ Créer une nouvelle session</div>
-        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, margin: '0 0 12px', lineHeight: 1.5 }}>Génère un code et partage-le avec tes camarades.</p>
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.8 }}>📁 Nom du projet *</div>
-          <input value={projectName} onChange={e => { setProjectName(e.target.value); setError(''); }} placeholder="Ex : Application météo…" maxLength={40} style={fieldStyle(error && !projectName.trim())} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div>
+          <div style={{ color: '#A78BFA', fontSize: 11, fontWeight: 700, marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.8 }}>👤 Prénom *</div>
+          <input autoFocus value={nickname} onChange={e => { setNickname(e.target.value); setError(''); }} placeholder="Ex : Marie…" maxLength={20}
+            style={fieldStyle(error && !nickname.trim())} />
         </div>
-        <div style={{ marginBottom: 10 }}>
-          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, fontWeight: 700, marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.8 }}>🏫 Classe *</div>
-          <input value={className} onChange={e => { setClassName(e.target.value); setError(''); }} placeholder="Ex : 4C, 3B, 5ème 2…" maxLength={20} style={fieldStyle(error && !className.trim())} />
+        <div>
+          <div style={{ color: '#A78BFA', fontSize: 11, fontWeight: 700, marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.8 }}>📁 Nom du projet *</div>
+          <input value={projectName} onChange={e => { setProjectName(e.target.value); setError(''); }} placeholder="Ex : Application météo…" maxLength={40}
+            style={fieldStyle(error && !projectName.trim())} />
         </div>
-        <button onClick={onCreate} disabled={loading} style={{ width: '100%', padding: '10px', borderRadius: 8, border: 'none', cursor: loading ? 'wait' : 'pointer', background: 'linear-gradient(135deg, #7C3AED, #6C63FF)', color: 'white', fontSize: 13, fontWeight: 800, fontFamily: 'Nunito, sans-serif', opacity: loading ? 0.7 : 1 }}>
-          {loading ? '⏳ Création…' : '🚀 Créer une session'}
-        </button>
+        <div>
+          <div style={{ color: '#A78BFA', fontSize: 11, fontWeight: 700, marginBottom: 5, textTransform: 'uppercase', letterSpacing: 0.8 }}>🏫 Classe *</div>
+          <input value={className} onChange={e => { setClassName(e.target.value); setError(''); }} placeholder="Ex : 4C, 3B, 5ème 2…" maxLength={20}
+            onKeyDown={e => { if (e.key === 'Enter') onCreate(); }}
+            style={fieldStyle(error && !className.trim())} />
+        </div>
       </div>
+      {error && <p style={{ color: '#FCA5A5', fontSize: 12, margin: '10px 0 0', fontFamily: 'Nunito, sans-serif' }}>{error}</p>}
+      <button onClick={onCreate} disabled={loading}
+        style={{ width: '100%', marginTop: 18, padding: '12px', borderRadius: 10, border: 'none', cursor: loading ? 'wait' : 'pointer', background: 'linear-gradient(135deg, #7C3AED, #6C63FF)', color: 'white', fontSize: 14, fontWeight: 800, fontFamily: 'Nunito, sans-serif', opacity: loading ? 0.7 : 1 }}>
+        {loading ? '⏳ Création…' : '🚀 Créer la session'}
+      </button>
+    </div>
+  );
+}
 
-      {/* Join */}
-      <div style={{ backgroundColor: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, padding: 18 }}>
-        <div style={{ color: 'white', fontSize: 13, fontWeight: 700, marginBottom: 8 }}>🔗 Rejoindre une session</div>
-        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12, margin: '0 0 12px', lineHeight: 1.5 }}>Entre le code donné par ton enseignant ou un camarade.</p>
-        <input ref={joinRef} value={joinInput} onChange={e => { setJoinInput(e.target.value.toUpperCase()); setError(''); }} onKeyDown={e => { if (e.key === 'Enter') onCheckCode(); }} placeholder="ABCDEF" maxLength={6}
-          style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1.5px solid rgba(255,255,255,0.15)', backgroundColor: 'rgba(255,255,255,0.08)', color: 'white', fontSize: 22, fontWeight: 900, fontFamily: 'monospace', letterSpacing: 8, textAlign: 'center', outline: 'none', boxSizing: 'border-box' }} />
-        <button onClick={onCheckCode} disabled={loading || joinInput.length === 0}
-          style={{ width: '100%', marginTop: 10, padding: '10px', borderRadius: 8, border: 'none', cursor: loading || joinInput.length === 0 ? 'not-allowed' : 'pointer', backgroundColor: 'rgba(96,165,250,0.2)', color: '#60A5FA', fontSize: 13, fontWeight: 700, fontFamily: 'Nunito, sans-serif', opacity: joinInput.length === 0 ? 0.5 : 1 }}>
-          {loading ? '⏳ Connexion…' : '🔗 Rejoindre'}
-        </button>
+function JoinStep({ joinInput, setJoinInput, loading, error, setError, onCheck, onBack, joinRef }) {
+  return (
+    <div>
+      <button onClick={onBack} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 12, cursor: 'pointer', padding: '0 0 14px', fontFamily: 'Nunito, sans-serif', display: 'flex', alignItems: 'center', gap: 4 }}>
+        ← Retour
+      </button>
+      <div style={{ textAlign: 'center', marginBottom: 24 }}>
+        <div style={{ fontSize: 32, marginBottom: 6 }}>🔗</div>
+        <div style={{ color: 'white', fontSize: 16, fontWeight: 900 }}>Rejoindre une session</div>
+        <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 4 }}>Entre le code fourni par ton enseignant ou un camarade</div>
       </div>
+      <input
+        ref={joinRef}
+        autoFocus
+        value={joinInput}
+        onChange={e => { setJoinInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6)); setError(''); }}
+        onKeyDown={e => { if (e.key === 'Enter') onCheck(); }}
+        placeholder="ABCDEF"
+        maxLength={6}
+        style={{ width: '100%', padding: '14px', borderRadius: 10, border: `2px solid ${error ? '#FCA5A5' : 'rgba(167,139,250,0.4)'}`, backgroundColor: 'rgba(167,139,250,0.08)', color: 'white', fontSize: 28, fontWeight: 900, fontFamily: 'monospace', letterSpacing: 12, textAlign: 'center', outline: 'none', boxSizing: 'border-box' }}
+      />
+      {error && <p style={{ color: '#FCA5A5', fontSize: 12, margin: '8px 0 0', fontFamily: 'Nunito, sans-serif', textAlign: 'center' }}>{error}</p>}
+      <button onClick={onCheck} disabled={loading || joinInput.length !== 6}
+        style={{ width: '100%', marginTop: 16, padding: '12px', borderRadius: 10, border: 'none', cursor: loading || joinInput.length !== 6 ? 'not-allowed' : 'pointer', background: joinInput.length === 6 ? 'linear-gradient(135deg, #3B82F6, #2563EB)' : 'rgba(255,255,255,0.1)', color: joinInput.length === 6 ? 'white' : 'rgba(255,255,255,0.3)', fontSize: 14, fontWeight: 800, fontFamily: 'Nunito, sans-serif' }}>
+        {loading ? '⏳ Connexion…' : '🔗 Rejoindre'}
+      </button>
     </div>
   );
 }
