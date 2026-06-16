@@ -182,13 +182,9 @@ function AppInner() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', fontFamily: 'Nunito, sans-serif' }}>
       <Toolbar
-        canvasRef={canvasRef}
-        phoneScaleWrapperRef={phoneScaleWrapperRef}
-        onHelp={() => setShowWelcome(true)}
         sessionCode={sessionCode}
         isCreator={isCreator}
         onCollabClick={() => setShowCollabModal(true)}
-        onAdminClick={() => setShowAdmin(true)}
       />
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
         <div style={{ display: 'flex', height: '100%', flexShrink: 0 }}>
@@ -205,14 +201,22 @@ function AppInner() {
           <div style={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(circle, #c4b5fd 1px, transparent 1px)', backgroundSize: '24px 24px', opacity: 0.3, pointerEvents: 'none' }} />
 
           <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
-            {/* Screen name badge */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Screen name badge + device controls */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
               <div style={{ backgroundColor: '#6C63FF', color: 'white', padding: '4px 16px', borderRadius: 20, fontSize: 12, fontWeight: 700, fontFamily: 'Nunito, sans-serif', boxShadow: '0 2px 8px rgba(108,99,255,0.35)' }}>
-                📱 {activeScreen?.name || 'Écran'}
+                {activeScreen?.name || 'Écran'}
               </div>
               <div style={{ color: '#9CA3AF', fontSize: 11, fontFamily: 'Nunito, sans-serif' }}>{state.canvasW ?? 390} × {state.canvasH ?? 844} px</div>
               <div style={{ color: '#9CA3AF', fontSize: 10, fontFamily: 'Nunito, sans-serif', backgroundColor: 'rgba(255,255,255,0.7)', padding: '2px 8px', borderRadius: 10 }}>
                 {Math.round(phoneScale * 100)}%
+              </div>
+              {/* Device mode picker */}
+              <div style={{ display: 'flex', gap: 2, backgroundColor: 'rgba(0,0,0,0.07)', borderRadius: 10, padding: 3 }}>
+                <DeviceBtn active={(state.deviceType ?? 'phone') === 'phone'} title="Téléphone" onClick={() => dispatch({ type: 'SET_DEVICE_MODE', deviceType: 'phone', orientation: state.orientation ?? 'portrait' })}>📱</DeviceBtn>
+                <DeviceBtn active={(state.deviceType ?? 'phone') === 'tablet'} title="Tablette" onClick={() => dispatch({ type: 'SET_DEVICE_MODE', deviceType: 'tablet', orientation: state.orientation ?? 'portrait' })}>⬜</DeviceBtn>
+                <div style={{ width: 1, backgroundColor: 'rgba(0,0,0,0.1)', margin: '2px 1px' }} />
+                <DeviceBtn active={(state.orientation ?? 'portrait') === 'portrait'} title="Portrait" onClick={() => dispatch({ type: 'SET_DEVICE_MODE', deviceType: state.deviceType ?? 'phone', orientation: 'portrait' })}>▯</DeviceBtn>
+                <DeviceBtn active={(state.orientation ?? 'portrait') === 'landscape'} title="Paysage" onClick={() => dispatch({ type: 'SET_DEVICE_MODE', deviceType: state.deviceType ?? 'phone', orientation: 'landscape' })}>▭</DeviceBtn>
               </div>
             </div>
 
@@ -243,6 +247,24 @@ function AppInner() {
         <TransferNotification sessionCode={sessionCode} transfers={pendingTransfers} />
       )}
     </div>
+  );
+}
+
+function DeviceBtn({ active, title, onClick, children }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      style={{
+        padding: '3px 7px', borderRadius: 7, border: 'none', cursor: 'pointer',
+        backgroundColor: active ? '#6C63FF' : 'transparent',
+        color: active ? 'white' : '#6B7280',
+        fontSize: 13, lineHeight: 1, transition: 'all 0.15s',
+        fontFamily: 'Nunito, sans-serif', fontWeight: 700,
+      }}
+    >
+      {children}
+    </button>
   );
 }
 

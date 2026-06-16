@@ -1,39 +1,12 @@
-import React, { useRef, useState } from 'react';
-import { useProject, useActiveScreen } from '../hooks/useProject';
+import React, { useRef } from 'react';
+import { useProject } from '../hooks/useProject';
 import { exportProjectAsJson, importProjectFromJson } from '../utils/exportJson';
-import { exportScreenAsPng } from '../utils/exportPng';
 import { exportProjectAsHtml } from '../utils/exportHtml';
 
-export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessionCode, isCreator, onCollabClick, onAdminClick }) {
+export default function Toolbar({ canvasRef, phoneScaleWrapperRef, sessionCode, isCreator, onCollabClick }) {
   const { state, dispatch } = useProject();
   const projectNameLocked = !!(sessionCode && !isCreator);
-  const screen = useActiveScreen();
   const importRef = useRef(null);
-  const [exporting, setExporting] = useState(false);
-
-  const handleExportPng = async () => {
-    if (!canvasRef?.current) return;
-    setExporting(true);
-    const wrapper = phoneScaleWrapperRef?.current;
-    const prev = wrapper ? { transform: wrapper.style.transform, position: wrapper.style.position, top: wrapper.style.top, left: wrapper.style.left, zIndex: wrapper.style.zIndex } : null;
-    if (wrapper) {
-      wrapper.style.transform = 'scale(1)';
-      wrapper.style.position = 'fixed';
-      wrapper.style.top = '0';
-      wrapper.style.left = '0';
-      wrapper.style.zIndex = '99999';
-    }
-    await new Promise(r => setTimeout(r, 80));
-    await exportScreenAsPng(canvasRef.current, screen?.name);
-    if (wrapper && prev) {
-      wrapper.style.transform = prev.transform;
-      wrapper.style.position = prev.position;
-      wrapper.style.top = prev.top;
-      wrapper.style.left = prev.left;
-      wrapper.style.zIndex = prev.zIndex;
-    }
-    setExporting(false);
-  };
 
   const handleExportJson = () => {
     exportProjectAsJson(state);
@@ -114,16 +87,6 @@ export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessi
 
       <div style={{ width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.15)' }} />
 
-      {/* Export PNG */}
-      <ToolBtn
-        onClick={handleExportPng}
-        disabled={exporting}
-        title="Exporter en PNG"
-        emoji="🖼️"
-        label="PNG"
-        color="#A78BFA"
-      />
-
       {/* Export HTML */}
       <ToolBtn
         onClick={() => exportProjectAsHtml(state)}
@@ -160,51 +123,6 @@ export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessi
 
       <div style={{ width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.15)' }} />
 
-      {/* Highlight texts */}
-      <button
-        onClick={() => dispatch({ type: 'TOGGLE_HIGHLIGHT_TEXTS' })}
-        title="Surligner tous les éléments avec du texte"
-        style={{
-          display: 'flex', alignItems: 'center', gap: 4, padding: '5px 8px', borderRadius: 7,
-          border: state.highlightTexts ? '1.5px solid #FCD34D' : 'none',
-          backgroundColor: state.highlightTexts ? 'rgba(252,211,77,0.2)' : 'rgba(255,255,255,0.08)',
-          color: state.highlightTexts ? '#FCD34D' : 'rgba(255,255,255,0.7)',
-          fontSize: 11, fontFamily: 'Nunito, sans-serif', fontWeight: 700, cursor: 'pointer',
-          transition: 'all 0.15s',
-        }}
-      >
-        <span style={{ fontSize: 14 }}>🔡</span>
-        <span>Textes</span>
-      </button>
-
-      <div style={{ width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.15)' }} />
-      {/* Device mode picker */}
-      <div style={{ display: 'flex', gap: 4, backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 9, padding: 3 }}>
-        {/* Device type */}
-        <button
-          onClick={() => dispatch({ type: 'SET_DEVICE_MODE', deviceType: 'phone', orientation: state.orientation ?? 'portrait' })}
-          title="Mode téléphone"
-          style={{ padding: '3px 7px', borderRadius: 5, border: 'none', cursor: 'pointer', backgroundColor: (state.deviceType ?? 'phone') === 'phone' ? 'rgba(167,139,250,0.3)' : 'transparent', color: (state.deviceType ?? 'phone') === 'phone' ? '#A78BFA' : 'rgba(255,255,255,0.4)', fontSize: 16, lineHeight: 1, transition: 'all 0.15s' }}
-        >📱</button>
-        <button
-          onClick={() => dispatch({ type: 'SET_DEVICE_MODE', deviceType: 'tablet', orientation: state.orientation ?? 'portrait' })}
-          title="Mode tablette"
-          style={{ padding: '3px 7px', borderRadius: 5, border: 'none', cursor: 'pointer', backgroundColor: (state.deviceType ?? 'phone') === 'tablet' ? 'rgba(167,139,250,0.3)' : 'transparent', color: (state.deviceType ?? 'phone') === 'tablet' ? '#A78BFA' : 'rgba(255,255,255,0.4)', fontSize: 16, lineHeight: 1, transition: 'all 0.15s' }}
-        >⬜</button>
-        <div style={{ width: 1, backgroundColor: 'rgba(255,255,255,0.12)', margin: '2px 0' }} />
-        {/* Orientation */}
-        <button
-          onClick={() => dispatch({ type: 'SET_DEVICE_MODE', deviceType: state.deviceType ?? 'phone', orientation: 'portrait' })}
-          title="Portrait"
-          style={{ padding: '3px 7px', borderRadius: 5, border: 'none', cursor: 'pointer', backgroundColor: (state.orientation ?? 'portrait') === 'portrait' ? 'rgba(167,139,250,0.3)' : 'transparent', color: (state.orientation ?? 'portrait') === 'portrait' ? '#A78BFA' : 'rgba(255,255,255,0.4)', fontSize: 14, fontFamily: 'Nunito,sans-serif', fontWeight: 900, lineHeight: 1, transition: 'all 0.15s' }}
-        >▯</button>
-        <button
-          onClick={() => dispatch({ type: 'SET_DEVICE_MODE', deviceType: state.deviceType ?? 'phone', orientation: 'landscape' })}
-          title="Paysage"
-          style={{ padding: '3px 7px', borderRadius: 5, border: 'none', cursor: 'pointer', backgroundColor: (state.orientation ?? 'portrait') === 'landscape' ? 'rgba(167,139,250,0.3)' : 'transparent', color: (state.orientation ?? 'portrait') === 'landscape' ? '#A78BFA' : 'rgba(255,255,255,0.4)', fontSize: 14, fontFamily: 'Nunito,sans-serif', fontWeight: 900, lineHeight: 1, transition: 'all 0.15s' }}
-        >▭</button>
-      </div>
-
       {/* Collaboration */}
       {sessionCode ? (
         <button
@@ -234,27 +152,6 @@ export default function Toolbar({ canvasRef, phoneScaleWrapperRef, onHelp, sessi
         />
       )}
 
-      <div style={{ width: 1, height: 30, backgroundColor: 'rgba(255,255,255,0.15)' }} />
-
-      {/* Help */}
-      <ToolBtn
-        onClick={onHelp}
-        title="Aide"
-        emoji="❓"
-        label="Aide"
-        color="#FCD34D"
-      />
-
-      {/* Admin */}
-      {onAdminClick && (
-        <ToolBtn
-          onClick={onAdminClick}
-          title="Espace enseignant"
-          emoji="👨‍🏫"
-          label="Enseignant"
-          color="rgba(255,255,255,0.4)"
-        />
-      )}
     </div>
   );
 }
