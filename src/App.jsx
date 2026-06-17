@@ -76,6 +76,7 @@ function AppInner() {
     if (sessionData) dispatch({ type: 'LOAD_PROJECT', project: sessionData });
     if (options.projectName) dispatch({ type: 'SET_PROJECT_NAME', name: options.projectName });
     if (options.initialScreenName) dispatch({ type: 'RENAME_FIRST_OWN_SCREEN', name: options.initialScreenName });
+    if (options.projectBrief) dispatch({ type: 'SET_PROJECT_BRIEF', brief: options.projectBrief });
     setIsCreator(options.isCreator || false);
     setSessionCode(code);
     localStorage.setItem(SESSION_STORAGE_KEY, code);

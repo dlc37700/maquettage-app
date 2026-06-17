@@ -167,6 +167,9 @@ export async function loadSessionOnce(code) {
     const meta = metaSnap.val();
     if (meta?.blocked) return { blocked: true };
 
+    const briefSnap = await get(ref(db, `sessions/${code}/brief`));
+    const projectBrief = briefSnap.val() || null;
+
     const snapshot = await get(ref(db, `sessions/${code}/clients`));
     const allClients = snapshot.val();
     if (!allClients || typeof allClients !== 'object') return null;
@@ -193,7 +196,7 @@ export async function loadSessionOnce(code) {
 
     const allScreens = [...ownScreens, ...remoteScreens];
     if (allScreens.length === 0) return null;
-    return { screens: allScreens, projectName: projectName || 'Mon Projet', creatorId: meta?.createdBy || null };
+    return { screens: allScreens, projectName: projectName || 'Mon Projet', creatorId: meta?.createdBy || null, projectBrief };
   } catch (err) {
     console.error('[Session] Load error:', err);
     return null;
@@ -263,6 +266,26 @@ export function listenTransfers(code, myClientId, callback) {
 export function clearTransfer(code, myClientId, transferId) {
   if (!db || !code || !myClientId || !transferId) return;
   remove(ref(db, `sessions/${code}/transfers/${myClientId}/${transferId}`)).catch(() => {});
+}
+
+export async function saveProjectBrief(code, brief) {
+  if (!db || !code) return;
+  try {
+    await set(ref(db, `sessions/${code}/brief`), brief);
+  } catch (err) {
+    console.error('[Session] saveProjectBrief error:', err);
+  }
+}
+
+export async function loadProjectBrief(code) {
+  if (!db || !code) return null;
+  try {
+    const snap = await get(ref(db, `sessions/${code}/brief`));
+    return snap.val() || null;
+  } catch (err) {
+    console.error('[Session] loadProjectBrief error:', err);
+    return null;
+  }
 }
 
 export function listenSessionMembers(code, myClientId, callback) {

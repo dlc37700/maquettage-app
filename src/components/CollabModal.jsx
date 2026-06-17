@@ -4,10 +4,11 @@ import {
   generateSessionCode, writeOwnScreens, loadSessionOnce,
   setClientNickname, getClientNickname, getClientId,
   saveMemberRecord, prepareJoin, verifyAndRestoreMember, claimMemberIdentity,
-  getOrCreateClientPin,
+  getOrCreateClientPin, saveProjectBrief,
 } from '../services/session';
 import { initSessionMeta } from '../services/admin';
 import { getTeacherBySchoolCode } from '../services/teachers';
+import ProjectBriefWizard from './ProjectBriefWizard';
 
 export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClose }) {
   // Create form state
@@ -38,6 +39,7 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
   const [newNickname, setNewNickname] = useState(() => getClientNickname());
   const [assignedPin, setAssignedPin] = useState('');
   const [pendingJoin, setPendingJoin] = useState(null); // {code, nickname} to finalize after showing pin
+  const [pendingCode, setPendingCode] = useState(''); // session code awaiting project-brief completion
   const joinRef = useRef(null);
 
   useEffect(() => {
@@ -123,15 +125,23 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
     writeOwnScreens(code, ownScreens, trimmedName);
     initSessionMeta(code, nickname.trim(), className.trim(), school || '', teacherCode, school || '', projectName.trim());
     await saveMemberRecord(code, getClientId(), nickname.trim());
-    const pin = getOrCreateClientPin();
-    setAssignedPin(pin);
-    setPendingJoin({ code, nickname: nickname.trim(), projectName: trimmedName, isCreator: true, isNew: false });
-    setJoinStep('show_pin');
+    setPendingCode(code);
     setLoading(false);
+    setJoinStep('project_brief');
   };
 
   const handleConfirmTeacherCode = async () => {
     await handleFinalizeCreate(pendingTeacherCode || null, pendingSchool);
+  };
+
+  const handleBriefComplete = async (brief) => {
+    setLoading(true);
+    await saveProjectBrief(pendingCode, brief);
+    const pin = getOrCreateClientPin();
+    setAssignedPin(pin);
+    setPendingJoin({ code: pendingCode, nickname: nickname.trim(), projectName: projectName.trim(), brief, isCreator: true, isNew: false });
+    setJoinStep('show_pin');
+    setLoading(false);
   };
 
   const handleCheckCode = handleCheckJoin;
@@ -185,7 +195,7 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
     setLoading(true);
     if (pendingJoin.isCreator) {
       // Creator: their screens are already in local state, just open the session
-      onJoin(pendingJoin.code, null, { projectName: pendingJoin.projectName, isCreator: true });
+      onJoin(pendingJoin.code, null, { projectName: pendingJoin.projectName, projectBrief: pendingJoin.brief, isCreator: true });
     } else if (pendingJoin.isNew) {
       // New member: count existing screens to give a unique name, then start fresh
       const existingProject = await loadSessionOnce(pendingJoin.code);
@@ -262,6 +272,12 @@ export default function CollabModal({ state, sessionCode, onJoin, onLeave, onClo
             onSkip={handleSkipTeacherCode}
             onConfirm={handleConfirmTeacherCode}
             onBack={() => setJoinStep('create')}
+          />
+         ) :
+         joinStep === 'project_brief' ? (
+          <ProjectBriefWizard
+            onComplete={handleBriefComplete}
+            onCancel={() => setJoinStep('teacher_code')}
           />
          ) :
          joinStep === 'pick_member' ? (

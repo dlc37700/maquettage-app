@@ -22,6 +22,7 @@ const INITIAL_STATE = {
   canvasH: 844,
   deviceType: 'phone',
   orientation: 'portrait',
+  projectBrief: null,
 };
 
 function takeSnapshot(state) {
@@ -295,8 +296,12 @@ function reducer(state, action) {
         canvasH: action.project.canvasH ?? state.canvasH ?? 844,
         deviceType: action.project.deviceType ?? state.deviceType ?? 'phone',
         orientation: action.project.orientation ?? state.orientation ?? 'portrait',
+        projectBrief: action.project.projectBrief ?? state.projectBrief ?? null,
       };
     }
+
+    case 'SET_PROJECT_BRIEF':
+      return { ...state, projectBrief: action.brief };
 
     // Rename the first own (non-remote) screen — used when a new member joins to avoid
     // naming their first screen "Accueil" like everyone else.

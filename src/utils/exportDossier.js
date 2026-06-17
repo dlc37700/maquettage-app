@@ -95,8 +95,67 @@ function posterMiniScreens(screens, canvasW, canvasH) {
     </div>`).join('');
 }
 
+const ROLE_META = [
+  { key: 'chef', emoji: '👑', label: 'Chef·fe de projet', color: 'var(--indigo)', bullets: ["A coordonné l'équipe", 'A tenu le carnet de bord', "A présenté le besoin à l'oral"] },
+  { key: 'designer', emoji: '🎨', label: 'Designer', color: 'var(--coral)', bullets: ['A conçu les écrans', 'A créé le logo', "A mis en page l'affiche"] },
+  { key: 'redacteur', emoji: '✍️', label: 'Rédacteur·rice', color: 'var(--mustard)', bullets: ['A rédigé le cahier des charges', 'A écrit les textes', 'A corrigé le dossier'] },
+  { key: 'porteparole', emoji: '🎤', label: 'Porte-parole', color: 'var(--green)', bullets: [" A préparé le plan de l'oral", 'A présenté la maquette', 'A répondu aux questions'] },
+];
+
+const CONSTRAINT_ICONS = {
+  'Technique': '⚙️', 'Économique': '💰', 'Légale': '🔒', 'Ergonomique': '👁️', 'Esthétique': '🎨', 'Environnementale': '🌱',
+};
+
+function teamCardsHtml(brief) {
+  return ROLE_META.map(r => {
+    const name = brief?.team?.[r.key]?.trim();
+    return `
+    <div class="card">
+      <div class="icon-big" style="background:${r.color};">${r.emoji}</div>
+      <h3 contenteditable="true">${escHtml(name || 'Prénom')}</h3>
+      <p class="role" contenteditable="true">${r.label}</p>
+      <ul>
+        ${r.bullets.map(b => `<li contenteditable="true">${escHtml(b)}</li>`).join('')}
+      </ul>
+    </div>`;
+  }).join('');
+}
+
+function functionsHtml(brief) {
+  const fns = (brief?.functions || []).filter(f => f.text?.trim());
+  if (fns.length === 0) {
+    return `
+      <div class="function-row"><div class="num">01</div><div class="desc" contenteditable="true"><strong>Permettre à l'utilisateur</strong> de réaliser la fonction principale de votre appli.</div><div class="priority">★★★</div></div>
+      <div class="function-row"><div class="num">02</div><div class="desc" contenteditable="true"><strong>Afficher</strong> les informations importantes pour l'utilisateur.</div><div class="priority">★★★</div></div>
+      <div class="function-row"><div class="num">03</div><div class="desc" contenteditable="true"><strong>Envoyer</strong> une notification ou un rappel à l'utilisateur.</div><div class="priority">★★★</div></div>`;
+  }
+  return fns.map((f, i) => {
+    const priorityClass = f.priority === 2 ? 'med' : f.priority === 1 ? 'low' : '';
+    const stars = '★'.repeat(f.priority || 1);
+    return `<div class="function-row"><div class="num">${String(i + 1).padStart(2, '0')}</div><div class="desc" contenteditable="true">${escHtml(f.text)}</div><div class="priority ${priorityClass}">${stars}</div></div>`;
+  }).join('');
+}
+
+function constraintsHtml(brief) {
+  const cons = (brief?.constraints || []).filter(c => c.text?.trim());
+  if (cons.length === 0) {
+    return Object.entries(CONSTRAINT_ICONS).map(([type, icon]) => `
+      <div class="constraint">
+        <div class="ic">${icon}</div>
+        <h4 contenteditable="true">${escHtml(type)}</h4>
+        <p contenteditable="true">Précisez la contrainte ${type.toLowerCase()} de votre application.</p>
+      </div>`).join('');
+  }
+  return cons.map(c => `
+    <div class="constraint">
+      <div class="ic">${CONSTRAINT_ICONS[c.type] || '📌'}</div>
+      <h4 contenteditable="true">${escHtml(c.type)}</h4>
+      <p contenteditable="true">${escHtml(c.text)}</p>
+    </div>`).join('');
+}
+
 export function exportProjectAsDossier(state) {
-  const { screens: allScreens, projectName = 'Mon Application', canvasW = 390, canvasH = 844 } = state;
+  const { screens: allScreens, projectName = 'Mon Application', canvasW = 390, canvasH = 844, projectBrief: brief = null } = state;
   const screens = allScreens.filter(s => !s._remote);
   const title = escHtml(projectName);
   const today = new Date().toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -104,6 +163,25 @@ export function exportProjectAsDossier(state) {
   const screensHtml = screens.map((s, i) => phoneCard(s, i, canvasW, canvasH)).join('');
   const navDiagram = navSvg(screens);
   const posterScreens = posterMiniScreens(screens, canvasW, canvasH);
+
+  const teamNames = ROLE_META.map(r => brief?.team?.[r.key]?.trim()).filter(Boolean);
+  const teamLine = teamNames.length > 0 ? [...new Set(teamNames)].join(' · ') : 'Prénom Prénom Prénom';
+  const slogan = brief?.slogan?.trim() || 'Slogan ou description courte de l\'application.';
+  const subtitle = brief?.need?.trim() || 'Décrivez ici en une ou deux phrases le problème que votre application résout et à qui elle s\'adresse.';
+  const needText = brief?.need?.trim() || 'Décrivez ici en 3 à 5 phrases ce que fait votre application, à qui elle s\'adresse, et pourquoi elle est utile. Expliquez comment elle résout le problème identifié.';
+  const audience = brief?.audience?.trim() || 'Décrivez votre utilisateur type.';
+  const age = brief?.age?.trim() || 'Âge de l\'utilisateur type';
+  const problem = brief?.problem?.trim() || 'Le problème qu\'il rencontre au quotidien.';
+  const teamFooterHtml = ROLE_META.map(r => {
+    const name = brief?.team?.[r.key]?.trim();
+    return `<span class="member">${r.emoji} ${escHtml((name || 'PRÉNOM').toUpperCase())}</span>`;
+  }).join('\n        ');
+  const functionsListHtml = (brief?.functions || []).filter(f => f.text?.trim()).slice(0, 5)
+    .map(f => `<li contenteditable="true">${escHtml(f.text)}</li>`).join('') ||
+    `<li contenteditable="true">Première fonction principale</li><li contenteditable="true">Deuxième fonction principale</li><li contenteditable="true">Troisième fonction</li>`;
+  const constraintsListHtml = (brief?.constraints || []).filter(c => c.text?.trim())
+    .map(c => `<li contenteditable="true">${escHtml(c.text)}</li>`).join('') ||
+    `<li contenteditable="true">Gratuite, sans publicité</li><li contenteditable="true">Contrainte technique importante</li>`;
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -280,12 +358,12 @@ export function exportProjectAsDossier(state) {
 
   <span class="tag" contenteditable="true">Projet technologie</span>
   <h1 class="display" contenteditable="true">${title}</h1>
-  <p class="subtitle" contenteditable="true">Décrivez ici en une ou deux phrases le problème que votre application résout et à qui elle s'adresse.</p>
+  <p class="subtitle" contenteditable="true">${escHtml(subtitle)}</p>
 
   <div class="meta">
     <div class="meta-item">
       <span class="label-mono ml">Équipe</span>
-      <span class="value" contenteditable="true">Prénom Prénom Prénom</span>
+      <span class="value" contenteditable="true">${escHtml(teamLine)}</span>
     </div>
     <div class="meta-item">
       <span class="label-mono ml">Classe</span>
@@ -309,48 +387,9 @@ export function exportProjectAsDossier(state) {
     <div class="section-number">01</div>
     <h2>L'équipe et les rôles</h2>
   </div>
-  <p class="section-intro" contenteditable="true">Chaque membre de l'équipe a un rôle principal. Modifiez les cartes ci-dessous pour indiquer vos vrais prénoms et contributions.</p>
+  <p class="section-intro" contenteditable="true">Chaque membre de l'équipe a un rôle principal. Modifiez les cartes ci-dessous pour ajuster les contributions.</p>
   <div class="cards-grid">
-    <div class="card">
-      <div class="icon-big" style="background:var(--indigo);">👑</div>
-      <h3 contenteditable="true">Prénom</h3>
-      <p class="role" contenteditable="true">Chef·fe de projet</p>
-      <ul>
-        <li contenteditable="true">A coordonné l'équipe</li>
-        <li contenteditable="true">A tenu le carnet de bord</li>
-        <li contenteditable="true">A présenté le besoin à l'oral</li>
-      </ul>
-    </div>
-    <div class="card">
-      <div class="icon-big" style="background:var(--coral);">🎨</div>
-      <h3 contenteditable="true">Prénom</h3>
-      <p class="role" contenteditable="true">Designer</p>
-      <ul>
-        <li contenteditable="true">A conçu les écrans</li>
-        <li contenteditable="true">A créé le logo</li>
-        <li contenteditable="true">A mis en page l'affiche</li>
-      </ul>
-    </div>
-    <div class="card">
-      <div class="icon-big" style="background:var(--mustard);">✍️</div>
-      <h3 contenteditable="true">Prénom</h3>
-      <p class="role" contenteditable="true">Rédacteur·rice</p>
-      <ul>
-        <li contenteditable="true">A rédigé le cahier des charges</li>
-        <li contenteditable="true">A écrit les textes</li>
-        <li contenteditable="true">A corrigé le dossier</li>
-      </ul>
-    </div>
-    <div class="card">
-      <div class="icon-big" style="background:var(--green);">🎤</div>
-      <h3 contenteditable="true">Prénom</h3>
-      <p class="role" contenteditable="true">Porte-parole</p>
-      <ul>
-        <li contenteditable="true">A préparé le plan de l'oral</li>
-        <li contenteditable="true">A présenté la maquette</li>
-        <li contenteditable="true">A répondu aux questions</li>
-      </ul>
-    </div>
+    ${teamCardsHtml(brief)}
   </div>
 </div>
 </section>
@@ -366,7 +405,7 @@ export function exportProjectAsDossier(state) {
 
   <div style="background:var(--mustard);padding:28px 36px;border-radius:16px;margin:28px 0;border:1.5px solid var(--ink);box-shadow:4px 4px 0 var(--ink);transform:rotate(-0.5deg);">
     <div style="font-size:26px;margin-bottom:8px;">💭</div>
-    <p style="font-family:'Fraunces',serif;font-style:italic;font-size:20px;line-height:1.4;color:var(--ink);" contenteditable="true">« Décrivez ici le problème tel qu'il est vécu par l'utilisateur, idéalement en citant quelqu'un (un élève, un ami…). »</p>
+    <p style="font-family:'Fraunces',serif;font-style:italic;font-size:20px;line-height:1.4;color:var(--ink);" contenteditable="true">« ${escHtml(problem)} »</p>
   </div>
 
   <div class="cdc-card">
@@ -376,13 +415,12 @@ export function exportProjectAsDossier(state) {
     <div class="persona">
       <div class="avatar" contenteditable="true">🧒</div>
       <div class="persona-info">
-        <h4 contenteditable="true">Prénom, âge, situation</h4>
-        <p style="color:var(--ink-soft);margin-bottom:14px;font-style:italic;" contenteditable="true">Notre utilisateur type</p>
+        <h4 contenteditable="true">${escHtml(audience)}</h4>
+        <p style="color:var(--ink-soft);margin-bottom:14px;font-style:italic;" contenteditable="true">${escHtml(age)}</p>
         <ul>
-          <li><strong>Sa journée</strong> <span contenteditable="true">Décrivez une journée typique de l'utilisateur.</span></li>
-          <li><strong>Ce qu'il aime</strong> <span contenteditable="true">Ses centres d'intérêt et habitudes numériques.</span></li>
-          <li><strong>Ce qui l'agace</strong> <span contenteditable="true">Le problème qu'il rencontre au quotidien.</span></li>
-          <li><strong>Son équipement</strong> <span contenteditable="true">Type de téléphone, accès internet, etc.</span></li>
+          <li><strong>Le problème</strong> <span contenteditable="true">${escHtml(problem)}</span></li>
+          <li><strong>Public visé</strong> <span contenteditable="true">${escHtml(audience)}</span></li>
+          <li><strong>Âge</strong> <span contenteditable="true">${escHtml(age)}</span></li>
         </ul>
       </div>
     </div>
@@ -392,7 +430,7 @@ export function exportProjectAsDossier(state) {
     <div class="pin">PARTIE 2 — À QUOI ?</div>
     <h3>Le besoin qu'on identifie</h3>
     <p style="font-family:'Fraunces',serif;font-style:italic;color:var(--indigo);margin-top:8px;font-size:16px;" contenteditable="true">À quoi sert l'application ?</p>
-    <p style="font-size:16px;line-height:1.6;margin-top:16px;" contenteditable="true">Décrivez ici en 3 à 5 phrases ce que fait votre application, à qui elle s'adresse, et pourquoi elle est utile. Expliquez comment elle résout le problème identifié.</p>
+    <p style="font-size:16px;line-height:1.6;margin-top:16px;" contenteditable="true">${escHtml(needText)}</p>
   </div>
 </div>
 </section>
@@ -409,31 +447,7 @@ export function exportProjectAsDossier(state) {
   <div class="cdc-card">
     <div class="pin">PARTIE 3 — QUE FAIRE ?</div>
     <div class="functions">
-      <div class="function-row">
-        <div class="num">01</div>
-        <div class="desc" contenteditable="true"><strong>Permettre à l'utilisateur</strong> de réaliser la fonction principale de votre appli.</div>
-        <div class="priority">★★★</div>
-      </div>
-      <div class="function-row">
-        <div class="num">02</div>
-        <div class="desc" contenteditable="true"><strong>Afficher</strong> les informations importantes pour l'utilisateur.</div>
-        <div class="priority">★★★</div>
-      </div>
-      <div class="function-row">
-        <div class="num">03</div>
-        <div class="desc" contenteditable="true"><strong>Envoyer</strong> une notification ou un rappel à l'utilisateur.</div>
-        <div class="priority">★★★</div>
-      </div>
-      <div class="function-row">
-        <div class="num">04</div>
-        <div class="desc" contenteditable="true"><strong>Permettre de modifier</strong> les préférences et réglages de l'application.</div>
-        <div class="priority med">★★</div>
-      </div>
-      <div class="function-row">
-        <div class="num">05</div>
-        <div class="desc" contenteditable="true"><strong>Afficher</strong> des statistiques ou un historique pour l'utilisateur.</div>
-        <div class="priority low">★</div>
-      </div>
+      ${functionsHtml(brief)}
     </div>
   </div>
 </div>
@@ -450,36 +464,7 @@ export function exportProjectAsDossier(state) {
   <div class="cdc-card">
     <div class="pin">PARTIE 4 — CONTRAINTES</div>
     <div class="constraints">
-      <div class="constraint">
-        <div class="ic">⚙️</div>
-        <h4 contenteditable="true">Technique</h4>
-        <p contenteditable="true">Doit fonctionner sur Android et iPhone. Précisez les contraintes techniques de votre application.</p>
-      </div>
-      <div class="constraint">
-        <div class="ic">💰</div>
-        <h4 contenteditable="true">Économique</h4>
-        <p contenteditable="true">Application gratuite ou payante ? Avec ou sans publicité ? Précisez.</p>
-      </div>
-      <div class="constraint">
-        <div class="ic">🔒</div>
-        <h4 contenteditable="true">Légale &amp; éthique</h4>
-        <p contenteditable="true">Données personnelles, vie privée, RGPD. Précisez comment vous protégez les données.</p>
-      </div>
-      <div class="constraint">
-        <div class="ic">👁️</div>
-        <h4 contenteditable="true">Ergonomique</h4>
-        <p contenteditable="true">Facilité d'utilisation, accessibilité. Précisez votre cible et le niveau de simplicité attendu.</p>
-      </div>
-      <div class="constraint">
-        <div class="ic">🎨</div>
-        <h4 contenteditable="true">Esthétique</h4>
-        <p contenteditable="true">Charte graphique : couleurs, polices, style général. Précisez les choix de design.</p>
-      </div>
-      <div class="constraint">
-        <div class="ic">🌱</div>
-        <h4 contenteditable="true">Environnementale</h4>
-        <p contenteditable="true">Impact écologique du numérique. Précisez comment votre appli limite sa consommation.</p>
-      </div>
+      ${constraintsHtml(brief)}
     </div>
   </div>
 </div>
@@ -532,7 +517,7 @@ export function exportProjectAsDossier(state) {
       <div class="poster-name">
         <span class="label-mono" style="font-size:10px;" contenteditable="true">Notre application mobile</span>
         <h1 contenteditable="true">${title}</h1>
-        <p class="slogan" contenteditable="true">Slogan ou description courte de l'application.</p>
+        <p class="slogan" contenteditable="true">${escHtml(slogan)}</p>
       </div>
       <div class="poster-badge" contenteditable="true">4ᵉ · ${new Date().getFullYear()}</div>
     </div>
@@ -541,25 +526,18 @@ export function exportProjectAsDossier(state) {
       <div>
         <div class="poster-section-block">
           <h3>→ Le besoin</h3>
-          <p contenteditable="true">Résumez ici en 2-3 phrases le problème identifié et comment votre application le résout.</p>
+          <p contenteditable="true">${escHtml(needText)}</p>
         </div>
         <div class="poster-section-block">
           <h3>→ Les fonctions principales</h3>
           <ul>
-            <li contenteditable="true">Première fonction principale</li>
-            <li contenteditable="true">Deuxième fonction principale</li>
-            <li contenteditable="true">Troisième fonction</li>
-            <li contenteditable="true">Quatrième fonction</li>
-            <li contenteditable="true">Cinquième fonction (optionnel)</li>
+            ${functionsListHtml}
           </ul>
         </div>
         <div class="poster-section-block">
           <h3>→ Les contraintes</h3>
           <ul>
-            <li contenteditable="true">Gratuite, sans publicité</li>
-            <li contenteditable="true">Contrainte technique importante</li>
-            <li contenteditable="true">Protection des données</li>
-            <li contenteditable="true">Facilité d'utilisation</li>
+            ${constraintsListHtml}
           </ul>
         </div>
       </div>
@@ -579,10 +557,7 @@ export function exportProjectAsDossier(state) {
 
     <div class="poster-footer">
       <div class="team" contenteditable="true">
-        <span class="member">👑 PRÉNOM</span>
-        <span class="member">🎨 PRÉNOM</span>
-        <span class="member">✍️ PRÉNOM</span>
-        <span class="member">🎤 PRÉNOM</span>
+        ${teamFooterHtml}
       </div>
       <span contenteditable="true">COLLÈGE · CLASSE</span>
     </div>
